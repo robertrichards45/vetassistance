@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}{{ COMPANY_NAME }} | VA Claims Guidance{% endblock %}
+
+{% block content %}
+<section class="home-hero">
+  <div class="home-hero-copy">
+    <div class="home-kicker">{{ SITE.home_hero_kicker or "Veteran Benefits Assistance" }}</div>
+    <h1 class="home-title">{{ SITE.home_hero_title or "Build a clearer VA claim with practical guidance and secure tools." }}</h1>
+    <p class="home-subtitle">{{ SITE.home_hero_subtitle or "Use evidence checklists, benefits tools, and a secure client portal to organize the next step without guesswork." }}</p>
+    <div class="home-actions">
+      <a class="btn btn-primary" href="{{ SITE.home_primary_cta_url or url_for('onboard.become_client') }}">{{ SITE.home_primary_cta_text or "Become a Client" }}</a>
+      <a class="btn btn-outline-primary" href="{{ url_for('public.intelligent_benefits') }}">Benefits Finder</a>
+      <a class="btn btn-outline-primary" href="{{ url_for('public.pricing') }}">Pricing</a>
+    </div>
+    <div class="home-disclaimer">{{ SITE.home_disclaimer_box or "Educational support only. No guarantee of outcome." }}</div>
+  </div>
+  <div class="home-hero-card">
+    <div class="home-stat">
+      <span>Public tools</span>
+      <strong>Benefits finder, locator, guides</strong>
+    </div>
+    <div class="home-stat">
+      <span>Secure workflow</span>
+      <strong>Client portal, uploads, and messaging</strong>
+    </div>
+    <div class="home-stat">
+      <span>Next action</span>
+      <strong>{% if diy_access %}DIY tools available{% else %}Start with the public resources{% endif %}</strong>
+    </div>
+  </div>
+</section>
+
+<section class="home-grid">
+  <article class="home-panel">
+    <div class="home-panel-kicker">Start Here</div>
+    <h2>Choose the path that fits your situation.</h2>
+    <div class="home-link-list">
+      <a href="{{ url_for('onboard.become_client') }}">Become a client</a>
+      <a href="{{ url_for('public.intelligent_benefits') }}">Find likely and missed benefits</a>
+      <a href="{{ url_for('public.benefits_hub') }}">Browse benefits hub</a>
+      <a href="{{ url_for('public.contact') }}">Contact the team</a>
+    </div>
+  </article>
+
+  <article class="home-panel">
+    <div class="home-panel-kicker">What You Get</div>
+    <h2>Clearer evidence, fewer blind spots.</h2>
+    <ul class="home-feature-list">
+      <li>Condition and rating guidance in plain language</li>
+      <li>Secure portal for files, checklists, and messages</li>
+      <li>Benefits discovery by location and eligibility clues</li>
+      <li>Pricing and service options without hidden steps</li>
+    </ul>
+  </article>
+</section>
+
+<section class="home-pricing">
+  <div class="section-head">
+    <div class="home-panel-kicker">Pricing Snapshot</div>
+    <h2>Simple service options.</h2>
+  </div>
+  {% if pricing_items %}
+    <div class="pricing-grid">
+      {% for item in pricing_items[:3] %}
+        <article class="pricing-card">
+          <div class="pricing-name">{{ item.name }}</div>
+          {% if item.is_percent %}
+            <div class="pricing-price">{{ item.percent_of_backpay }}% of backpay</div>
+          {% else %}
+            <div class="pricing-price">${{ "%.2f"|format((item.price_cents or 0) / 100) }}</div>
+          {% endif %}
+          <p class="pricing-desc">{{ item.description or "Details available on the pricing page." }}</p>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="home-empty">Pricing details are being updated. Use the contact page for current options.</div>
+  {% endif %}
+  <a class="home-inline-link" href="{{ url_for('public.pricing') }}">View all pricing</a>
+</section>
+
+{% if comments %}
+<section class="home-comments" id="comments">
+  <div class="section-head">
+    <div class="home-panel-kicker">Community Feedback</div>
+    <h2>Recent approved comments.</h2>
+  </div>
+  <div class="comments-grid">
+    {% for comment in comments[:6] %}
+      <article class="comment-card">
+        <div class="comment-name">{{ comment.name }}</div>
+        {% if comment.branch %}
+          <div class="comment-branch">{{ comment.branch }}</div>
+        {% endif %}
+        <p>{{ comment.comment }}</p>
+      </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block head %}
+<style>
+.home-hero{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(280px,.95fr);gap:22px;align-items:stretch;padding:10px 0 24px;}
+.home-hero-copy,.home-hero-card,.home-panel,.pricing-card,.comment-card,.home-empty{background:#fff;border:1px solid rgba(15,23,42,.1);border-radius:24px;box-shadow:0 18px 40px rgba(15,23,42,.07);}
+.home-hero-copy{padding:34px;background:linear-gradient(145deg,#fff 0%,#f6f9fd 100%);}
+.home-kicker,.home-panel-kicker{display:inline-flex;align-items:center;padding:7px 12px;border-radius:999px;background:rgba(31,75,122,.08);border:1px solid rgba(31,75,122,.14);font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:.72rem;color:#163b66;}
+.home-title{margin:16px 0 12px;font-size:clamp(2.2rem,5vw,4rem);line-height:1.02;color:#0b1f3a;max-width:11ch;}
+.home-subtitle{margin:0;max-width:62ch;font-size:1.05rem;line-height:1.7;color:#4a5d73;}
+.home-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:22px;}
+.home-disclaimer{margin-top:20px;padding:12px 14px;border-radius:16px;background:#edf4fb;color:#325273;font-weight:700;font-size:.92rem;}
+.home-hero-card{padding:24px;display:flex;flex-direction:column;justify-content:center;gap:14px;background:linear-gradient(180deg,#14365f 0%,#1f4b7a 100%);color:#fff;}
+.home-stat{padding:14px 16px;border-radius:18px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.12);}
+.home-stat span{display:block;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;opacity:.78;font-weight:800;}
+.home-stat strong{display:block;margin-top:6px;font-size:1rem;line-height:1.4;}
+.home-grid,.pricing-grid,.comments-grid{display:grid;gap:18px;}
+.home-grid{grid-template-columns:repeat(2,minmax(0,1fr));margin:8px 0 24px;}
+.home-panel{padding:24px;}
+.home-panel h2,.section-head h2{margin:12px 0 0;color:#0b1f3a;font-size:1.7rem;line-height:1.15;}
+.home-link-list{display:grid;gap:10px;margin-top:18px;}
+.home-link-list a,.home-inline-link{font-weight:800;color:#1f4b7a;text-decoration:none;}
+.home-link-list a:hover,.home-inline-link:hover{text-decoration:underline;}
+.home-feature-list{margin:18px 0 0;padding-left:18px;color:#41556d;line-height:1.8;font-weight:600;}
+.home-pricing,.home-comments{display:flex;flex-direction:column;gap:18px;padding:8px 0 10px;}
+.section-head{display:flex;flex-direction:column;gap:12px;}
+.pricing-grid{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));}
+.pricing-card,.comment-card{padding:20px;}
+.pricing-name,.comment-name{font-weight:900;color:#0b1f3a;}
+.pricing-price{margin-top:8px;font-size:1.5rem;font-weight:900;color:#1f4b7a;}
+.pricing-desc,.comment-card p{margin:10px 0 0;color:#4a5d73;line-height:1.65;}
+.comment-branch{margin-top:6px;font-size:.82rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#6b7d91;}
+.comments-grid{grid-template-columns:repeat(auto-fit,minmax(240px,1fr));}
+.home-empty{padding:18px;color:#4a5d73;font-weight:700;}
+@media (max-width: 980px){
+  .home-hero,.home-grid{grid-template-columns:1fr;}
+}
+@media (max-width: 640px){
+  .home-hero-copy,.home-hero-card,.home-panel,.pricing-card,.comment-card{padding:20px;}
+  .home-title{max-width:none;}
+}
+</style>
+{% endblock %}
