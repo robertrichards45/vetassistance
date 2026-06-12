@@ -9,6 +9,7 @@ from app import create_app
 from app.extensions import init_db, SessionLocal
 from app.models import Base, Organization, User
 from app.models.user import Role
+from app.services.db_migration import count_rows, migrate_sqlite_to_postgres
 
 app = create_app()
 
@@ -54,6 +55,30 @@ def worker(queues: str):
 @app.cli.command("run")
 def run():
     app.run(host="127.0.0.1", port=5000)
+
+
+@app.cli.command("migrate-sqlite-to-postgres")
+@click.option("--sqlite-path", default="instance/app.db", show_default=True, help="Path to the source SQLite database.")
+@click.option("--truncate/--no-truncate", default=True, show_default=True, help="Clear destination tables before loading data.")
+@click.option("--batch-size", default=500, show_default=True, type=int, help="Rows per insert batch.")
+@click.option("--dry-run", is_flag=True, help="Inspect row counts without writing to PostgreSQL.")
+def migrate_sqlite_to_postgres_cmd(sqlite_path: str, truncate: bool, batch_size: int, dry_run: bool):
+    """Copy application data from the local SQLite database into PostgreSQL."""
+    engine = init_db(app)
+    results = migrate_sqlite_to_postgres(
+        sqlite_path=sqlite_path,
+        target_engine=engine,
+        truncate=truncate,
+        batch_size=batch_size,
+        dry_run=dry_run,
+    )
+    for result in results:
+        click.echo(f"{result.table}: {result.rows} row(s)")
+    if not dry_run:
+        counts = count_rows(engine, [result.table for result in results])
+        click.echo("Destination counts:")
+        for table_name, row_count in counts.items():
+            click.echo(f"{table_name}: {row_count} row(s)")
 
 if __name__ == "__main__":
     app.run()
