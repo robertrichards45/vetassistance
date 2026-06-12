@@ -1,0 +1,63 @@
+{% extends "layout.html" %}
+{% block title %}Nexus Builder • {{ client.display_name() }}{% endblock %}
+{% block content %}
+<section class="section" style="max-width: 1200px; margin: 0 auto;">
+  <div class="section-header">
+    <div>
+      <h2>Nexus Builder</h2>
+      <p class="muted">{{ client.display_name() }}</p>
+    </div>
+    <div class="section-actions">
+      <a class="btn secondary" href="{{ url_for('clients.view_client', client_id=client.id) }}">Back</a>
+    </div>
+  </div>
+
+  <div class="files-grid">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Generate Nexus Packet</div>
+          <div class="panel-sub">Creates a provider request letter (DOCX + web copy) and a client instructions email draft.</div>
+        </div>
+      </div>
+      <div class="panel-body">
+        <form method="post" action="{{ url_for('nexus.generate', client_id=client.id) }}" class="stack-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label style="grid-column:1/-1;">
+            Condition
+            <input name="condition" placeholder="e.g., PTSD, Migraines, Lumbar Strain" required>
+          </label>
+          <label>
+            Provider/Clinic name
+            <input name="provider" placeholder="e.g., Dr. Smith / ABC Ortho">
+          </label>
+          <label>
+            Target due date
+            <input type="date" name="due_date">
+          </label>
+          <div style="grid-column:1/-1; display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn btn-primary" type="submit">Generate Packet</button>
+            <span class="muted small">We will insert your AI summary automatically.</span>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">AI Snapshot (auto-inserted)</div>
+          <div class="panel-sub">Injected into the provider request as a high-level evidence summary.</div>
+        </div>
+        <a class="btn secondary" href="{{ url_for('ai.client_ai', client_id=client.id) }}">Open AI Guidance</a>
+      </div>
+      <div class="panel-body">
+        <div class="ai-box">
+          <div class="ai-title">Summary</div>
+          <div class="ai-text">{{ ctx.ai_summary or "No AI run yet. Run AI Guidance on the client to populate this section." }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

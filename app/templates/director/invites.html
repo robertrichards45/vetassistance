@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Director - Invite Links{% endblock %}
+{% block content %}
+
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Director</div>
+      <h1 class="page-title">Invite Links</h1>
+      <p class="page-sub">Create secure one-time invites for clients or employees.</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('director.dashboard') }}">Back</a>
+      <a class="btn btn-outline-light" href="{{ url_for('director.users') }}">Users</a>
+    </div>
+  </div>
+</section>
+
+<div class="admin-wrap">
+  {% if not config.get('SMTP_HOST') %}
+    <div class="card-shell">
+      <div class="card-body-pad">
+        <div class="panel-title">Email not configured</div>
+        <div class="muted">SMTP is not configured, so invite emails will not send yet. Add SMTP settings in `.env` to enable email delivery.</div>
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="admin-grid split-40">
+    <div class="card-shell">
+      <div class="card-body-pad">
+        <div class="panel-title">Create Invite</div>
+        <form method="post" action="{{ url_for('invites.create') }}" class="stack-form mt-2">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <label class="form-label">Email</label>
+          <input class="form-control" name="email" type="email" required>
+
+          <label class="form-label">Role</label>
+          <select class="form-control" name="role">
+            <option value="CLIENT">Client Portal</option>
+            <option value="EMPLOYEE">Employee</option>
+          </select>
+
+          <div class="d-flex gap-2 flex-wrap mt-3">
+            <button class="btn btn-primary" type="submit">Create Link</button>
+            <div class="muted small">Links are one-time use and tokens are never stored in plaintext.</div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="card-shell">
+      <div class="card-body-pad">
+        <div class="panel-title">Recent Invites</div>
+        <div class="table">
+          <div class="thead" style="grid-template-columns: 2fr 1fr 1fr;">
+            <div>Email</div><div>Role</div><div>Status</div>
+          </div>
+          {% for i in invites %}
+            <div class="trow" style="grid-template-columns: 2fr 1fr 1fr;">
+              <div>
+                <strong>{{ i.email }}</strong>
+                <div class="muted small">{{ i.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+              </div>
+              <div class="pill ready">{{ i.role }}</div>
+              <div class="pill {{ 'ready' if i.is_used else 'warn' }}">{{ 'USED' if i.is_used else 'OPEN' }}</div>
+            </div>
+          {% else %}
+            <div class="muted" style="padding:16px;">No invites yet.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

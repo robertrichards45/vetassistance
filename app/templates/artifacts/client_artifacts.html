@@ -1,0 +1,69 @@
+{% extends "layout.html" %}
+{% block title %}Generated Docs - {{ client.display_name() }}{% endblock %}
+{% block content %}
+<div class="row">
+  <div>
+    <h2>Generated Docs</h2>
+    <div class="muted small">{{ client.display_name() }}</div>
+  </div>
+  <div class="row-actions">
+    <a class="btn secondary" href="{{ url_for('clients.view_client', client_id=client.id) }}">Back</a>
+  </div>
+</div>
+
+<div class="card">
+  <form method="get" class="search">
+    <input name="q" value="{{ q }}" placeholder="Search generated docs...">
+    <button class="btn secondary" type="submit">Search</button>
+  </form>
+</div>
+
+<div class="card" style="margin-top:14px;">
+  <h3>Artifacts</h3>
+  <div class="table">
+    <div class="thead" style="grid-template-columns: 2fr 140px 1fr auto auto auto auto;">
+      <div>Title</div><div>Type</div><div>Created</div><div></div><div></div><div></div><div></div>
+    </div>
+    {% for a in arts %}
+      <div class="trow" style="grid-template-columns: 2fr 140px 1fr auto auto auto auto;">
+        <div><strong>{{ a.title }}</strong><div class="muted small">{{ a.artifact_type }}</div></div>
+        <div class="pill ready">{{ a.artifact_type }}</div>
+        <div class="muted small">{{ a.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+        <div>
+          {% if a.pdf_path %}
+            <a class="btn tiny" href="{{ url_for('exports.download_artifact_pdf', artifact_id=a.id) }}">PDF</a>
+          {% else %}
+            <span class="muted small">PDF</span>
+          {% endif %}
+        </div>
+        <div>
+          {% if a.docx_path %}
+            <a class="btn tiny" href="{{ url_for('exports.download_artifact', artifact_id=a.id) }}">DOCX</a>
+          {% else %}
+            <span class="muted small">DOCX</span>
+          {% endif %}
+        </div>
+        <div><a class="btn tiny secondary" href="{{ url_for('exports.email_draft', artifact_id=a.id) }}">Email Draft</a></div>
+        <div>
+          {% if a.artifact_type.startswith('CRSC') %}
+          <form method="post" action="{{ url_for('artifacts.delete_artifact', artifact_id=a.id) }}" onsubmit="return confirmCrscDelete();">
+          {% else %}
+          <form method="post" action="{{ url_for('artifacts.delete_artifact', artifact_id=a.id) }}" onsubmit="return confirm('Delete this generated document?');">
+          {% endif %}
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn tiny secondary" type="submit">Delete</button>
+          </form>
+        </div>
+      </div>
+    {% else %}
+      <div class="muted" style="padding:16px;">No generated docs yet.</div>
+    {% endfor %}
+  </div>
+</div>
+<script>
+function confirmCrscDelete(){
+  const confirmText = prompt('Type DELETE to remove this CRSC document.');
+  return (confirmText || '').trim().toUpperCase() === 'DELETE';
+}
+</script>
+{% endblock %}

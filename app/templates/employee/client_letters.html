@@ -1,0 +1,62 @@
+{% extends "layout.html" %}
+{% block title %}Draft Letters • {{ client.display_name() }}{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h2>Draft Letters</h2>
+  <p>Client: <strong>{{ client.display_name() }}</strong></p>
+  {% if condition %}
+    <p>Condition focus: <strong>{{ condition }}</strong></p>
+  {% else %}
+    <p class="small">No condition selected (open from Scan Results for best results).</p>
+  {% endif %}
+</div>
+
+<div class="grid grid-2" style="margin-top:14px;">
+  <div class="card">
+    <h2>Welcome Letter (Preview)</h2>
+    <p>Dear {{ client.display_name() }},</p>
+    <p>Thank you for working with our office regarding your VA disability claim. This packet explains what we need from you to build a complete, well-supported submission.</p>
+    {% if condition %}
+      <p>Based on a preliminary scan of your records, we will begin organizing evidence related to <strong>{{ condition }}</strong>.</p>
+    {% endif %}
+    <p>Sincerely,<br>Your Claims Support Team</p>
+  </div>
+
+  <div class="card">
+    <h2>Buddy Statement Template</h2>
+    <pre>
+I, ______________________, make the following statement in support of ______________________.
+
+1) I know the Veteran from: _____________________________________________
+
+2) What I personally observed (dates/timeframes, specific examples):
+   ______________________________________________________________________
+   ______________________________________________________________________
+
+3) How this affected the Veteran (work, sleep, daily life):
+   ______________________________________________________________________
+   ______________________________________________________________________
+
+Signature: ___________________________   Date: __________________________
+Printed Name: ________________________   Contact (optional): _____________
+    </pre>
+  </div>
+</div>
+
+<div class="card" style="margin-top:14px;">
+  <h2>Evidence Checklist (Starter)</h2>
+  <ul>
+    <li>Recent treatment notes (VA and private)</li>
+    <li>Diagnostic testing / imaging (MRI/X-ray/sleep study)</li>
+    <li>Medication list and history</li>
+    <li>Work impact documentation (accommodations, leave, performance issues) if applicable</li>
+    <li>Personal statement (VA Form 21-4138 style narrative)</li>
+    <li>Buddy statements (1–3 strong statements are usually better than many weak ones)</li>
+  </ul>
+
+  <div class="row" style="margin-top:12px;">
+    <a class="btn" href="{{ url_for('employee_client_detail', client_id=client.id) }}">Back to Client</a>
+  </div>
+</div>
+{% endblock %}

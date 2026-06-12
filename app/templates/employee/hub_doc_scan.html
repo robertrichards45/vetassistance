@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Employee Hub - Document Scan{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Employee Hub</div>
+      <h1 class="page-title">Document Quality Scan</h1>
+      <p class="page-sub">Check readability and OCR health before using evidence.</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('employee.hub') }}">Back to Hub</a>
+    </div>
+  </div>
+</section>
+
+<div class="admin-wrap">
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <form method="get" class="row" style="gap:12px;align-items:end;">
+        <div style="min-width:240px;">
+          <label>Client</label>
+          <select name="client_id">
+            <option value="">Select a client</option>
+            {% for c in clients %}
+              <option value="{{ c.id }}" {% if selected_client and c.id == selected_client.id %}selected{% endif %}>{{ c.display_name() }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <button class="btn btn-primary">Open</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if selected_client %}
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <div class="panel-title">Scan a Document</div>
+      <form method="post" action="{{ url_for('employee.hub_doc_scan_post') }}" class="row" style="gap:12px;align-items:end;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="client_id" value="{{ selected_client.id }}">
+        <div style="min-width:280px;">
+          <label>Document</label>
+          <select name="document_id">
+            {% for d in documents %}
+              <option value="{{ d.id }}">{{ d.filename }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <button class="btn btn-primary">Scan now</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if scan %}
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <div class="panel-title">Scan Result</div>
+      <div class="muted" style="margin-top:8px;">Score: <strong>{{ scan.score }}</strong></div>
+      <div class="muted">{{ scan.summary }}</div>
+      <div class="table" style="margin-top:12px;">
+        <div class="thead" style="grid-template-columns: 1fr 2fr;">
+          <div>Level</div><div>Detail</div>
+        </div>
+        {% for it in scan_issues %}
+          <div class="trow" style="grid-template-columns: 1fr 2fr;">
+            <div class="pill {{ 'ready' if it.level == 'green' else 'warn' if it.level == 'yellow' else 'danger' }}">{{ it.level }}</div>
+            <div>{{ it.title }} - {{ it.detail }}</div>
+          </div>
+        {% else %}
+          <div class="muted" style="padding:16px;">No issues detected.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

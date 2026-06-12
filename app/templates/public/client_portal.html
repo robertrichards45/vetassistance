@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card vca-card">
+      <div class="card-body p-4">
+        <h1 class="h3 mb-1">Veteran Upload</h1>
+        <div class="text-muted mb-3">Secure document upload by claim number. Mobile-friendly.</div>
+
+        {% if stage == 'start' %}
+          <form method="post">
+            <input type="hidden" name="step" value="start">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Email used on your client record</label>
+                <input class="form-control" name="email" type="email" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Claim number</label>
+                <input class="form-control" name="claim_number" required>
+              </div>
+              <div class="col-12 d-flex gap-2 flex-wrap">
+                <button class="btn btn-primary" type="submit">Continue</button>
+                <a class="btn btn-outline-primary" href="/become-client">Not a client yet?</a>
+              </div>
+            </div>
+          </form>
+        {% endif %}
+
+        {% if stage == 'verify' %}
+          <form method="post">
+            <input type="hidden" name="step" value="verify">
+            <div class="mb-3">
+              <label class="form-label">Verification code</label>
+              <input class="form-control" name="code" required>
+              <div class="form-text">We emailed a short code to confirm access.</div>
+            </div>
+            <button class="btn btn-primary" type="submit">Verify</button>
+          </form>
+        {% endif %}
+
+        {% if stage == 'upload' %}
+          <form method="post" enctype="multipart/form-data" id="publicClientPortalUploadForm">
+            <input type="hidden" name="step" value="upload">
+            <div class="mb-3">
+              <label class="form-label">Document category</label>
+              <select class="form-select" name="category">
+                <option value="Decision Letters">Decision Letters</option>
+                <option value="C&P Exams">C&P Exams</option>
+                <option value="Service Treatment Records (STRs)">Service Treatment Records (STRs)</option>
+                <option value="Private Treatment Records">Private Treatment Records</option>
+                <option value="Buddy/Lay Statements">Buddy/Lay Statements</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Choose file</label>
+              <input class="form-control" type="file" name="file" id="publicClientPortalFile" required>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+              <button class="btn btn-primary" type="submit" id="publicClientPortalUploadBtn">Upload</button>
+              <a class="btn btn-outline-secondary" href="/client/portal">Start over</a>
+            </div>
+            <div id="publicClientPortalUploadStatus" class="muted small" style="margin-top:8px; display:none;">Uploading...</div>
+            <div id="publicClientPortalUploadProgress" class="upload-progress" style="display:none;">
+              <div id="publicClientPortalUploadProgressBar" class="upload-progress-bar"></div>
+            </div>
+            <div id="publicClientPortalUploadProgressText" class="upload-progress-text" style="display:none;">0%</div>
+          </form>
+        {% endif %}
+
+        {% if error %}
+          <div class="alert alert-danger mt-3 mb-0">{{ error }}</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card vca-card">
+      <div class="card-body p-4">
+        <h2 class="h6 mb-2">Tips for a clean upload</h2>
+        <ul class="mb-0">
+          <li>Upload by category so your records are easy to find later.</li>
+          <li>If you have multiple dates, upload the most recent first.</li>
+          <li>Photos are OK — PDFs are best when possible.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var form = document.getElementById('publicClientPortalUploadForm');
+  if(!form){ return; }
+  var uploadBtn = document.getElementById('publicClientPortalUploadBtn');
+  var statusEl = document.getElementById('publicClientPortalUploadStatus');
+  var progressWrap = document.getElementById('publicClientPortalUploadProgress');
+  var progressBar = document.getElementById('publicClientPortalUploadProgressBar');
+  var progressText = document.getElementById('publicClientPortalUploadProgressText');
+  if(!uploadBtn || !statusEl || !progressWrap || !progressBar || !progressText){ return; }
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    if(form.dataset.busy === '1'){ return; }
+    form.dataset.busy = '1';
+    uploadBtn.disabled = true;
+    uploadBtn.textContent = 'Uploading...';
+    statusEl.textContent = 'Uploading...';
+    statusEl.style.display = 'block';
+    progressWrap.style.display = 'block';
+    progressText.style.display = 'block';
+    progressBar.style.width = '0%';
+    progressText.textContent = '0%';
+
+    var xhr = new XMLHttpRequest();
+    xhr.open(form.method || 'POST', form.action);
+    xhr.upload.addEventListener('progress', function(evt){
+      if(!evt.lengthComputable) return;
+      var pct = Math.min(100, Math.max(1, Math.round((evt.loaded / evt.total) * 100)));
+      progressBar.style.width = pct + '%';
+      progressText.textContent = pct + '%';
+    });
+    xhr.onreadystatechange = function(){
+      if(xhr.readyState !== 4) return;
+      form.dataset.busy = '0';
+      if(xhr.status >= 200 && xhr.status < 400){
+        progressBar.style.width = '100%';
+        progressText.textContent = '100%';
+        var redirectUrl = xhr.responseURL;
+        if(redirectUrl){
+          window.location = redirectUrl;
+        } else {
+          window.location.reload();
+        }
+        return;
+      }
+      uploadBtn.disabled = false;
+      uploadBtn.textContent = 'Upload';
+      statusEl.textContent = 'Upload failed. Please try again.';
+    };
+    xhr.onerror = function(){
+      form.dataset.busy = '0';
+      uploadBtn.disabled = false;
+      uploadBtn.textContent = 'Upload';
+      statusEl.textContent = 'Upload failed. Please try again.';
+    };
+    var formData = new FormData(form);
+    xhr.send(formData);
+  });
+})();
+</script>
+{% endblock %}

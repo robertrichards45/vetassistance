@@ -1,0 +1,97 @@
+{% extends "layout.html" %}
+{% block title %}Receipt - {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<section class="pay-hero">
+  <div>
+    <div class="pay-kicker">Payment Receipt</div>
+    <h2>Thank you for your payment</h2>
+    <p class="muted">A confirmation has been recorded and is available below.</p>
+  </div>
+  <div class="pay-badge">
+    <div class="pay-badge-label">Client</div>
+    <div class="pay-badge-name">{{ client.display_name() }}</div>
+  </div>
+</section>
+
+<div class="card pay-card">
+  <div class="pay-receipt-grid">
+    <div class="pay-receipt-item">
+      <div class="muted small">Amount</div>
+      <div class="pay-receipt-strong">${{ '%.2f'|format((session.amount_total or 0)/100) }}</div>
+    </div>
+    <div class="pay-receipt-item">
+      <div class="muted small">Status</div>
+      <div class="pay-receipt-pill">{{ session.payment_status }}</div>
+    </div>
+  <div class="pay-receipt-item">
+    <div class="muted small">Receipt ID</div>
+    <div class="pay-receipt-strong">{{ session.id }}</div>
+  </div>
+  <div class="pay-receipt-item">
+    <div class="muted small">Stripe Receipt</div>
+    {% if receipt_url %}
+      <div><a class="pay-receipt-link" href="{{ receipt_url }}" target="_blank" rel="noopener">View receipt</a></div>
+    {% else %}
+      <div class="muted small">Not available</div>
+    {% endif %}
+  </div>
+  <div class="pay-receipt-item">
+    <div class="muted small">Email</div>
+    <div class="pay-receipt-strong">{{ session.customer_email or current_user.email }}</div>
+  </div>
+  </div>
+  <div class="muted small" style="margin-top:12px;">Need help? Message us in your Client Portal.</div>
+</div>
+
+<style>
+.pay-hero{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  background:linear-gradient(135deg,#0B1F3A 0%, #12325C 60%, #1E4E8C 100%);
+  color:#fff;
+  padding:18px 20px;
+  border-radius:16px;
+  box-shadow:0 20px 40px rgba(2,8,23,.18);
+}
+.pay-kicker{ text-transform:uppercase; letter-spacing:.12em; font-size:11px; opacity:.8; }
+.pay-hero h2{ margin:6px 0 6px; font-weight:900; }
+.pay-badge{
+  background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.25);
+  padding:10px 14px;
+  border-radius:12px;
+}
+.pay-badge-label{ font-size:11px; text-transform:uppercase; letter-spacing:.12em; opacity:.8; }
+.pay-badge-name{ font-weight:800; }
+.pay-card{ margin-top:16px; }
+.pay-receipt-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap:12px;
+}
+.pay-receipt-item{
+  background:#F8FAFC;
+  border:1px solid rgba(15,23,42,.08);
+  border-radius:12px;
+  padding:12px 14px;
+}
+.pay-receipt-strong{ font-weight:900; }
+.pay-receipt-link{ font-weight:800; color:#1D4ED8; text-decoration:none; }
+.pay-receipt-pill{
+  display:inline-block;
+  background:#DCFCE7;
+  border:1px solid #86EFAC;
+  color:#166534;
+  font-weight:800;
+  font-size:12px;
+  padding:4px 10px;
+  border-radius:999px;
+  text-transform:uppercase;
+}
+@media (max-width: 760px){
+  .pay-hero{ flex-direction:column; align-items:flex-start; }
+}
+</style>
+{% endblock %}

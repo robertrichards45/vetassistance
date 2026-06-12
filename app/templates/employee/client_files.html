@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .vca-wrap{max-width:1200px;margin:0 auto;padding:18px}
+  .vca-top{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;margin-bottom:14px}
+  .vca-title{margin:0}
+  .vca-sub{color:var(--text-soft,#4b5563);margin-top:4px;font-size:.95rem}
+  .vca-card{background:var(--bg-elevated,#fff);border:1px solid var(--border-subtle,rgba(148,163,184,.35));border-radius:var(--radius-lg,16px);box-shadow:var(--shadow-soft,0 18px 40px rgba(2,6,23,.08));padding:14px}
+  .vca-row{display:grid;grid-template-columns:1.25fr .75fr;gap:12px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;padding:10px 12px;font-weight:700;border:1px solid transparent;text-decoration:none;cursor:pointer}
+  .btn-primary{background:var(--accent,#1f7a6d);color:#fff}
+  .btn-secondary{background:rgba(148,163,184,.14);border-color:rgba(148,163,184,.35);color:var(--text,#111827)}
+  .btn-danger{background:rgba(185,28,28,.12);border-color:rgba(185,28,28,.25);color:var(--danger,#b91c1c)}
+  .btn-small{padding:8px 10px;border-radius:10px;font-size:.92rem}
+  .muted{color:var(--text-soft,#4b5563)}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;font-size:.92rem}
+  .input, .textarea{width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--border-subtle,rgba(148,163,184,.35));background:var(--bg-elevated-soft,#f9fafb);outline:none}
+  .textarea{min-height:104px;resize:vertical}
+  .input:focus, .textarea:focus{box-shadow:0 0 0 4px rgba(31,122,109,.12);border-color:rgba(31,122,109,.35)}
+  table{width:100%;border-collapse:separate;border-spacing:0}
+  thead th{font-size:.82rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-softer,#6b7280);text-align:left;padding:12px 10px;border-bottom:1px solid rgba(148,163,184,.35)}
+  tbody td{padding:12px 10px;border-bottom:1px solid rgba(148,163,184,.22);vertical-align:middle}
+  tbody tr:hover{background:rgba(148,163,184,.10)}
+  .chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 10px;font-weight:800;font-size:.82rem;border:1px solid rgba(148,163,184,.35);background:rgba(148,163,184,.12)}
+  .stack{display:flex;flex-direction:column;gap:10px}
+  .inline{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .right{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+  @media (max-width:980px){ .vca-row{grid-template-columns:1fr} }
+</style>
+
+<div class="vca-wrap">
+  <div class="vca-top">
+    <div>
+      <h2 class="vca-title">{{ client.last_name }}, {{ client.first_name }}</h2>
+      <div class="vca-sub">
+        <span class="chip">Claim <span class="mono">{{ client.claim_number }}</span></span>
+        <span class="chip">{{ client.status or 'Active' }}</span>
+        {% if client.assigned_to_name %}<span class="chip">Assigned: {{ client.assigned_to_name }}</span>{% endif %}
+      </div>
+    </div>
+
+    <div class="inline">
+      <a class="btn btn-secondary" href="{{ url_for('clients_list') }}">← Back to Clients</a>
+      <a class="btn btn-secondary" href="{{ url_for('client_edit', client_id=client.id) }}">Edit Client</a>
+    </div>
+  </div>
+
+  <div class="vca-row">
+    <!-- LEFT: Files -->
+    <div class="stack">
+      <div class="vca-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+          <div>
+            <div style="font-size:1.05rem;font-weight:900;">Client Files</div>
+            <div class="muted" style="margin-top:4px;">Upload PDFs, images, or supporting docs to the client’s vault.</div>
+          </div>
+        </div>
+
+        <form method="post" action="{{ url_for('client_upload', client_id=client.id) }}" enctype="multipart/form-data" style="margin-top:12px;display:grid;gap:10px;">
+          <input class="input" type="file" name="files" multiple />
+          <div class="inline">
+            <button class="btn btn-primary" type="submit">Upload</button>
+            <span class="muted" style="font-size:.92rem;">Tip: you can select multiple files at once.</span>
+          </div>
+        </form>
+      </div>
+
+      <div class="vca-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+          <div style="font-size:1.05rem;font-weight:900;">Documents</div>
+          <form method="post" action="{{ url_for('client_ai_scan', client_id=client.id) }}" style="margin:0;">
+            <button class="btn btn-secondary btn-small" type="submit" {% if not AI_ENABLED %}disabled title="AI not configured on server"{% endif %}>Run AI Scan</button>
+          </form>
+        </div>
+
+        <div style="overflow:auto;margin-top:10px;">
+          <table>
+            <thead>
+              <tr>
+                <th style="min-width:40px;">Use</th>
+                <th style="min-width:320px;">Filename</th>
+                <th style="min-width:160px;">Uploaded</th>
+                <th style="min-width:140px;">Type</th>
+                <th style="min-width:260px;"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for f in files %}
+                <tr>
+                  <td>
+                    <input type="checkbox" name="ai_file_ids" value="{{ f.id }}" form="ai-guidance-form">
+                  </td>
+                  <td>
+                    <div style="font-weight:800;">{{ f.original_name }}</div>
+                    <div class="muted mono" style="font-size:.82rem;">{{ f.stored_name }}</div>
+                  </td>
+                  <td class="muted">{{ f.uploaded_at.strftime('%Y-%m-%d %H:%M') if f.uploaded_at else '' }}</td>
+                  <td class="muted">{{ f.content_type or '—' }}</td>
+                  <td>
+                    <div class="right">
+                      <a class="btn btn-secondary btn-small" href="{{ url_for('download_client_file', client_id=client.id, file_id=f.id) }}">Download</a>
+                      <form method="post" action="{{ url_for('delete_client_file', client_id=client.id, file_id=f.id) }}" style="display:inline;"
+                            onsubmit="return confirm('Delete this file? This cannot be undone.');">
+                        <button class="btn btn-danger btn-small" type="submit">Delete</button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              {% else %}
+                <tr>
+                  <td colspan="5" class="muted" style="padding:18px;">No files uploaded yet.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: AI Guidance + History -->
+    <div class="stack">
+      <div class="vca-card">
+        <div style="font-size:1.05rem;font-weight:900;">Ask AI (Guidance)</div>
+        <div class="muted" style="margin-top:4px;">Ask a question about the client’s record set. Select specific documents on the left to narrow the focus.</div>
+
+        <form id="ai-guidance-form" method="post" action="{{ url_for('client_ai_guidance', client_id=client.id) }}" style="margin-top:12px;display:grid;gap:10px;">
+          <textarea class="textarea" name="question" placeholder="Example: Based on these documents, what evidence is missing for migraines?"></textarea>
+          <button class="btn btn-primary" type="submit" {% if not AI_ENABLED %}disabled title="AI not configured on server"{% endif %}>Get Guidance</button>
+          {% if not AI_ENABLED %}
+            <div class="muted" style="font-size:.9rem;">AI isn’t enabled on this server. Set <span class="mono">OPENAI_API_KEY</span> and restart.</div>
+          {% endif %}
+        </form>
+      </div>
+
+      <div class="vca-card">
+        <div style="font-size:1.05rem;font-weight:900;">Saved Guidance</div>
+        <div class="muted" style="margin-top:4px;">Previous Q&amp;A for quick reference.</div>
+
+        <div style="display:grid;gap:10px;margin-top:12px;">
+          {% for g in guidance %}
+            <div style="border:1px solid rgba(148,163,184,.28);border-radius:14px;padding:12px;background:rgba(148,163,184,.08);">
+              <div class="muted" style="font-size:.82rem;margin-bottom:6px;">
+                {{ g.created_at.strftime('%Y-%m-%d %H:%M') if g.created_at else '' }}
+              </div>
+              <div style="font-weight:900;">Q: {{ g.question }}</div>
+              <div style="margin-top:8px;white-space:pre-wrap;line-height:1.35;">{{ g.answer }}</div>
+            </div>
+          {% else %}
+            <div class="muted" style="padding:8px;">No saved guidance yet.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

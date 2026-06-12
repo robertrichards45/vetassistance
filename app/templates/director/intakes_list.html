@@ -1,0 +1,79 @@
+{% extends "layout.html" %}
+{% block title %}Intake Requests • {{ COMPANY_NAME }}{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="section-header">
+    <h2>Intake Requests</h2>
+    <p>Review and approve/deny incoming “Become a Client” submissions.</p>
+  </div>
+
+  <div class="card">
+    {% if intakes %}
+      <table class="table">
+        <thead>
+          <tr>
+            <th>When</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Branch</th>
+            <th>Status</th>
+            <th>Linked Client</th>
+            <th style="width:220px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for i in intakes %}
+            <tr>
+              <td>{{ i.created_at.strftime("%Y-%m-%d") if i.created_at else "—" }}</td>
+              <td>{{ i.first_name }} {{ i.last_name }}</td>
+              <td>{{ i.email }}</td>
+              <td>{{ i.phone or "—" }}</td>
+              <td>{{ i.branch or "—" }}</td>
+              <td>{{ i.status }}</td>
+              <td>
+                {% if i.linked_client_id %}
+                  <a href="{{ url_for('client_files', client_id=i.linked_client_id) }}">Client #{{ i.linked_client_id }}</a>
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td>
+                {% if i.status == "New" %}
+                  <form method="post"
+                        action="{{ url_for('director_intake_approve', intake_id=i.id) }}"
+                        style="display:inline;"
+                        onsubmit="return confirm('Approve this request and create a client with a new claim #?');">
+                    <button type="submit" class="btn btn-sm btn-primary">
+                      Approve &amp; Create Client
+                    </button>
+                  </form>
+                  <form method="post"
+                        action="{{ url_for('director_intake_deny', intake_id=i.id) }}"
+                        style="display:inline; margin-left:4px;"
+                        onsubmit="return confirm('Mark this intake as denied?');">
+                    <button type="submit" class="btn btn-sm btn-danger">
+                      Deny
+                    </button>
+                  </form>
+                {% else %}
+                  <span class="small">No actions ({{ i.status }})</span>
+                {% endif %}
+              </td>
+            </tr>
+            <tr>
+              <td colspan="8" style="font-size:12px; color:#4b5563; background:#f9fafb;">
+                <strong>Notes:</strong>
+                {{ i.description or "—" }}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p style="margin:0;">No intake requests yet.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

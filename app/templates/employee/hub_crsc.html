@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% block title %}Employee Hub - CRSC{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Employee Hub</div>
+      <h1 class="page-title">CRSC Packet Workspace</h1>
+      <p class="page-sub">CRSC is a DoD program, not a VA benefit. Use this workspace to assemble the packet.</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('employee.hub') }}">Back to Hub</a>
+      <a class="btn btn-outline-light" href="{{ url_for('public.crsc') }}">CRSC Public Page</a>
+    </div>
+  </div>
+</section>
+
+<div class="admin-wrap">
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <div class="panel-title">Select Client</div>
+      <form method="get" class="row" style="gap:12px;align-items:end;">
+        <div style="min-width:260px;">
+          <label class="form-label">Client</label>
+          <select class="form-control" name="client_id">
+            <option value="">Select client...</option>
+            {% for c in clients %}
+              <option value="{{ c.id }}" {{ "selected" if selected_client and selected_client.id == c.id else "" }}>{{ c.display_name() }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button class="btn btn-primary" type="submit">Load</button>
+      </form>
+    </div>
+  </div>
+
+  {% if selected_client %}
+  <div class="card-shell" style="margin-top:12px;">
+    <div class="card-body-pad">
+      <div class="panel-title">CRSC Intake Questionnaire</div>
+      <div class="muted small">Capture the key eligibility factors for a clean CRSC analysis.</div>
+      <form method="post" action="{{ url_for('employee.hub_crsc_intake_save') }}" style="margin-top:10px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="client_id" value="{{ selected_client.id }}">
+        <div class="grid2">
+          <div>
+            <label class="form-label">Branch</label>
+            <select class="form-control" name="branch">
+              <option value="">Select</option>
+              {% set _branch = crsc_form.get("branch", "") %}
+              <option {{ "selected" if _branch == "Army" else "" }}>Army</option>
+              <option {{ "selected" if _branch == "Navy" else "" }}>Navy</option>
+              <option {{ "selected" if _branch == "Marine Corps" else "" }}>Marine Corps</option>
+              <option {{ "selected" if _branch == "Air Force" else "" }}>Air Force</option>
+              <option {{ "selected" if _branch == "Space Force" else "" }}>Space Force</option>
+              <option {{ "selected" if _branch == "Coast Guard" else "" }}>Coast Guard</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Retirement type</label>
+            {% set _ret = crsc_form.get("retirement_type", "") %}
+            <select class="form-control" name="retirement_type">
+              <option value="">Select</option>
+              <option {{ "selected" if _ret == "Regular" else "" }}>Regular</option>
+              <option {{ "selected" if _ret == "Medical" else "" }}>Medical</option>
+              <option {{ "selected" if _ret == "TDRL" else "" }}>TDRL</option>
+              <option {{ "selected" if _ret == "PDRL" else "" }}>PDRL</option>
+              <option {{ "selected" if _ret == "Reserve" else "" }}>Reserve</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid2" style="margin-top:10px;">
+          <div>
+            <label class="form-label">VA rating (%)</label>
+            <input class="form-control" name="va_rating" value="{{ crsc_form.get('va_rating','') }}" placeholder="e.g., 60">
+          </div>
+          <div>
+            <label class="form-label">Combat indicator</label>
+            {% set _ci = crsc_form.get("combat_indicator", "") %}
+            <select class="form-control" name="combat_indicator">
+              <option value="">Select</option>
+              <option {{ "selected" if _ci == "Armed conflict" else "" }}>Armed conflict</option>
+              <option {{ "selected" if _ci == "Hazardous service" else "" }}>Hazardous service</option>
+              <option {{ "selected" if _ci == "Simulated war" else "" }}>Simulated war</option>
+              <option {{ "selected" if _ci == "Instrumentality of war" else "" }}>Instrumentality of war</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:10px;">
+          <label class="form-label">Deployment history</label>
+          <textarea class="form-control" name="deployment_history" rows="2" placeholder="Locations, dates, and operations.">{{ crsc_form.get("deployment_history","") }}</textarea>
+        </div>
+        <div class="grid2" style="margin-top:10px;">
+          <div>
+            <label class="form-label">Awards / decorations</label>
+            <input class="form-control" name="awards" value="{{ crsc_form.get('awards','') }}" placeholder="CAB, CIB, Purple Heart, etc.">
+          </div>
+          <div>
+            <label class="form-label">Injury origin summary</label>
+            <input class="form-control" name="injury_origin" value="{{ crsc_form.get('injury_origin','') }}" placeholder="Event or incident description">
+          </div>
+        </div>
+        <div class="grid2" style="margin-top:10px;">
+          {% set _va = crsc_form.get("receives_va_comp", "") %}
+          {% set _rp = crsc_form.get("receives_retired_pay", "") %}
+          <div>
+            <label class="form-label">Receiving VA compensation?</label>
+            <select class="form-control" name="receives_va_comp">
+              <option value="">Select</option>
+              <option {{ "selected" if _va == "Yes" else "" }}>Yes</option>
+              <option {{ "selected" if _va == "No" else "" }}>No</option>
+              <option {{ "selected" if _va == "Unknown" else "" }}>Unknown</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Receiving DoD retired pay?</label>
+            <select class="form-control" name="receives_retired_pay">
+              <option value="">Select</option>
+              <option {{ "selected" if _rp == "Yes" else "" }}>Yes</option>
+              <option {{ "selected" if _rp == "No" else "" }}>No</option>
+              <option {{ "selected" if _rp == "Unknown" else "" }}>Unknown</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:10px;">
+          <label class="form-label">Notes</label>
+          <textarea class="form-control" name="notes" rows="3" placeholder="Any denial history or missing evidence notes.">{{ crsc_form.get("notes","") }}</textarea>
+        </div>
+        <button class="btn btn-outline-primary" type="submit" style="margin-top:10px;">Save CRSC Intake</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card-shell" style="margin-top:12px;">
+    <div class="card-body-pad">
+      <div class="panel-title">CRSC Packet Checklist</div>
+      <div class="muted small">Confirm each item is included before submission.</div>
+      <ul class="muted small" style="margin-top:8px;">
+        <li>Service-specific CRSC application (Army / Navy / Marine Corps / Air Force)</li>
+        <li>VA rating decision(s) and code sheet</li>
+        <li>Medical evidence for combat-related condition(s)</li>
+        <li>Line-of-duty / incident reports</li>
+        <li>Combat awards, deployment records, or hazardous duty evidence</li>
+        <li>CRSC nexus statement (combat category)</li>
+      </ul>
+      <div class="row" style="gap:10px;flex-wrap:wrap;margin-top:8px;">
+        <a class="btn btn-outline-primary" href="{{ url_for('documents.client_documents', client_id=selected_client.id) }}">Open Documents</a>
+        <a class="btn btn-outline-primary" href="{{ url_for('forms.va_packet', client_id=selected_client.id) }}">VA Forms Packet</a>
+        <form method="post" action="{{ url_for('employee.hub_crsc_generate') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="client_id" value="{{ selected_client.id }}">
+          <button class="btn btn-primary" type="submit">Generate CRSC Packet (PDF)</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-shell" style="margin-top:12px;">
+    <div class="card-body-pad">
+      <div class="panel-title">CRSC Nexus Narrative</div>
+      <div class="muted small">Generate a combat-nexus narrative for board review.</div>
+      <form method="post" action="{{ url_for('employee.hub_crsc_generate_nexus') }}" style="margin-top:10px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="client_id" value="{{ selected_client.id }}">
+        <div class="grid2">
+          <div>
+            <label class="form-label">Combat category</label>
+            <select class="form-control" name="combat_category">
+              <option value="">Select</option>
+              <option>Armed conflict</option>
+              <option>Hazardous service</option>
+              <option>Simulated war</option>
+              <option>Instrumentality of war</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Condition</label>
+            <input class="form-control" name="condition" placeholder="Condition name">
+          </div>
+        </div>
+        <div style="margin-top:10px;">
+          <label class="form-label">Evidence used</label>
+          <textarea class="form-control" name="evidence" rows="3" placeholder="List key evidence, dates, and records."></textarea>
+        </div>
+        <button class="btn btn-outline-primary" type="submit" style="margin-top:10px;">Generate Nexus Narrative (PDF)</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card-shell" style="margin-top:12px;">
+    <div class="card-body-pad">
+      <div class="panel-title">Documents on File</div>
+      {% if documents %}
+        <div class="table" style="margin-top:8px;">
+          <div class="thead" style="grid-template-columns: 2fr 1fr;">
+            <div>File</div><div>Uploaded</div>
+          </div>
+          {% for d in documents %}
+            <div class="trow" style="grid-template-columns: 2fr 1fr;">
+              <div><strong>{{ d.filename }}</strong></div>
+              <div class="muted small">{{ d.created_at|format_et }}</div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="muted">No documents yet.</div>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+  <div class="card-shell" style="margin-top:12px;">
+    <div class="card-body-pad">
+      <div class="muted">Select a client to begin CRSC packet assembly.</div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

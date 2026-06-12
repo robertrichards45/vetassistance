@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Documents • {{ client.display_name() }}{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Director</div>
+      <h1 class="page-title">Client Documents</h1>
+      <p class="page-sub">Client: <strong>{{ client.display_name() }}</strong></p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('director_clients_list') }}">Back to Clients</a>
+      <a class="btn btn-outline-light" href="{{ url_for('director_dashboard') }}">Dashboard</a>
+    </div>
+  </div>
+</section>
+
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="card-shell">
+      <div class="card-body-pad">
+        <div class="panel-title">Representative Contact</div>
+        <form method="post" action="{{ url_for('director_client_rep_update', client_id=client.id) }}" class="stack-form mt-2">
+          <label class="form-label">Representative Name
+            <input class="form-control" type="text" name="representative_name" value="{{ client.representative_name or '' }}" placeholder="e.g., Robert Richards" />
+          </label>
+          <label class="form-label">Representative Email
+            <input class="form-control" type="email" name="representative_email" value="{{ client.representative_email or '' }}" placeholder="name@domain.com" />
+          </label>
+          <div class="d-flex gap-2 flex-wrap mt-2">
+            <button class="btn btn-primary" type="submit">Save</button>
+            <div class="muted small">If blank, the system falls back to {{ CONTACT_EMAIL }}.</div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card-shell">
+      <div class="card-body-pad">
+        <div class="panel-title">Documents</div>
+        {% if documents %}
+          <div class="table-wrap" style="margin-top:10px;">
+            <table class="table align-middle">
+              <thead>
+                <tr>
+                  <th>Filename</th>
+                  <th>Uploaded</th>
+                  <th class="text-end">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for d in documents %}
+                  <tr>
+                    <td><strong>{{ d.filename }}</strong></td>
+                    <td>{{ d.created_at.strftime("%Y-%m-%d %H:%M") if d.created_at else "—" }}</td>
+                    <td class="text-end">
+                      <form action="{{ url_for('director_document_delete', doc_id=d.id) }}" method="post"
+                            style="display:inline;"
+                            onsubmit="return confirm('DELETE document {{ d.filename }}? This will remove the file AND scan evidence.');">
+                        <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+                      </form>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="muted" style="margin-top:10px;">No documents uploaded for this client.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

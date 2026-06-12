@@ -1,0 +1,119 @@
+{% extends "layout.html" %}
+
+{% block title %}Scan Records • {{ client.display_name() }}{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="section-header">
+    <h2>Scan Records for {{ client.display_name() }}</h2>
+    <p>
+      Pick one of this client’s uploaded files, extract the text, and review it
+      before we build CFR 38 matching in Phase 2.
+    </p>
+  </div>
+
+  <div class="card" style="margin-bottom: 16px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+      <div>
+        <div style="font-size: 13px; color: var(--text-softer);">
+          Client
+        </div>
+        <div style="font-size: 18px; font-weight: 600;">
+          {{ client.display_name() }}
+        </div>
+        <div style="font-size: 12px; color: var(--text-soft); margin-top: 4px;">
+          Claim #:
+          <code>{{ client.claim_number }}</code>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 8px;">
+        <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-outline small">
+          ← Back to Client Detail
+        </a>
+        <a href="{{ url_for('clients_list') }}" class="btn btn-outline small">
+          All Clients
+        </a>
+      </div>
+    </div>
+  </div>
+
+  {% if message %}
+    <div class="flash flash-info">
+      {{ message }}
+    </div>
+  {% endif %}
+
+  <div class="two-column" style="align-items: flex-start;">
+    <!-- LEFT: File selection -->
+    <div class="card">
+      <h3 style="margin-top: 0; margin-bottom: 8px;">1. Choose a File to Scan</h3>
+      <p style="font-size: 13px; color: var(--text-soft); margin-top: 0;">
+        This lists all files uploaded for this client (public or employee).
+        PDFs, DOCX, and TXT are supported in Phase 1.
+      </p>
+
+      {% if files %}
+        <form method="post" class="stack-form">
+          <label>
+            Select file
+            <select name="file_id" required>
+              <option value="">-- Choose a file --</option>
+              {% for f in files %}
+                <option value="{{ f.id }}"
+                        {% if selected_file and selected_file.id == f.id %}selected{% endif %}>
+                  {{ f.original_name }} ({{ f.source }}) – {{ f.created_at.strftime("%Y-%m-%d") if f.created_at else "no date" }}
+                </option>
+              {% endfor %}
+            </select>
+          </label>
+
+          <button type="submit" class="btn btn-primary">
+            Scan &amp; Extract Text
+          </button>
+        </form>
+      {% else %}
+        <p style="font-size: 13px; color: var(--text-softer); margin: 0;">
+          No files are attached to this client yet. Upload documents on the client detail page first.
+        </p>
+      {% endif %}
+    </div>
+
+    <!-- RIGHT: Extracted text -->
+    <div class="card">
+      <h3 style="margin-top: 0; margin-bottom: 8px;">2. Extracted Text (Preview)</h3>
+      <p style="font-size: 13px; color: var(--text-soft); margin-top: 0; margin-bottom: 8px;">
+        This is the raw text pulled out of the document. In the next phase, we’ll run this
+        through CFR 38 rules to flag potential rating angles, presumptives, and gaps.
+      </p>
+
+      {% if selected_file %}
+        <p style="font-size: 12px; color: var(--text-softer); margin-top: 0;">
+          File scanned:
+          <strong>{{ selected_file.original_name }}</strong>
+          <span style="color: var(--text-soft);">
+            ({{ selected_file.source }}, {{ selected_file.created_at.strftime("%Y-%m-%d") if selected_file.created_at else "no date" }})
+          </span>
+        </p>
+      {% endif %}
+
+      <textarea
+        readonly
+        style="
+          width: 100%;
+          min-height: 320px;
+          font-family: var(--font-mono);
+          font-size: 12px;
+          white-space: pre-wrap;
+        "
+        placeholder="Run a scan to see extracted text here."
+      >{% if extracted_text %}{{ extracted_text }}{% endif %}</textarea>
+
+      <p style="font-size: 11px; color: var(--text-softer); margin-top: 6px;">
+        Note: Extraction depends on document quality. Scanned images without text layers
+        may need OCR in a later phase.
+      </p>
+    </div>
+  </div>
+</section>
+{% endblock %}

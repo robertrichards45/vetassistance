@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+{% block title %}For Professionals • {{ BRAND_NAME }}{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>For Claims Professionals</h2>
+  <p class="muted">
+    {{ BRAND_NAME }} operates on a proprietary case management ecosystem focused on evidence discipline and operational control.
+    We selectively explore access for professionals who meet our standards.
+  </p>
+  <div class="card" style="margin-top:12px;">
+    <h3>What “professional access” means</h3>
+    <ul class="bullets">
+      <li>Client portal + secure messaging</li>
+      <li>Staff workflows + assigned reps</li>
+      <li>Templates, letters, audit trail</li>
+      <li>Claims intelligence layer hooks (evidence analysis + next steps)</li>
+    </ul>
+    <p class="muted small">Contact: {{ BRAND_EMAIL }}</p>
+  </div>
+</div>
+{% endblock %}

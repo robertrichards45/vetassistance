@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Edit Pricing • {{ COMPANY_NAME }}{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Director</div>
+      <h1 class="page-title">Edit Pricing Item</h1>
+      <p class="page-sub">{{ item.name }}</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('pricing.list_pricing') }}">Back</a>
+    </div>
+  </div>
+</section>
+
+<div class="card-shell" style="max-width:720px;">
+  <div class="card-body-pad">
+    <form method="post" class="stack-form">
+      <label class="form-label">
+        Service name
+        <input class="form-control" type="text" name="name" value="{{ item.name }}" required>
+      </label>
+      <label class="form-label">
+        Description (optional)
+        <textarea class="form-control" name="description" rows="3">{{ item.description or "" }}</textarea>
+      </label>
+
+      <label class="form-label">
+        Pricing type
+        <select class="form-control" name="price_type">
+          <option value="flat" {% if item.price_type == "flat" %}selected{% endif %}>Flat fee (dollars)</option>
+          <option value="percent" {% if item.price_type == "percent" %}selected{% endif %}>% of backpay</option>
+        </select>
+      </label>
+
+      <label class="form-label">
+        Base amount (USD)
+        <input class="form-control" type="number" step="0.01" name="price"
+               value="{{ '%.2f'|format(item.price_cents / 100) }}">
+      </label>
+
+      <label class="form-label">
+        Percent of backpay (if applicable)
+        <input class="form-control" type="number" step="0.1" name="percent_value"
+               value="{{ item.percent_value if item.percent_value is not none else '' }}">
+      </label>
+
+      <label class="form-label">
+        Sort order
+        <input class="form-control" type="number" name="sort_order" value="{{ item.sort_order }}">
+      </label>
+
+      <label class="form-label" style="font-size:13px;">
+        <input type="checkbox" name="active" value="y" {% if item.active %}checked{% endif %}>
+        Active
+      </label>
+
+      <div class="d-flex gap-2 flex-wrap mt-2">
+        <button type="submit" class="btn btn-primary">Save changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

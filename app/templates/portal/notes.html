@@ -1,0 +1,79 @@
+{% extends "layout.html" %}
+{% block title %}Notes - {{ BRAND_NAME }}{% endblock %}
+{% block content %}
+<section class="notes-hero">
+  <div class="notes-hero-inner">
+    <div>
+      <div class="notes-kicker">Client Portal</div>
+      <h2 class="notes-title">My Notes</h2>
+      <div class="muted small">{{ client.display_name() }}</div>
+      <div class="muted small" style="margin-top:8px;">Save your questions, reminders, and claim details in one place.</div>
+    </div>
+    <div class="notes-actions">
+      <a class="btn secondary" href="{{ url_for('portal.dashboard') }}">Back</a>
+    </div>
+  </div>
+</section>
+
+<div class="notes-wrap">
+  <div class="notes-card">
+    <div class="notes-card-title">Add a note</div>
+    <form method="post" action="{{ url_for('portalx.notes_post') }}" class="notes-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>Note</label>
+      <textarea name="body" rows="4" placeholder="Add a personal note about your claim, questions, or reminders." required></textarea>
+      <label>Tags (optional)</label>
+      <input name="tags" placeholder="e.g., Evidence, Deadline, Follow-up">
+      <button class="btn" type="submit">Save Note</button>
+    </form>
+  </div>
+
+  <div class="notes-card">
+    <div class="notes-card-title">Recent Notes</div>
+    {% if notes %}
+      <div class="notes-list">
+        {% for n in notes %}
+          <div class="note-item">
+            <div class="note-meta">
+              <span>{{ n.created_at.strftime('%Y-%m-%d') }}</span>
+              {% if n.tags %}
+                <span class="note-tags">{{ n.tags }}</span>
+              {% endif %}
+            </div>
+            <div class="note-body">{{ n.body }}</div>
+            <form method="post" action="{{ url_for('portalx.notes_delete', note_id=n.id) }}" onsubmit="return confirm('Delete this note?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-outline-primary btn-sm" type="submit">Delete</button>
+            </form>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="muted">No notes yet.</div>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+.notes-hero{
+  background: radial-gradient(circle at 10% 10%, rgba(255,255,255,.4), rgba(255,255,255,0) 45%),
+              linear-gradient(135deg, #0f2d4f, #1f4b7a 45%, #183a66);
+  color:#fff;border-radius:18px;padding:24px;box-shadow:0 18px 40px rgba(2,6,23,.2);
+}
+.notes-hero-inner{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap}
+.notes-kicker{font-size:12px;letter-spacing:.18em;text-transform:uppercase;opacity:.75}
+.notes-title{margin:8px 0 2px;font-size:24px}
+.notes-wrap{margin-top:14px;display:grid;gap:14px}
+.notes-card{background:#fff;border:1px solid rgba(15,23,42,.08);border-radius:16px;padding:16px;box-shadow:0 14px 30px rgba(2,8,23,.08)}
+.notes-card-title{font-weight:800;margin-bottom:8px}
+.notes-form{display:grid;gap:10px}
+.notes-form textarea,.notes-form input{
+  width:100%;border-radius:12px;border:1px solid rgba(15,23,42,.12);padding:10px 12px;background:#fff;
+}
+.notes-list{display:grid;gap:12px}
+.note-item{border:1px solid rgba(15,23,42,.08);border-radius:14px;padding:12px;background:linear-gradient(180deg,#f8fafc,#ffffff)}
+.note-meta{display:flex;gap:8px;align-items:center;color:#4A5D73;font-weight:700;font-size:.85rem;margin-bottom:6px}
+.note-tags{background:rgba(15,23,42,.06);border:1px solid rgba(15,23,42,.12);padding:4px 8px;border-radius:999px}
+.note-body{color:#0B1F3A;font-weight:600;margin-bottom:8px}
+</style>
+{% endblock %}

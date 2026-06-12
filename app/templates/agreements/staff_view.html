@@ -1,0 +1,30 @@
+{% extends "layout.html" %}
+{% block title %}Agreement - {{ client.display_name() }}{% endblock %}
+{% block content %}
+<div class="row">
+  <div>
+    <h2>Agreement</h2>
+    <div class="muted small">{{ client.display_name() }}</div>
+  </div>
+  <div class="row-actions">
+    <a class="btn secondary" href="{{ url_for('agreements.for_client', client_id=client.id) }}">Back</a>
+  </div>
+</div>
+
+<div class="card">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;border-bottom:1px solid rgba(15,23,42,.10);padding-bottom:10px;">
+    <img src="{{ url_for('static', filename='brand/logo.png') }}" alt="Logo" style="height:50px;width:auto;">
+    <div>
+      <div style="font-weight:900;color:#0B1F3A;">{{ brand.brand }}</div>
+      <div class="muted small">{{ brand.email }} {% if brand.phone %} | {{ brand.phone }}{% endif %}</div>
+    </div>
+  </div>
+  <div class="muted small">Status: {{ item.status }}</div>
+  <pre style="white-space:pre-wrap; font-family:inherit;">{{ item.body }}</pre>
+  {% if item.status == 'SIGNED' %}
+    <div class="muted small" style="margin-top:10px;">
+      Signed by {{ item.signed_name }} on {{ item.signed_at.strftime('%Y-%m-%d') if item.signed_at else '' }}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

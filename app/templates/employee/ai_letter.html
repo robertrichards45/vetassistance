@@ -1,0 +1,83 @@
+{% extends "layout.html" %}
+{% block title %}AI letter • {{ client.display_name() }}{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="section-header">
+    <h2>AI letter generator – {{ client.display_name() }} ({{ client.claim_number }})</h2>
+    <p>Generate welcome letters, evidence requests, VA cover letters, or client instructions.</p>
+  </div>
+
+  <div class="two-column">
+    <div class="card">
+      <h3 style="margin-top:0;">Letter settings</h3>
+      <form method="post" class="stack-form">
+        <label>
+          Letter type
+          <select name="letter_type">
+            <option value="welcome">Welcome / engagement</option>
+            <option value="evidence_request">Evidence request to client</option>
+            <option value="va_submission">Cover letter to VA</option>
+            <option value="client_instructions">Instructions for exams, etc.</option>
+            <option value="generic">Generic letter</option>
+          </select>
+        </label>
+
+        <label>
+          Tone
+          <select name="tone">
+            <option value="formal">Formal</option>
+            <option value="neutral" selected>Neutral</option>
+            <option value="conversational">Conversational</option>
+            <option value="technical">Technical / detailed</option>
+          </select>
+        </label>
+
+        <label>
+          Extra details for AI (optional)
+          <textarea name="custom_prompt" rows="4"
+            placeholder="Example: Explain that we still need records from Dr. Smith from 2015–2018, and emphasize deadlines."></textarea>
+        </label>
+
+        <button type="submit" class="btn btn-primary">Generate letter</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;">Draft letter</h3>
+      {% if letter_text %}
+        <textarea id="letterBody"
+                  style="width:100%; min-height:260px; font-family:monospace; font-size:13px;">{{ letter_text }}</textarea>
+        <div style="margin-top:8px;">
+          {% if client.email %}
+            <button class="btn btn-outline" onclick="openEmailToClient()">
+              Open in email to {{ client.email }}
+            </button>
+          {% endif %}
+          <button class="btn btn-outline" onclick="copyLetter()">Copy to clipboard</button>
+        </div>
+      {% else %}
+        <p class="small" style="color:var(--text-soft);">
+          Choose the letter type and tone on the left, then click “Generate letter.”
+        </p>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<script>
+function copyLetter() {
+  const el = document.getElementById('letterBody');
+  el.select();
+  document.execCommand('copy');
+  alert('Letter copied to clipboard.');
+}
+
+function openEmailToClient() {
+  const body = encodeURIComponent(document.getElementById('letterBody').value);
+  const subject = encodeURIComponent('Letter regarding your VA claim');
+  const mailto = 'mailto:{{ client.email or "" }}?subject=' + subject + '&body=' + body;
+  window.location.href = mailto;
+}
+</script>
+{% endblock %}

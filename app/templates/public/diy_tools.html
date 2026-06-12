@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+{% block title %}DIY Tools{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Do It Yourself</div>
+      <h1 class="page-title">DIY Tools Dashboard</h1>
+      <p class="page-sub">Use the tools below to build and track your claim.</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('diy.billing') }}">Billing</a>
+      <form method="post" action="{{ url_for('diy.become_client') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-primary" type="submit">Become a Client</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<div class="admin-wrap">
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <div class="panel-title">DIY Guide - How to Use These Tools</div>
+      <ol class="bullets" style="margin-top:8px;">
+        <li>Start with the rating chart to understand the criteria for your condition.</li>
+        <li>Use the calculator to estimate combined rating.</li>
+        <li>Build a checklist for diagnosis, in-service event, and nexus evidence.</li>
+        <li>Upload documents and scan for readability before submission.</li>
+        <li>Track updates and keep your timeline organized.</li>
+      </ol>
+    </div>
+  </div>
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <div class="panel-title">Rating Chart</div>
+      <div class="muted">Condition-by-condition CFR ratings.</div>
+      <a class="btn btn-outline-primary" style="margin-top:10px;" href="{{ url_for('cfr.ratings_chart') }}">Open Rating Chart</a>
+    </div>
+  </div>
+
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <div class="panel-title">Combined Rating Calculator</div>
+      <div class="row" style="gap:8px;align-items:end;">
+        <div>
+          <label>Add rating %</label>
+          <input id="calcInput" placeholder="e.g., 50">
+        </div>
+        <div>
+          <button class="btn btn-primary" id="calcAddBtn" type="button">Add</button>
+        </div>
+        <div>
+          <button class="btn btn-outline-secondary" id="calcClearBtn" type="button">Clear</button>
+        </div>
+      </div>
+      <div class="calc-list" id="calcList"></div>
+      <div class="calc-results">
+        <div class="pill">Raw: <span id="calcRaw">0%</span></div>
+        <div class="pill pill-claim">Final: <span id="calcFinal">0%</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <div class="panel-title">VA Forms Library</div>
+      <div class="table" style="margin-top:10px;">
+        <div class="thead" style="grid-template-columns: 1fr 1fr 140px;">
+          <div>Form</div><div>Purpose</div><div>Link</div>
+        </div>
+        {% for f in forms %}
+          <div class="trow" style="grid-template-columns: 1fr 1fr 140px;">
+            <div><strong>{{ f.title }}</strong><div class="muted small">{{ f.category }}</div></div>
+            <div class="muted small">{{ f.use }}</div>
+            <div><a class="btn btn-sm btn-outline-primary" href="{{ f.url }}" target="_blank" rel="noopener">Open PDF</a></div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {% if plan == "pro" %}
+  <div class="admin-grid split-40">
+    <div class="card-shell">
+      <div class="card-body-pad">
+        <div class="panel-title">Evidence Checklist</div>
+        <form method="post" action="{{ url_for('diy.checklist_add') }}" class="row" style="gap:10px;align-items:end;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div style="min-width:220px;">
+            <label>Item</label>
+            <input name="label" placeholder="e.g., DD214">
+          </div>
+          <div>
+            <label>Category</label>
+            <input name="category" placeholder="Evidence">
+          </div>
+          <div>
+            <button class="btn btn-primary" type="submit">Add</button>
+          </div>
+        </form>
+        <div class="table" style="margin-top:10px;">
+          <div class="thead" style="grid-template-columns: 2fr 1fr 120px;">
+            <div>Item</div><div>Category</div><div>Status</div>
+          </div>
+          {% for it in checklist %}
+            <div class="trow" style="grid-template-columns: 2fr 1fr 120px;">
+              <div>{{ it.label }}</div>
+              <div class="muted small">{{ it.category }}</div>
+              <div>
+                <form method="post" action="{{ url_for('diy.checklist_toggle', item_id=it.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-outline-primary btn-sm" type="submit">
+                    {{ "Complete" if it.is_done else "Mark done" }}
+                  </button>
+                </form>
+              </div>
+            </div>
+          {% else %}
+            <div class="muted" style="padding:12px;">No checklist items yet.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card-shell">
+      <div class="card-body-pad">
+        <div class="panel-title">Claim Tracker</div>
+        <form method="post" action="{{ url_for('diy.updates_add') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label>Status</label>
+          <input name="status_label" placeholder="Update">
+          <label style="margin-top:8px;">Notes</label>
+          <textarea name="note" rows="3"></textarea>
+          <button class="btn btn-primary" style="margin-top:8px;">Add Update</button>
+        </form>
+        <div style="margin-top:10px;">
+          {% for u in updates %}
+            <div class="mini">
+              <div><strong>{{ u.status_label }}</strong></div>
+              <div class="muted small">{{ u.created_at|format_et }}</div>
+              <div class="muted">{{ u.note }}</div>
+            </div>
+          {% else %}
+            <div class="muted">No updates yet.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <div class="panel-title">Document Quality Scan</div>
+      <form method="post" action="{{ url_for('diy.documents_upload') }}" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="file" name="files" multiple>
+        <button class="btn btn-outline-primary" type="submit">Upload</button>
+      </form>
+      <div class="table" style="margin-top:10px;">
+        <div class="thead" style="grid-template-columns: 2fr 1fr 140px;">
+          <div>File</div><div>Size</div><div>Scan</div>
+        </div>
+        {% for d in documents %}
+          <div class="trow" style="grid-template-columns: 2fr 1fr 140px;">
+            <div>{{ d.filename }}</div>
+            <div class="muted small">{{ (d.size_bytes / 1024)|round(0) }} KB</div>
+            <div>
+              <form method="post" action="{{ url_for('diy.documents_scan', doc_id=d.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-outline-primary btn-sm" type="submit">Scan</button>
+              </form>
+            </div>
+          </div>
+        {% else %}
+          <div class="muted" style="padding:12px;">No uploads yet.</div>
+        {% endfor %}
+      </div>
+      <div class="card-shell" style="margin-top:12px;">
+        <div class="card-body-pad">
+          <div class="panel-title">Ask AI About a Selected Document</div>
+          <form method="post" action="{{ url_for('diy.documents_ask') }}" style="margin-top:10px;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label>Choose document</label>
+            <select name="qa_doc_id">
+              <option value="">Select a file</option>
+              {% for d in documents %}
+                <option value="{{ d.id }}" {% if qa_doc_id and qa_doc_id|string == d.id|string %}selected{% endif %}>{{ d.filename }}</option>
+              {% endfor %}
+            </select>
+            <label style="margin-top:8px;">Your question</label>
+            <textarea name="question" rows="3" placeholder="Ask about this file, missing evidence, timelines, or next steps.">{{ qa_question or '' }}</textarea>
+            <button class="btn btn-primary" type="submit" style="margin-top:8px;">Ask AI</button>
+          </form>
+          {% if qa_error %}
+            <div class="pill danger" style="margin-top:10px;">{{ qa_error }}</div>
+          {% endif %}
+          {% if qa_answer %}
+            <div class="mini" style="margin-top:10px;">
+              <div><strong>AI Answer</strong></div>
+              <div class="muted" style="white-space:pre-wrap;">{{ qa_answer }}</div>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+      {% if scan %}
+        <div class="card-shell" style="margin-top:12px;">
+          <div class="card-body-pad">
+            <div class="panel-title">Scan Result</div>
+            <div class="muted">Score: <strong>{{ scan.score }}</strong></div>
+            <div class="muted">{{ scan.summary }}</div>
+            <div class="table" style="margin-top:10px;">
+              <div class="thead" style="grid-template-columns: 1fr 2fr;">
+                <div>Level</div><div>Detail</div>
+              </div>
+              {% for it in scan_issues %}
+                <div class="trow" style="grid-template-columns: 1fr 2fr;">
+                  <div class="pill {{ 'ready' if it.level == 'green' else 'warn' if it.level == 'yellow' else 'danger' }}">{{ it.level }}</div>
+                  <div>{{ it.title }} - {{ it.detail }}</div>
+                </div>
+              {% else %}
+                <div class="muted" style="padding:12px;">No issues detected.</div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+    <div class="card-shell">
+      <div class="card-body-pad">
+        <div class="panel-title">Upgrade to Pro</div>
+        <div class="muted">Checklist, claim tracker, and document scan are Pro-only.</div>
+        <a class="btn btn-primary" style="margin-top:8px;" href="{{ url_for('diy.subscribe') }}">Upgrade</a>
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+<style>
+.calc-list{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+.calc-pill{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(15,23,42,.12);border-radius:999px;padding:6px 10px;font-weight:800;background:rgba(15,23,42,.04);}
+.calc-pill button{border:none;background:none;font-weight:900;cursor:pointer;}
+.calc-results{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
+</style>
+
+<script>
+(function(){
+  const input = document.getElementById("calcInput");
+  const addBtn = document.getElementById("calcAddBtn");
+  const clearBtn = document.getElementById("calcClearBtn");
+  const list = document.getElementById("calcList");
+  const rawOut = document.getElementById("calcRaw");
+  const finalOut = document.getElementById("calcFinal");
+  const ratings = [];
+
+  function renderList(){
+    list.innerHTML = "";
+    ratings.forEach((r, idx) => {
+      const pill = document.createElement("div");
+      pill.className = "calc-pill";
+      pill.textContent = `${r}%`;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = "x";
+      btn.addEventListener("click", () => {
+        ratings.splice(idx, 1);
+        renderList();
+        recalc();
+      });
+      pill.appendChild(btn);
+      list.appendChild(pill);
+    });
+  }
+
+  function recalc(){
+    if (ratings.length === 0){
+      rawOut.textContent = "0%";
+      finalOut.textContent = "0%";
+      return;
+    }
+    const sorted = ratings.slice().sort((a,b) => b - a);
+    let combined = sorted[0];
+    for (let i = 1; i < sorted.length; i += 1){
+      combined = 100 - ((100 - combined) * (100 - sorted[i]) / 100);
+    }
+    const raw = Math.round(combined * 10) / 10;
+    const final = Math.round(raw / 10) * 10;
+    rawOut.textContent = `${raw}%`;
+    finalOut.textContent = `${final}%`;
+  }
+
+  function addRating(){
+    const val = Number((input.value || "").replace("%","").trim());
+    if (!Number.isFinite(val) || val < 0 || val > 100){
+      input.value = "";
+      input.focus();
+      return;
+    }
+    ratings.push(Math.round(val));
+    input.value = "";
+    renderList();
+    recalc();
+  }
+
+  if (addBtn) addBtn.addEventListener("click", addRating);
+  if (clearBtn) clearBtn.addEventListener("click", () => {
+    ratings.length = 0;
+    renderList();
+    recalc();
+  });
+  if (input) input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter"){ e.preventDefault(); addRating(); }
+  });
+})();
+</script>
+{% endblock %}

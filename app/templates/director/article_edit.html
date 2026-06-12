@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Director - Article Editor{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Director</div>
+      <h1 class="page-title">Article Editor</h1>
+      <p class="page-sub">Edit article content. HTML allowed.</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('director.articles') }}">Back</a>
+    </div>
+  </div>
+</section>
+
+<div class="admin-wrap">
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <form method="post" action="{{ url_for('director.articles_save') }}" class="stack-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label class="form-label">Slug</label>
+        <input class="form-control" name="slug" value="{{ article.slug }}" placeholder="custom-slug-optional">
+        <label class="form-label">Title</label>
+        <input class="form-control" name="title" value="{{ article.title }}" required>
+        <label class="form-label">Summary</label>
+        <input class="form-control" name="summary" value="{{ article.summary }}" required>
+        <label class="form-label">Body (HTML)</label>
+        <textarea class="form-control" name="body" rows="24" required>{{ article.body }}</textarea>
+        <button class="btn btn-primary" type="submit" style="margin-top:10px;">Save Article</button>
+      </form>
+      {% if article.slug %}
+      <form method="post" action="{{ url_for('director.articles_delete', slug=article.slug) }}" onsubmit="return confirm('Delete this article?');" style="margin-top:12px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-outline-primary" type="submit">Delete</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

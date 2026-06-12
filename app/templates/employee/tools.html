@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+{% block title %}Tools • {{ COMPANY_NAME }}{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="section-header">
+    <h2>Tools</h2>
+    <p>Starter toolbox (we’ll expand this into CFR linking later).</p>
+  </div>
+
+  <div class="card">
+    <h3>Record Scanning (Basic)</h3>
+    <p style="color: var(--text-soft);">
+      Use the “Scan Records” button inside a client file to upload PDFs/DOCX and generate potential condition flags.
+    </p>
+
+    <h3 style="margin-top: 14px;">Welcome Packet</h3>
+    <p style="color: var(--text-soft);">
+      Generate a Welcome Letter + Buddy Letter template for any client.
+    </p>
+  </div>
+</section>
+{% endblock %}

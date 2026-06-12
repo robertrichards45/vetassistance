@@ -1,0 +1,51 @@
+{% extends "layout.html" %}
+{% block title %}Client Portal Setup • {{ client.display_name() }} • {{ COMPANY_NAME }}{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="section-header">
+    <h2>Client Portal Login – {{ client.display_name() }}</h2>
+    <p>
+      Set or update this client’s portal login. Share the email and temporary
+      password with the client so they can sign in and upload documents.
+    </p>
+  </div>
+
+  <div class="card" style="max-width: 520px;">
+    <form method="post" class="stack-form">
+      <label>
+        Client Email for Portal
+        <input
+          type="email"
+          name="email"
+          required
+          value="{{ portal_user.email if portal_user else client.email or '' }}"
+          placeholder="veteran@example.com"
+        >
+      </label>
+
+      <label>
+        Temporary Password
+        <input
+          type="password"
+          name="password"
+          required
+          placeholder="Choose a temporary password"
+        >
+      </label>
+
+      <p class="small" style="color:var(--text-soft); margin-top:4px;">
+        After first login, you can ask the client to change their password
+        later when we add a self-service change-password option.
+      </p>
+
+      <button type="submit" class="btn btn-primary">
+        Save Portal Login
+      </button>
+      <a href="{{ url_for('client_files', client_id=client.id) }}" class="btn btn-outline">
+        Back to Client Files
+      </a>
+    </form>
+  </div>
+</section>
+{% endblock %}

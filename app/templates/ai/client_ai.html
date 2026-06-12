@@ -1,0 +1,324 @@
+{% extends "layout.html" %}
+{% block title %}AI Guidance • {{ client.display_name() }}{% endblock %}
+{% block content %}
+<div class="row">
+  <div>
+    <h2>AI Guidance</h2>
+    <div class="muted small">{{ client.display_name() }}</div>
+  </div>
+  <div class="row-actions">
+    <a class="btn secondary" href="{{ url_for('clients.view_client', client_id=client.id) }}">Back to Client</a>
+    <form method="post" action="{{ url_for('ai.run_ai', client_id=client.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn">Run Analysis</button>
+    </form>
+    {% if latest and latest.status == 'COMPLETED' %}
+      <form method="post" action="{{ url_for('ai.email_ai_results', client_id=client.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn secondary" type="submit">Email Results</button>
+      </form>
+    {% endif %}
+    {% if latest and latest.status == 'COMPLETED' %}
+      <a class="btn secondary" href="{{ url_for('ai.export_cfr_report', client_id=client.id) }}">Download CFR Word</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid2">
+  <div class="card">
+    <h3>Latest Output</h3>
+    {% if latest %}
+      <div class="pill {{ 'ready' if latest.status == 'COMPLETED' else 'warn' }}">{{ latest.status }}</div>
+      <div class="muted small" style="margin-top:8px;">Started: {{ latest.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+      {% if latest.completed_at %}<div class="muted small">Completed: {{ latest.completed_at.strftime('%Y-%m-%d %H:%M') }}</div>{% endif %}
+      {% if latest.error %}<div class="flash error" style="margin-top:10px;">{{ latest.error }}</div>{% endif %}
+
+      {% if latest.status == 'COMPLETED' and parsed %}
+        <div class="mini" style="margin-top:10px;">
+          <div class="muted small">Case Summary</div>
+          <div style="margin-top:6px;">{{ parsed.summary }}</div>
+        </div>
+
+        <div class="mini">
+          <div class="muted small">Next Best Actions</div>
+          {% if parsed.next_actions and parsed.next_actions|length %}
+            <div style="margin-top:6px;"><strong>Recommended Next Step:</strong> {{ parsed.next_actions[0] }}</div>
+          {% endif %}
+          <ul class="bullets">
+            {% for a in parsed.next_actions %}<li>{{ a }}</li>{% endfor %}
+          </ul>
+        </div>
+
+        <div class="mini">
+          <div class="muted small">Evidence Scores</div>
+          <div class="table" style="margin-top:10px;">
+            <div class="thead" style="grid-template-columns: 2fr 120px 2fr;"><div>Condition</div><div>Score</div><div>Rationale</div></div>
+            {% for cnd in parsed.conditions %}
+              <div class="trow" style="grid-template-columns: 2fr 120px 2fr;">
+                <div><strong>{{ cnd.name }}</strong></div>
+                <div class="pill {{ 'ready' if cnd.score >= 75 else ('warn' if cnd.score >= 50 else 'error') }}">{{ cnd.score }}</div>
+                <div class="muted small">{{ cnd.rationale }}</div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        {% if parsed.presumptive %}
+        <div class="mini">
+          <div class="muted small">Presumptive Conditions Identified</div>
+          {% if parsed.presumptive.conditions and parsed.presumptive.conditions|length %}
+            <div class="table" style="margin-top:10px;">
+              <div class="thead" style="grid-template-columns: 2fr 1fr 2fr;"><div>Condition</div><div>Authority</div><div>Claim Summary</div></div>
+              {% for p in parsed.presumptive.conditions %}
+                <div class="trow" style="grid-template-columns: 2fr 1fr 2fr;">
+                  <div><strong>{{ p.name }}</strong><div class="muted small">{{ p.category }}</div></div>
+                  <div class="muted small">{{ p.authority }}</div>
+                  <div class="muted small">{{ p.claim_summary }}</div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="muted small" style="margin-top:8px;">No presumptive conditions identified yet.</div>
+          {% endif %}
+        </div>
+
+        {% if parsed.presumptive.secondary_conditions and parsed.presumptive.secondary_conditions|length %}
+        <div class="mini">
+          <div class="muted small">Secondary Conditions to Consider</div>
+          <ul class="bullets">
+            {% for s in parsed.presumptive.secondary_conditions %}<li>{{ s }}</li>{% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+
+        {% if parsed.presumptive.evidence_needed and parsed.presumptive.evidence_needed|length %}
+        <div class="mini">
+          <div class="muted small">Evidence Still Needed</div>
+          <ul class="bullets">
+            {% for s in parsed.presumptive.evidence_needed %}<li>{{ s }}</li>{% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+
+        {% if parsed.presumptive.strategy and parsed.presumptive.strategy|length %}
+        <div class="mini">
+          <div class="muted small">Recommended Claim Strategy</div>
+          <ul class="bullets">
+            {% for s in parsed.presumptive.strategy %}<li>{{ s }}</li>{% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+
+        {% if parsed.presumptive.conditions and parsed.presumptive.conditions|length %}
+        <details style="margin-top:10px;">
+          <summary class="muted small">VA-ready claim language</summary>
+          <div style="margin-top:10px;">
+            {% for p in parsed.presumptive.conditions %}
+              <div class="mini">
+                <div><strong>{{ p.name }}</strong></div>
+                <div class="muted small">{{ p.claim_language }}</div>
+              </div>
+            {% endfor %}
+          </div>
+        </details>
+        {% endif %}
+
+        {% if parsed.presumptive.disclaimer %}
+        <div class="mini">
+          <div class="muted small">Compliance</div>
+          <div class="muted small">{{ parsed.presumptive.disclaimer }}</div>
+        </div>
+        {% endif %}
+        {% endif %}
+
+        {% if parsed.gaps and parsed.gaps|length %}
+        <div class="mini">
+          <div class="muted small">Gaps</div>
+          <ul class="bullets">{% for g in parsed.gaps %}<li>{{ g }}</li>{% endfor %}</ul>
+        </div>
+        {% endif %}
+
+        {% if parsed.conflicts and parsed.conflicts|length %}
+        <div class="mini">
+          <div class="muted small">Conflicts</div>
+          <ul class="bullets">{% for g in parsed.conflicts %}<li>{{ g }}</li>{% endfor %}</ul>
+        </div>
+        {% endif %}
+
+        <details style="margin-top:10px;">
+          <summary class="muted small">View raw JSON</summary>
+          <pre class="pre" style="margin-top:10px;">{{ latest.result_json }}</pre>
+        </details>
+      {% elif latest.result_json %}
+        <pre class="pre" style="margin-top:10px;">{{ latest.result_json }}</pre>
+      {% else %}
+        <div class="muted" style="margin-top:10px;">No output yet. Refresh in a moment.</div>
+      {% endif %}
+    {% else %}
+      <div class="muted">No AI runs yet. Click “Run Analysis”.</div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h3>Evidence Readiness</h3>
+    <div class="muted small">AI is strongest when Decision Letters, C&P Exams, and Treatment Records are present.</div>
+    <div style="margin-top:10px;">
+      {% for d in docs %}
+        <div class="mini">
+          <div><strong>{{ d.filename }}</strong></div>
+          <div class="muted small">Category: {{ d.category }} • Status: {{ d.status }}{% if d.extracted_text_path %} • Text ready{% endif %}</div>
+        </div>
+      {% else %}
+        <div class="muted">No documents uploaded yet.</div>
+      {% endfor %}
+    </div>
+    <div style="margin-top:10px;">
+      <a class="btn secondary" href="{{ url_for('documents.client_documents', client_id=client.id) }}">Open Documents</a>
+      <a class="btn secondary" href="{{ url_for('tasks.staff_tasks', client_id=client.id) }}">Open Checklist</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="card" style="margin-top:14px;">
+  <h3>Ask AI About a File</h3>
+  <div class="muted small">Ask a specific question about one uploaded document.</div>
+  <div class="muted small" style="margin-top:6px;">Tip: select "All documents" to search across the full file set.</div>
+  {% if qa_messages and qa_messages|length %}
+    <div class="mini" style="margin-top:12px;">
+      <div class="muted small">Conversation</div>
+      <div class="chat-thread" id="aiChatThread">
+        {% for m in qa_messages %}
+          <div class="chat-row {{ 'chat-user' if m.role == 'user' else 'chat-ai' }}">
+            <div class="chat-bubble">
+              <div class="chat-role">{{ m.role|upper }}</div>
+              <pre class="chat-text">{{ m.content }}</pre>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+      <form method="post" action="{{ url_for('ai.clear_ai_chat', client_id=client.id) }}" style="margin-top:8px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn secondary" type="submit">Clear conversation</button>
+      </form>
+    </div>
+  {% endif %}
+  {% if qa_error %}
+    <div class="flash error" style="margin-top:10px;">{{ qa_error }}</div>
+  {% endif %}
+  {% if qa_answer %}
+    <div class="mini" style="margin-top:10px;">
+      <div class="muted small">Answer{% if qa_doc %} — {{ qa_doc.filename }}{% endif %}</div>
+      <div style="margin-top:6px;">{{ qa_answer }}</div>
+    </div>
+  {% endif %}
+  <form method="post" action="{{ url_for('ai.ask_ai', client_id=client.id) }}" style="margin-top:12px;" id="aiChatForm" data-stream-url="{{ url_for('ai.ask_ai_stream', client_id=client.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="mini">
+      <div class="muted small">Document</div>
+      <select name="doc_id" style="width:100%;margin-top:6px;">
+        <option value="">Select a document</option>
+        <option value="all" {{ "selected" if qa_doc_id == "all" else "" }}>All documents</option>
+        {% for d in docs %}
+          <option value="{{ d.id }}" {{ "selected" if qa_doc_id == d.id|string else "" }}>{{ d.filename }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="mini" style="margin-top:10px;">
+      <div class="muted small">Message</div>
+      <textarea name="question" rows="3" style="width:100%;margin-top:6px;" placeholder="Ask a question about the selected file..." id="aiChatInput" required>{{ qa_question or "" }}</textarea>
+    </div>
+  <button class="btn" style="margin-top:10px;" type="submit">Send</button>
+  </form>
+</div>
+
+<script>
+(function(){
+  const form = document.getElementById('aiChatForm');
+  const input = document.getElementById('aiChatInput');
+  const streamUrl = form ? form.getAttribute('data-stream-url') : '';
+  if(!form || !input) return;
+
+  function ensureThread(){
+    let container = document.getElementById('aiChatThread');
+    if(!container){
+      const convo = document.createElement('div');
+      convo.className = 'mini';
+      convo.style.marginTop = '12px';
+      convo.innerHTML = '<div class="muted small">Conversation</div><div class="chat-thread" id="aiChatThread"></div>';
+      form.parentElement.insertBefore(convo, form);
+      container = document.getElementById('aiChatThread');
+    }
+    return container;
+  }
+
+  function appendMessage(role, content){
+    const container = ensureThread();
+    const wrap = document.createElement('div');
+    wrap.className = role === 'USER' ? 'chat-row chat-user' : 'chat-row chat-ai';
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble';
+    const roleEl = document.createElement('div');
+    roleEl.className = 'chat-role';
+    roleEl.textContent = role;
+    const msgEl = document.createElement('pre');
+    msgEl.className = 'chat-text';
+    msgEl.textContent = content || '';
+    bubble.appendChild(roleEl);
+    bubble.appendChild(msgEl);
+    wrap.appendChild(bubble);
+    container.appendChild(wrap);
+    return msgEl;
+  }
+
+  form.addEventListener('submit', function(e){
+    if(!streamUrl){ return; }
+    const question = input.value.trim();
+    if(!question){ e.preventDefault(); return; }
+    e.preventDefault();
+    const fd = new FormData(form);
+    appendMessage('USER', question);
+    const assistantEl = appendMessage('ASSISTANT', '');
+    input.value = '';
+    fetch(streamUrl, {
+      method: 'POST',
+      body: fd,
+      headers: { 'X-CSRFToken': fd.get('csrf_token') || '' }
+    }).then(resp => {
+      if(!resp.body){ assistantEl.textContent = 'No response.'; return; }
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      function read(){
+        reader.read().then(({done, value})=>{
+          if(done) return;
+          const chunk = decoder.decode(value, {stream:true});
+          assistantEl.textContent += chunk;
+          read();
+        });
+      }
+      read();
+    }).catch(()=>{
+      assistantEl.textContent = 'AI request failed.';
+    });
+  });
+})();
+</script>
+<style>
+.chat-thread{margin-top:6px;display:flex;flex-direction:column;gap:10px}
+.chat-row{display:flex}
+.chat-user{justify-content:flex-end}
+.chat-ai{justify-content:flex-start}
+.chat-bubble{
+  max-width: 680px;
+  border-radius: 14px;
+  padding: 10px 12px;
+  border: 1px solid rgba(15,23,42,.12);
+  background:#fff;
+  box-shadow: 0 8px 24px rgba(2,8,23,.06);
+}
+.chat-user .chat-bubble{background:#E0EAFF;border-color:#93C5FD}
+.chat-ai .chat-bubble{background:#F8FAFC}
+.chat-role{font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:800;color:#334155;margin-bottom:6px}
+.chat-text{margin:0;white-space:pre-wrap;font-family:inherit;color:#0f172a}
+</style>
+{% endblock %}

@@ -1,0 +1,292 @@
+{% extends "layout.html" %}
+{% block title %}Letters - {{ client.display_name() }}{% endblock %}
+{% block content %}
+<section class="section" style="max-width: 1200px; margin: 0 auto;">
+  <div class="section-header">
+    <div>
+      <h2>Portal Letters</h2>
+      <p class="muted">{{ client.display_name() }}</p>
+    </div>
+    <div class="section-actions">
+      <a class="btn secondary" href="{{ url_for('clients.view_client', client_id=client.id) }}">Back</a>
+    </div>
+  </div>
+
+  <div class="files-grid">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Create Letter</div>
+          <div class="panel-sub">Choose a template or write a custom message for the client portal.</div>
+        </div>
+      </div>
+      <div class="panel-body">
+        <form method="post" action="{{ url_for('letters.generate_letter', client_id=client.id) }}" class="stack-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label style="grid-column:1/-1;">
+            Letter type
+            <select name="letter_name" required>
+              <option value="" selected disabled>Select a letter</option>
+              {% for t in templates %}
+                <option value="{{ t.name }}">{{ t.name }}</option>
+              {% endfor %}
+              <option value="custom">Custom Letter</option>
+            </select>
+          </label>
+
+          <label style="grid-column:1/-1;">
+            Custom letter body (only used for Custom Letter)
+            <textarea name="custom_body" rows="6" placeholder="Write your custom letter here."></textarea>
+          </label>
+
+          <label class="form-label" style="display:flex;gap:8px;align-items:center;">
+            <input type="checkbox" name="share_to_client" value="1" checked>
+            Share to client portal
+          </label>
+
+          <label class="form-label" style="display:flex;gap:8px;align-items:center;">
+            <input type="checkbox" name="ai_polish" value="1">
+            Use AI to polish wording
+          </label>
+
+          <div style="grid-column:1/-1; display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn btn-primary" type="submit">Create Letter</button>
+            <button class="btn btn-outline-primary" type="submit" form="quickUpdateForm">Post Quick Update</button>
+          </div>
+        </form>
+
+        <form method="post" action="{{ url_for('letters.post_letter', client_id=client.id) }}" id="quickUpdateForm" style="display:none;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        </form>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Call Script Builder</div>
+          <div class="panel-sub">Follow the questions during a call and generate a letter draft.</div>
+        </div>
+      </div>
+      <div class="panel-body">
+        <form method="post" action="{{ url_for('letters.wizard_preview_letter', client_id=client.id) }}" id="wizardForm" class="stack-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="wizard_payload" id="wizardPayload">
+          <label style="grid-column:1/-1;">
+            Letter type
+            <select name="letter_name" id="wizardLetterType" required>
+              <option value="" selected disabled>Select a letter</option>
+              {% for name, cfg in (wizards or {}).items() %}
+                <option value="{{ name }}">{{ name }}</option>
+              {% endfor %}
+            </select>
+          </label>
+
+          <div class="muted small" style="grid-column:1/-1; margin-top:-6px;">
+            Call script: ask for specific dates, examples, and document names. Keep answers factual and concise.
+          </div>
+          <div id="wizardQuestions" style="grid-column:1/-1;"></div>
+
+          <label class="form-label" style="display:flex;gap:8px;align-items:center;">
+            <input type="checkbox" name="share_to_client" value="1" checked>
+            Share to client portal
+          </label>
+
+          <label class="form-label" style="display:flex;gap:8px;align-items:center;">
+            <input type="checkbox" name="ai_polish" value="1">
+            Use AI to polish wording
+          </label>
+
+          <div style="grid-column:1/-1; display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn btn-primary" type="submit">Preview Draft</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Quick Tips</div>
+          <div class="panel-sub">Short, actionable updates get the fastest client response.</div>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="ai-box">
+          <div class="ai-title">Suggested structure</div>
+          <div class="ai-text">1) What we reviewed\n2) What we need next\n3) Deadlines or priorities</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:14px;">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Posted Letters</div>
+          <div class="panel-sub">Shared letters appear in the client portal.</div>
+        </div>
+      </div>
+      <div class="panel-body">
+        {% if letters %}
+          <div class="letter-list">
+            {% for l in letters %}
+              <div class="letter-card">
+                <div class="letter-head">
+                  <div>
+                    <div class="letter-title">{{ l.title }}</div>
+                    <div class="letter-meta">{{ l.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                  </div>
+                  {% if l.is_visible_to_client %}
+                    <div class="pill ready">Shared</div>
+                  {% else %}
+                    <div class="pill warn">Internal</div>
+                  {% endif %}
+                </div>
+                <div class="letter-body">{{ l.body }}</div>
+                <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+                  <form method="post" action="{{ url_for('letters.send_letter', client_id=client.id, letter_id=l.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-outline-primary btn-sm" type="submit">Email to client</button>
+                  </form>
+                  {% if l.is_visible_to_client %}
+                  <form method="post" action="{{ url_for('letters.unshare_letter', client_id=client.id, letter_id=l.id) }}" onsubmit="return confirm('Unshare this letter from the client portal?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-outline-primary btn-sm" type="submit">Unshare</button>
+                  </form>
+                  {% else %}
+                  <form method="post" action="{{ url_for('letters.share_letter', client_id=client.id, letter_id=l.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-outline-primary btn-sm" type="submit">Share</button>
+                  </form>
+                  {% endif %}
+                  <form method="post" action="{{ url_for('letters.delete_letter', client_id=client.id, letter_id=l.id) }}" onsubmit="return confirm('Delete this letter?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-outline-primary btn-sm" type="submit">Delete</button>
+                  </form>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="muted">No letters posted yet.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+(function(){
+  const wizards = {{ (wizards or {}) | tojson }};
+  const form = document.getElementById('wizardForm');
+  const typeSelect = document.getElementById('wizardLetterType');
+  const questionsWrap = document.getElementById('wizardQuestions');
+  const payloadInput = document.getElementById('wizardPayload');
+  if(!form || !typeSelect || !questionsWrap || !payloadInput){ return; }
+
+  const textareaIds = new Set([
+    'granted','denied','deferred','next_steps','documents','notes','hardship_reason','supporting_docs',
+    'issues','new_evidence','service_summary','questions','employment_limits','training_goal','observations',
+    'timeline','impact','missing_items','deadlines','facilities','providers','alternate_proof','symptoms',
+    'in_service_event','continuity','services','expectations','care_dates','school_program'
+  ]);
+
+  function renderQuestions(){
+    const name = typeSelect.value;
+    const wizard = wizards[name];
+    questionsWrap.innerHTML = '';
+    if(!wizard || !wizard.questions){ return; }
+    wizard.questions.forEach(function(q){
+      const wrapper = document.createElement('div');
+      wrapper.className = 'wizard-question';
+      wrapper.style.marginBottom = '10px';
+      const label = document.createElement('label');
+      label.style.display = 'block';
+      label.textContent = 'Ask: ' + (q.label || q.id);
+
+      let input;
+      if(q.type === 'textarea' || textareaIds.has(q.id)){
+        input = document.createElement('textarea');
+        input.rows = 3;
+      } else {
+        input = document.createElement('input');
+        input.type = q.type === 'date' ? 'date' : 'text';
+      }
+      input.className = 'form-control';
+      input.name = 'wizard_' + q.id;
+      input.dataset.required = q.required ? '1' : '0';
+      if(q.placeholder){ input.placeholder = q.placeholder; }
+      if(q.required){ input.required = true; }
+      label.appendChild(input);
+
+      if(q.show_if){
+        if(q.show_if.id){ wrapper.dataset.showIfId = q.show_if.id; }
+        if(q.show_if.includes_any){ wrapper.dataset.showIfIncludes = JSON.stringify(q.show_if.includes_any); }
+        if(q.show_if.equals){ wrapper.dataset.showIfEquals = String(q.show_if.equals); }
+      }
+
+      const help = document.createElement('div');
+      help.className = 'muted small';
+      help.textContent = q.help || 'Tip: include dates, providers, locations, and document names when possible.';
+      label.appendChild(help);
+
+      wrapper.appendChild(label);
+      questionsWrap.appendChild(wrapper);
+    });
+    applyConditionalVisibility();
+  }
+
+  typeSelect.addEventListener('change', renderQuestions);
+
+  function applyConditionalVisibility(){
+    const values = {};
+    questionsWrap.querySelectorAll('input[name^=\"wizard_\"], textarea[name^=\"wizard_\"]').forEach(function(el){
+      const key = el.name.replace('wizard_', '');
+      values[key] = (el.value || '').toLowerCase();
+    });
+    questionsWrap.querySelectorAll('.wizard-question').forEach(function(wrap){
+      const dep = wrap.dataset.showIfId;
+      if(!dep){ return; }
+      const val = values[dep] || '';
+      let show = false;
+      if(wrap.dataset.showIfEquals){
+        show = val === wrap.dataset.showIfEquals.toLowerCase();
+      } else if(wrap.dataset.showIfIncludes){
+        try{
+          const list = JSON.parse(wrap.dataset.showIfIncludes || '[]');
+          show = list.some(function(term){ return val.includes(String(term).toLowerCase()); });
+        } catch(e){
+          show = false;
+        }
+      } else {
+        show = val.length > 0;
+      }
+      wrap.style.display = show ? 'block' : 'none';
+      const field = wrap.querySelector('input, textarea');
+      if(field){
+        const required = field.dataset.required === '1';
+        field.required = show && required;
+      }
+    });
+  }
+
+  questionsWrap.addEventListener('input', function(e){
+    if(e.target && (e.target.name || '').startsWith('wizard_')){
+      applyConditionalVisibility();
+    }
+  });
+
+  form.addEventListener('submit', function(){
+    const answers = {};
+    const fields = questionsWrap.querySelectorAll('input[name^="wizard_"], textarea[name^="wizard_"]');
+    fields.forEach(function(el){
+      const key = el.name.replace('wizard_', '');
+      answers[key] = el.value || '';
+    });
+    payloadInput.value = JSON.stringify({ answers: answers });
+  });
+})();
+</script>
+{% endblock %}

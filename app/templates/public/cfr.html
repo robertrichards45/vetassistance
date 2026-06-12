@@ -1,0 +1,39 @@
+{% extends "layout.html" %}
+{% block content %}
+<section class="container">
+  <h1 class="page-title">CFR 38 Library</h1>
+  <p class="muted">Search the integrated CFR/VA conditions library.</p>
+
+  <div class="card">
+    <label class="label">Search</label>
+    <input id="q" class="input" placeholder="e.g., PTSD, knee, tinnitus, migraines, 38 CFR 4.130" />
+    <div style="margin-top:10px; display:flex; gap:10px;">
+      <button class="btn" onclick="doSearch()">Search</button>
+      <button class="btn secondary" onclick="clearResults()">Clear</button>
+    </div>
+  </div>
+
+  <div id="results" class="stack" style="margin-top:14px;"></div>
+</section>
+
+<script>
+async function doSearch(){
+  const q=document.getElementById('q').value.trim();
+  const r = await fetch(`/cfr/search?q=${encodeURIComponent(q)}`);
+  const data = await r.json();
+  const wrap=document.getElementById('results');
+  wrap.innerHTML='';
+  (data.results||[]).forEach(item=>{
+    const div=document.createElement('div');
+    div.className='card';
+    div.innerHTML = `
+      <div style="font-weight:700">${item.title||item.key||'Result'}</div>
+      <div class="muted" style="margin-top:4px;">${item.citation||''}</div>
+      <div style="margin-top:10px; white-space:pre-wrap;">${item.summary||''}</div>
+    `;
+    wrap.appendChild(div);
+  });
+}
+function clearResults(){ document.getElementById('results').innerHTML=''; document.getElementById('q').value=''; }
+</script>
+{% endblock %}

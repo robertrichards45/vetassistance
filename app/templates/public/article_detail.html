@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}{{ article.title }} - {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">VA Education</div>
+      <h1 class="page-title">{{ article.title }}</h1>
+      <p class="page-sub">{{ article.summary }}</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('public.article_list') }}">All articles</a>
+      <a class="btn btn-outline-light" href="{{ url_for('public.guides') }}">Guides</a>
+    </div>
+  </div>
+</section>
+
+<div class="admin-wrap">
+  <div class="card-shell">
+    <div class="card-body-pad article-body">
+      <div class="article-meta">
+        <div class="article-meta-item"><strong>Last updated:</strong> {% if article.updated_at %}{{ article.updated_at.strftime('%Y-%m-%d') }}{% else %}—{% endif %}</div>
+        <div class="article-meta-item"><strong>By:</strong> Veteran Claims Assistance Team</div>
+      </div>
+      {{ article.body|safe }}
+    </div>
+  </div>
+
+  {% if related %}
+  <div class="card-shell" style="margin-top:12px;">
+    <div class="card-body-pad">
+      <div class="panel-title">Related Articles</div>
+      <div class="grid2" style="margin-top:10px;">
+        {% for r in related %}
+          <a class="mini" href="{{ url_for('public.article_detail', slug=r.slug) }}">
+            <strong>{{ r.title }}</strong>
+            <div class="muted small">{{ r.summary }}</div>
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<style>
+.article-meta{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;color:#4A5D73;font-weight:700;font-size:.9rem;}
+.article-meta-item strong{color:#0B1F3A;}
+.article-body h2{margin-top:18px;}
+.article-body p{margin-bottom:10px;}
+</style>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "{{ article.title|e }}",
+  "description": "{{ article.summary|e }}",
+  "datePublished": "{% if article.updated_at %}{{ article.updated_at.strftime('%Y-%m-%d') }}{% endif %}",
+  "dateModified": "{% if article.updated_at %}{{ article.updated_at.strftime('%Y-%m-%d') }}{% endif %}",
+  "author": {
+    "@type": "Organization",
+    "name": "{{ COMPANY_NAME|e }}"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "{{ COMPANY_NAME|e }}"
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "{{ request.url_root.rstrip('/') }}{{ request.path }}"
+  }
+}
+</script>
+{% endblock %}

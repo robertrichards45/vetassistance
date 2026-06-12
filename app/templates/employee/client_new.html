@@ -1,0 +1,33 @@
+{% extends "layout.html" %}
+{% block title %}New Client • {{ COMPANY_NAME }}{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="section-header">
+    <h2>Create New Client</h2>
+    <p>A claim number will be generated automatically.</p>
+  </div>
+
+  <div class="card" style="max-width:520px;">
+    <form method="post" class="stack-form">
+      <label>
+        First name
+        <input type="text" name="first_name" required>
+      </label>
+      <label>
+        Last name
+        <input type="text" name="last_name" required>
+      </label>
+      <label>
+        Email (optional)
+        <input type="email" name="email">
+      </label>
+      <label>
+        Phone (optional)
+        <input type="text" name="phone">
+      </label>
+      <button type="submit" class="btn btn-primary">Create client</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

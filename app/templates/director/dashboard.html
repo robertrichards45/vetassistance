@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Director Dashboard • {{ COMPANY_NAME }}{% endblock %}
+
+{% block content %}
+
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Director</div>
+      <h1 class="page-title">Command Center</h1>
+      <p class="page-sub">Manage staff, client access, and core system settings from one place.</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('public_home') }}">View Home</a>
+      <a class="btn btn-outline-light" href="{{ url_for('director.users') }}">Manage Users</a>
+      <a class="btn btn-outline-light" href="{{ url_for('pricing.list_pricing') }}">Pricing</a>
+      <a class="btn btn-outline-light" href="{{ url_for('director.articles') }}">Articles</a>
+      <a class="btn btn-primary" href="{{ url_for('resources.resources_admin') }}">Resources</a>
+    </div>
+  </div>
+</section>
+
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card-shell">
+      <div class="card-body-pad">
+        <div class="panel-title">Quick Actions</div>
+        <div class="d-flex gap-2 flex-wrap mt-2">
+          <a class="btn btn-outline-primary" href="{{ url_for('director.users') }}">Employees</a>
+          <a class="btn btn-outline-primary" href="{{ url_for('invites.index') }}">Invite Links</a>
+          <a class="btn btn-outline-primary" href="{{ url_for('site_admin.edit') }}">Homepage</a>
+          <a class="btn btn-outline-primary" href="{{ url_for('director.articles') }}">Articles</a>
+          <a class="btn btn-outline-primary" href="{{ url_for('director.templates') }}">Templates</a>
+          <a class="btn btn-outline-primary" href="{{ url_for('clients.list_clients') }}">Clients</a>
+          <form method="post" action="{{ url_for('director.run_backup') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-outline-primary" type="submit">Run Backup Now</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-shell" style="margin-top:12px;">
+      <div class="card-body-pad">
+        <div class="panel-title">Recent Staff</div>
+        {% if users %}
+          <div class="table">
+            <div class="thead" style="grid-template-columns: 2fr 1fr 1fr;">
+              <div>User</div><div>Role</div><div>Status</div>
+            </div>
+            {% for u in users[:6] %}
+              <div class="trow" style="grid-template-columns: 2fr 1fr 1fr;">
+                <div>
+                  <strong>{{ u.full_name or u.email }}</strong>
+                  <div class="muted small">{{ u.email }}</div>
+                </div>
+                <div class="pill ready">{{ u.role.value }}</div>
+                <div class="pill {{ 'ready' if u.is_active else 'error' }}">{{ 'ACTIVE' if u.is_active else 'DISABLED' }}</div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="muted">No users yet.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card-shell" style="margin-top:12px;">
+      <div class="card-body-pad">
+        <div class="panel-title">Templates</div>
+        <div class="muted small" style="margin-top:6px;">Create and manage your letter templates in one place.</div>
+        <a class="btn btn-outline-primary" href="{{ url_for('director.templates') }}" style="margin-top:10px;">Open Template Library</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="card-shell">
+      <div class="card-body-pad">
+        <div class="panel-title">Audit Trail</div>
+        {% if audits %}
+          <div class="table">
+            <div class="thead" style="grid-template-columns: 1.6fr 1fr 1fr 1fr;">
+              <div>Event</div><div>Actor</div><div>Target</div><div>When</div>
+            </div>
+            {% for a in audits %}
+              <div class="trow" style="grid-template-columns: 1.6fr 1fr 1fr 1fr;">
+                <div>
+                  <strong>{{ a.action }}</strong>
+                  {% if a.detail %}<div class="muted small">{{ a.detail }}</div>{% endif %}
+                </div>
+                <div class="muted small">{{ a.actor_user_id or "-" }}</div>
+                <div class="muted small">{{ a.entity_type }} {{ a.entity_id }}</div>
+                <div class="muted small">{{ a.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="muted">No recent audit events.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "layout.html" %}
+{% block title %}Preview Documents - {{ client.display_name() }}{% endblock %}
+{% block content %}
+<div class="doc-head">
+  <div class="doc-brand">
+    <img src="{{ url_for('static', filename='brand/banner.png') }}" alt="{{ COMPANY_NAME }}">
+    <div>
+      <div class="doc-title">Preview Documents</div>
+      <div class="doc-sub">{{ client.display_name() }}</div>
+    </div>
+  </div>
+  <div class="row-actions">
+    <a class="btn secondary" href="{{ url_for('documents.client_documents', client_id=client.id) }}">Back</a>
+  </div>
+</div>
+
+<div class="card">
+  {% for d in docs %}
+    <div class="preview-card">
+      <div class="preview-head">
+        <div>
+          <div class="preview-title">{{ d.filename }}</div>
+          <div class="muted small">{{ d.mime_type }} • Uploaded {{ d.created_at|format_et }}</div>
+        </div>
+        <div class="preview-actions">
+          <a class="btn tiny secondary" href="{{ url_for('documents.view_document', doc_id=d.id) }}" target="_blank" rel="noopener">Open</a>
+          <a class="btn tiny secondary" href="{{ url_for('documents.download', doc_id=d.id) }}">Download</a>
+        </div>
+      </div>
+      <div class="preview-frame">
+        <iframe src="{{ url_for('documents.view_document', doc_id=d.id) }}" title="{{ d.filename }}"></iframe>
+      </div>
+    </div>
+  {% else %}
+    <div class="muted">No documents selected.</div>
+  {% endfor %}
+</div>
+
+<style>
+.preview-card{border:1px solid rgba(15,23,42,.08);border-radius:14px;padding:12px;margin-bottom:12px;background:#fff}
+.preview-head{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+.preview-title{font-weight:800;color:#0B1F3A}
+.preview-actions{display:flex;gap:6px;flex-wrap:wrap}
+.preview-frame{margin-top:10px;border-radius:12px;overflow:hidden;border:1px solid rgba(15,23,42,.08);background:#f8fafc}
+.preview-frame iframe{width:100%;height:520px;border:0;background:#fff}
+</style>
+{% endblock %}

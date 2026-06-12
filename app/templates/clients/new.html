@@ -1,0 +1,44 @@
+﻿{% extends "base.html" %}
+{% block title %}New Client | {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Clients</div>
+      <h1 class="page-title">New Client</h1>
+      <p class="page-sub">Create a client record and assign intake details.</p>
+    </div>
+  </div>
+</section>
+
+<div class="card-shell">
+  <div class="card-body-pad">
+    <form method="post" action="{{ url_for('clients.new_client_post') }}" class="row g-3">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="col-md-6">
+        <label class="form-label">First name</label>
+        <input class="form-control" name="first_name">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Last name</label>
+        <input class="form-control" name="last_name">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Email</label>
+        <input class="form-control" name="email" type="email">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Phone</label>
+        <input class="form-control" name="phone">
+      </div>
+      <div class="col-12">
+        <label class="form-label">Notes</label>
+        <textarea class="form-control" name="notes" rows="5"></textarea>
+      </div>
+      <div class="col-12 d-flex gap-2 justify-content-end">
+        <button class="btn btn-primary" type="submit">Create Client</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

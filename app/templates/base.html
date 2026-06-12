@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  {% set page_title = meta_title or COMPANY_NAME %}
+  {% set page_desc = meta_description or "Veteran claims guidance, evidence checklists, rating criteria, and secure tools to help veterans prepare strong VA claims." %}
+  {% set endpoint = request.endpoint or '' %}
+  {% set is_public = endpoint.startswith('public.') or endpoint in ['diy.landing','diy.register','diy.login'] %}
+  <title>{% block title %}{{ page_title }}{% endblock %}</title>
+  <meta name="description" content="{{ page_desc }}">
+  {% if is_public %}
+    <meta name="robots" content="index,follow">
+  {% else %}
+    <meta name="robots" content="noindex,nofollow">
+  {% endif %}
+  <link rel="canonical" href="{{ request.url_root.rstrip('/') }}{{ request.path }}">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{{ page_title }}">
+  <meta property="og:description" content="{{ page_desc }}">
+  <meta property="og:url" content="{{ request.url_root.rstrip('/') }}{{ request.path }}">
+  <meta property="og:site_name" content="{{ COMPANY_NAME }}">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="{{ page_title }}">
+  <meta name="twitter:description" content="{{ page_desc }}">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+  <link rel="dns-prefetch" href="https://fonts.gstatic.com">
+  <link rel="dns-prefetch" href="https://pagead2.googlesyndication.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700;800&display=swap">
+
+  <link rel="preload" as="style" href="{{ url_for('static', filename='css/app.css') }}?v=3" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=3"></noscript>
+  {% if HAS_SKIN %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/skin.css') }}">
+  {% endif %}
+  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+  <link rel="apple-touch-icon-precomposed" href="{{ url_for('static', filename='apple-touch-icon-precomposed.png') }}">
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7405769757927042" crossorigin="anonymous"></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "{{ COMPANY_NAME|e }}",
+    "url": "{{ request.url_root.rstrip('/') }}",
+    "email": "{{ CONTACT_EMAIL|e }}",
+    "telephone": "{{ CONTACT_PHONE|e }}"
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "{{ COMPANY_NAME|e }}",
+    "url": "{{ request.url_root.rstrip('/') }}"
+  }
+  </script>
+
+  <style>
+    :root{
+      --nav-bg: {{ SITE.theme_navbar_color or "#1f4b7a" }};
+      --nav-bg2: {{ SITE.theme_navbar_bg_secondary or "#12335E" }};
+      --nav-text: {{ SITE.theme_navbar_text or "#ffffff" }};
+      --accent: {{ SITE.theme_accent or "#2b77c4" }};
+      --radius: {{ SITE.theme_radius or "16px" }};
+      --page-bg: {{ SITE.theme_page_bg or "#F4F7FB" }};
+      --card-bg: {{ SITE.theme_card_bg or "#ffffff" }};
+      --text: {{ SITE.theme_heading_text or "#0B1F3A" }};
+      --muted: {{ SITE.theme_muted_text or "#4A5D73" }};
+    }
+
+    body { background: var(--page-bg); }
+    .shell { min-height: 100vh; display:flex; flex-direction:column; }
+
+    .topbar{
+      background: linear-gradient(135deg, var(--nav-bg), var(--nav-bg2));
+      color: var(--nav-text);
+      box-shadow: 0 10px 30px rgba(2, 6, 23, .25);
+    }
+
+    .topbar-inner{
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 14px 18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 16px;
+    }
+
+    .brand{
+      display:flex; align-items:center; gap: 12px;
+      text-decoration:none; color: var(--nav-text);
+      min-width: 220px;
+    }
+
+    .brand-badge{
+      width: 34px; height: 34px;
+      border-radius: 10px;
+      background: rgba(255,255,255,.14);
+      display:flex; align-items:center; justify-content:center;
+      font-weight: 800;
+      letter-spacing:.5px;
+      border: 1px solid rgba(255,255,255,.18);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.06);
+    }
+
+    .brand-title{ font-weight: 800; font-size: 14.5px; line-height: 1.1; }
+    .brand-sub{ font-size: 12px; opacity: .86; margin-top: 2px; }
+
+    .nav{
+      display:flex; align-items:center; flex-wrap:wrap;
+      gap: 10px;
+      justify-content:flex-end;
+    }
+
+    .nav a{
+      color: var(--nav-text);
+      text-decoration:none;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 9px 12px;
+      border-radius: 999px;
+      transition: .18s ease;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+    }
+
+    .nav .nav-dropbtn{
+      color: var(--nav-text);
+      text-decoration:none;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 9px 12px;
+      border-radius: 999px;
+      transition: .18s ease;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.14);
+    }
+
+    .nav a:hover{
+      background: rgba(255,255,255,.12);
+      transform: translateY(-1px);
+    }
+    .nav .nav-dropbtn:hover{
+      background: rgba(255,255,255,.12);
+      transform: translateY(-1px);
+    }
+
+    .nav .pill{
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.14);
+    }
+
+    .nav-toggle{
+      display:none;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border-radius:999px;
+      background: rgba(255,255,255,.12);
+      color: var(--nav-text);
+      border: 1px solid rgba(255,255,255,.18);
+      font-weight: 800;
+      cursor:pointer;
+    }
+    .nav-toggle .bars{ display:grid; gap:3px; }
+    .nav-toggle .bar{
+      width:16px; height:2px;
+      background: var(--nav-text);
+      border-radius:2px;
+    }
+
+    /*  Director dropdown */
+    .nav-dropdown{ position:relative; display:inline-flex; }
+    .nav-dropbtn{ cursor:pointer; user-select:none; }
+    .nav-dropbtn .chev{ font-size: .85rem; opacity:.9; }
+
+    .nav-dropmenu{
+      position:absolute;
+      right:0;
+      top: calc(100% + 8px);
+      min-width: 220px;
+      background: #ffffff;
+      border: 1px solid rgba(15,23,42,.10);
+      border-radius: 14px;
+      box-shadow: 0 18px 44px rgba(2,8,23,.18);
+      padding: 8px;
+      display:none;
+      z-index: 9999;
+    }
+
+    .nav-dropitem{
+      display:block;
+      padding: 10px 12px;
+      border-radius: 12px;
+      text-decoration:none;
+      color: #0f172a !important;
+      font-weight: 800;
+      transform:none !important;
+    }
+
+    .nav-dropitem:hover{
+      background: rgba(44,95,168,.10);
+      color: #12335E !important;
+    }
+
+    /* hover on desktop */
+    @media (min-width: 981px){
+      .nav-dropdown:hover .nav-dropmenu{ display:block; }
+    }
+
+    /* open class for mobile */
+    .nav-dropdown.open .nav-dropmenu{ display:block; }
+
+    .content-wrap{
+      width: 100%;
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 22px 18px 40px;
+      flex: 1;
+    }
+
+    .footer{
+      background: linear-gradient(135deg, var(--nav-bg), var(--nav-bg2));
+      color: rgba(255,255,255,.92);
+      padding: 14px 18px;
+      font-size: 12.5px;
+      box-shadow: 0 -10px 30px rgba(2, 6, 23, .18);
+    }
+    .footer-inner{
+      max-width: 1200px;
+      margin: 0 auto;
+      display:flex;
+      justify-content:space-between;
+      gap: 10px;
+      flex-wrap:wrap;
+      opacity:.95;
+    }
+    .muted{ opacity:.85; }
+
+    @media (max-width: 860px){
+      .topbar-inner{ align-items:flex-start; flex-direction:column; }
+      .nav-toggle{ display:inline-flex; }
+      .nav{
+        justify-content:flex-start;
+        width:100%;
+        flex-direction:column;
+        align-items:stretch;
+        display:none;
+      }
+      .nav.open{ display:flex; }
+      .nav a, .nav .nav-dropbtn{
+        width:100%;
+        justify-content:space-between;
+      }
+      .nav-dropdown{ width:100%; }
+      .nav-dropmenu{
+        position:static;
+        min-width:0;
+        margin-top:6px;
+        box-shadow:none;
+      }
+      .brand{ min-width: 0; }
+    }
+  </style>
+
+  {% block head %}{% endblock %}
+</head>
+
+<body>
+  <div class="shell">
+
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="{{ safe_url_for('public_home') }}">
+          <div class="brand-badge">VB</div>
+          <div>
+            <div class="brand-title">{{ COMPANY_NAME }}</div>
+            <div class="brand-sub">{{ SITE.home_hero_kicker or "Veterans Helping Veterans" }}</div>
+          </div>
+        </a>
+
+        <button class="nav-toggle" type="button" aria-controls="mainNav" aria-expanded="false">
+          <span class="bars" aria-hidden="true">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+          </span>
+          Menu
+        </button>
+
+        <nav class="nav" id="mainNav">
+          {% if not current_user.is_authenticated %}
+            <a href="{{ url_for('resources.benefits_finder') }}">Benefits Finder</a>
+            <a href="{{ url_for('portal.portal_home') }}">Client Login</a>
+            <a href="{{ url_for('portal.portal_register') }}">Create Account</a>
+            <a href="{{ url_for('diy.landing') }}">Do It Yourself</a>
+            <a href="{{ url_for('public.crsc') }}">CRSC & Combat Pay</a>
+            <a href="{{ url_for('public.intelligent_benefits') }}#services-locator">Service Locator</a>
+            <a href="{{ safe_url_for('public.pricing') }}">Pricing</a>
+            <a href="{{ url_for('public.faq') }}">FAQ</a>
+            <a href="{{ url_for('public.guides') }}">Guides</a>
+            <a href="{{ url_for('public.article_list') }}">Articles</a>
+            <a href="{{ url_for('public.benefits_hub') }}">Resources</a>
+            <a class="pill" href="{{ url_for('public.home') }}#crisis">Health & Crisis Help</a>
+            <a href="{{ url_for('auth.login') }}">Login</a>
+          {% else %}
+            {% if current_user.role and current_user.role.value == 'CLIENT' %}
+              <a href="{{ safe_url_for('public_home') }}">Home</a>
+              <div class="nav-dropdown" id="benefitsDropdownAuthClient">
+                <button class="pill nav-dropbtn" type="button">
+                  Benefits <span class="chev">v</span>
+                </button>
+                <div class="nav-dropmenu" role="menu" aria-label="Benefits menu">
+                  <a class="nav-dropitem" href="{{ url_for('public.benefits_hub') }}">Benefits Hub</a>
+                  <a class="nav-dropitem" href="{{ url_for('public.intelligent_benefits') }}">Intelligent Benefits</a>
+                  <a class="nav-dropitem" href="{{ url_for('resources.benefits_finder') }}">Benefits Finder</a>
+                  <a class="nav-dropitem" href="{{ url_for('public.state_benefits') }}">State Benefits</a>
+                  <a class="nav-dropitem" href="{{ url_for('public.crsc') }}">CRSC & Combat Pay</a>
+                  <a class="nav-dropitem" href="{{ url_for('public.guides') }}">Guides</a>
+                  <a class="nav-dropitem" href="{{ url_for('public.article_list') }}">Articles</a>
+                  <a class="nav-dropitem" href="{{ url_for('public.intelligent_benefits') }}#services-locator">Services Locator</a>
+                  <a class="nav-dropitem" href="{{ url_for('public.faq') }}">FAQ</a>
+                </div>
+              </div>
+              <a class="pill" href="{{ url_for('portal.dashboard') }}">Client Portal</a>
+              <a href="{{ url_for('portal.messages') }}">Messages</a>
+              <a class="pill" href="{{ safe_url_for('logout') }}">Logout</a>
+            {% else %}
+              {% if current_user.role and current_user.role.value == 'DIY' %}
+              <a href="{{ url_for('diy.tools') }}">DIY Tools</a>
+              <a href="{{ url_for('diy.billing') }}">Billing</a>
+              <a href="{{ url_for('public.faq') }}">FAQ</a>
+              <a class="pill" href="{{ safe_url_for('logout') }}">Logout</a>
+              {% else %}
+              <a href="{{ safe_url_for('employee_dashboard') }}">Dashboard</a>
+              {% if not current_user.is_director %}
+                <a href="{{ safe_url_for('clients_list') }}">Clients</a>
+              {% endif %}
+              <a href="{{ url_for('employee.hub') }}">Employee Hub</a>
+              <a href="{{ url_for('cfr.ratings_chart') }}">VA Rating Chart</a>
+              <a href="{{ url_for('public.intelligent_benefits') }}">Intelligent Benefits</a>
+              <a href="{{ url_for('public.crsc') }}">CRSC & Combat Pay</a>
+              <a href="{{ url_for('public.faq') }}">FAQ</a>
+              <a href="{{ url_for('cue.staff_list') }}">CUE Motions</a>
+              <a href="{{ url_for('messages.inbox') }}">
+                Messages
+                {% if UNREAD_MESSAGES and UNREAD_MESSAGES > 0 %}
+                  <span class="nav-badge">{{ UNREAD_MESSAGES }}</span>
+                {% endif %}
+              </a>
+              <div class="nav-dropdown" id="healthDropdownAuth">
+                <button class="pill nav-dropbtn" type="button">
+                  Health & Crisis Help <span class="chev">v</span>
+                </button>
+                <div class="nav-dropmenu" role="menu" aria-label="Health help">
+                  <a class="nav-dropitem" href="https://www.veteranscrisisline.net/" target="_blank" rel="noopener">Veterans Crisis Line</a>
+                  <a class="nav-dropitem" href="https://www.mentalhealth.va.gov/" target="_blank" rel="noopener">VA Mental Health Services</a>
+                  <a class="nav-dropitem" href="https://www.va.gov/homeless/" target="_blank" rel="noopener">Homelessness Support</a>
+                  <a class="nav-dropitem" href="https://www.va.gov/health-care/pay-copay-bill/financial-hardship/" target="_blank" rel="noopener">Emergency Financial Help</a>
+                </div>
+              </div>
+              {% if current_user.is_director %}
+                <div class="nav-dropdown" id="directorDropdown">
+                  <button class="pill nav-dropbtn" type="button">
+                    Director <span class="chev">v</span>
+                  </button>
+                  <div class="nav-dropmenu" role="menu" aria-label="Director menu">
+                    <a class="nav-dropitem" href="{{ safe_url_for('director_dashboard') }}">Director Dashboard</a>
+                    <a class="nav-dropitem" href="{{ url_for('director.users') }}">Employees</a>
+                    <a class="nav-dropitem" href="{{ safe_url_for('clients_list') }}">Clients</a>
+                    <a class="nav-dropitem" href="{{ url_for('invites.index') }}">Invites</a>
+                    <a class="nav-dropitem" href="{{ safe_url_for('director_site_content') }}">Homepage</a>
+                    <a class="nav-dropitem" href="{{ url_for('director.templates') }}">Templates</a>
+                    <a class="nav-dropitem" href="{{ safe_url_for('director_pricing_list') }}">Pricing</a>
+                    <a class="nav-dropitem" href="{{ url_for('director.faq') }}">FAQ</a>
+                    <a class="nav-dropitem" href="{{ url_for('director.comments') }}">Comments</a>
+                    <a class="nav-dropitem" href="{{ url_for('director.diy_users') }}">DIY Users</a>
+                    <a class="nav-dropitem" href="{{ url_for('director.onboarding_items') }}">Onboarding Items</a>
+                    <a class="nav-dropitem" href="{{ url_for('resources.resources_admin') }}">Resources</a>
+                    <a class="nav-dropitem" href="{{ url_for('intakes.queue') }}">Intakes</a>
+                  <a class="nav-dropitem" href="{{ url_for('email_logs.index') }}">Email Logs</a>
+                  <a class="nav-dropitem" href="{{ url_for('director.traffic') }}">Traffic</a>
+                  <a class="nav-dropitem" href="{{ url_for('director.articles') }}">Articles</a>
+                  <a class="nav-dropitem" href="{{ url_for('billing.overview') }}">Billing</a>
+                    <a class="nav-dropitem" href="{{ url_for('metrics.index') }}">Metrics</a>
+                  </div>
+                </div>
+              {% endif %}
+              <a href="{{ safe_url_for('account_change_password') }}">Password</a>
+              <a class="pill" href="{{ safe_url_for('logout') }}">Logout</a>
+              {% endif %}
+            {% endif %}
+          {% endif %}
+        </nav>
+      </div>
+    </header>
+
+    <main class="content-wrap">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div style="margin-bottom:14px;">
+            {% for category, message in messages %}
+              <div class="flash flash-{{ category }}" style="margin-bottom:8px;">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        <div>
+          {{ COMPANY_NAME }} - {{ CONTACT_EMAIL }} - {{ CONTACT_PHONE }}
+          <span class="muted"> | </span>
+          <a href="{{ url_for('public.faq') }}" style="color:#fff;text-decoration:underline;">FAQ</a>
+          <span class="muted"> | </span>
+          <a href="{{ url_for('public.guides') }}" style="color:#fff;text-decoration:underline;">Guides</a>
+          <span class="muted"> | </span>
+          <a href="{{ url_for('public.guide_detail', slug='google-search-visibility') }}" style="color:#fff;text-decoration:underline;">Search Visibility</a>
+          <span class="muted"> | </span>
+          <a href="{{ url_for('public.privacy') }}" style="color:#fff;text-decoration:underline;">Privacy</a>
+          <span class="muted"> | </span>
+          <a href="{{ url_for('public.security') }}" style="color:#fff;text-decoration:underline;">Security</a>
+        </div>
+        <div class="muted">{% if COMPANY_WEBSITE %}{{ COMPANY_WEBSITE }}{% else %}Private business - Not affiliated with VA{% endif %}</div>
+      </div>
+    </footer>
+
+  </div>
+
+  {% block scripts %}{% endblock %}
+
+  <!--  Mobile: tap dropdowns to open/close -->
+  <script>
+  (function(){
+    const navToggle = document.querySelector(".nav-toggle");
+    const mainNav = document.getElementById("mainNav");
+    if (navToggle && mainNav){
+      navToggle.addEventListener("click", function(){
+        const isOpen = mainNav.classList.toggle("open");
+        navToggle.setAttribute("aria-expanded", String(isOpen));
+      });
+      mainNav.addEventListener("click", function(e){
+        if (e.target.closest("a")){
+          mainNav.classList.remove("open");
+          navToggle.setAttribute("aria-expanded", "false");
+        }
+      });
+    }
+
+    const dropdowns = document.querySelectorAll(".nav-dropdown");
+    dropdowns.forEach(function(dd){
+      const btn = dd.querySelector(".nav-dropbtn");
+      if(!btn) return;
+      btn.addEventListener("click", function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        dd.classList.toggle("open");
+      });
+    });
+
+    document.addEventListener("click", function(e){
+      dropdowns.forEach(function(dd){
+        if (!e.target.closest(".nav-dropdown")) dd.classList.remove("open");
+      });
+    });
+
+    document.addEventListener("keydown", function(e){
+      if (e.key === "Escape"){
+        dropdowns.forEach(function(dd){ dd.classList.remove("open"); });
+      }
+    });
+  })();
+  </script>
+</body>
+</html>

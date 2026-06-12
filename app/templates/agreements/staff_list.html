@@ -1,0 +1,92 @@
+{% extends "layout.html" %}
+{% block title %}Agreements - {{ client.display_name() }}{% endblock %}
+{% block content %}
+<div class="row">
+  <div>
+    <h2>Agreements</h2>
+    <div class="muted small">{{ client.display_name() }}</div>
+  </div>
+  <div class="row-actions">
+    <a class="btn secondary" href="{{ url_for('clients.view_client', client_id=client.id) }}">Back</a>
+  </div>
+</div>
+
+<div class="card">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+    <img src="{{ url_for('static', filename='brand/logo.png') }}" alt="Logo" style="height:48px;width:auto;">
+    <div>
+      <div style="font-weight:900;color:#0B1F3A;">{{ brand.brand }}</div>
+      <div class="muted small">{{ brand.email }} {% if brand.phone %} | {{ brand.phone }}{% endif %}</div>
+    </div>
+  </div>
+  <h3>Create Agreement</h3>
+  <form method="post" action="{{ url_for('agreements.create_for_client', client_id=client.id) }}" class="grid">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div style="grid-column:1/-1;">
+      <label>Title</label>
+      <input name="title" value="Service Agreement">
+    </div>
+    <div style="grid-column:1/-1;">
+      <label>Body (optional)</label>
+      <textarea name="body" rows="8" placeholder="Leave blank to use the default agreement template."></textarea>
+    </div>
+    <div style="grid-column:1/-1;">
+      <label>Selected services (optional)</label>
+      {% if pricing_items %}
+        <div style="display:grid; gap:8px; margin-top:6px;">
+          {% for p in pricing_items %}
+            <label style="display:flex; gap:8px; align-items:flex-start;">
+              <input type="checkbox" name="pricing_item_ids" value="{{ p.id }}" style="margin-top:3px;">
+              <div>
+                <div style="font-weight:700;">{{ p.name }}</div>
+                <div class="muted small">
+                  {% if p.is_percent %}
+                    {{ "%.2f"|format(p.percent_of_backpay or 0) }}% of backpay
+                  {% else %}
+                    ${{ "%.2f"|format((p.price_cents or 0)/100) }}
+                  {% endif %}
+                </div>
+                {% if p.description %}
+                  <div class="muted small">{{ p.description }}</div>
+                {% endif %}
+              </div>
+            </label>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="muted small" style="margin-top:6px;">
+          No active pricing items found. Add services in Director -> Pricing.
+        </div>
+      {% endif %}
+    </div>
+    <div style="grid-column:1/-1;">
+      <button class="btn btn-primary" type="submit">Send to Client Portal</button>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <h3>Existing Agreements</h3>
+  <div class="table">
+    <div class="thead" style="grid-template-columns: 1fr 140px 140px;">
+      <div>Agreement</div>
+      <div>Status</div>
+      <div>Actions</div>
+    </div>
+    {% for a in items %}
+    <div class="trow" style="grid-template-columns: 1fr 140px 140px;">
+      <div>
+        <strong>{{ a.title }}</strong>
+        <div class="muted small">Created {{ a.created_at.strftime('%Y-%m-%d') }}</div>
+      </div>
+      <div class="pill {{ 'pill-good' if a.status == 'SIGNED' else 'pill-claim' }}">{{ a.status }}</div>
+      <div>
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('agreements.view_agreement', agreement_id=a.id) }}">View</a>
+      </div>
+    </div>
+    {% else %}
+      <div class="muted" style="padding:12px;">No agreements yet.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

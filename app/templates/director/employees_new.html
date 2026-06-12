@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+{% block title %}New Employee • Admin{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="section-header">
+    <h2>New Employee</h2>
+    <p style="color:var(--text-soft);">Create a staff account</p>
+  </div>
+
+  <div class="card">
+    <form action="{{ url_for('director_create_user') }}" method="post" class="stack-form">
+      <label>Username <input type="text" name="username" required></label>
+      <label>Email <input type="email" name="email"></label>
+      <label>Role
+        <select name="role">
+          <option value="employee" selected>employee</option>
+          <option value="admin">admin</option>
+        </select>
+      </label>
+      <label>Temporary Password <input type="password" name="password" required></label>
+      <button class="btn btn-primary" type="submit">Create</button>
+      <a class="btn btn-outline" href="{{ url_for('director_employees_list') }}">Cancel</a>
+    </form>
+  </div>
+</section>
+{% endblock %}

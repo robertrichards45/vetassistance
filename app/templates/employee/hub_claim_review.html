@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Employee Hub - Claim Review{% endblock %}
+{% block content %}
+<section class="hub-hero">
+  <div class="hub-hero-inner">
+    <div>
+      <div class="hub-kicker">Employee Hub</div>
+      <h1 class="hub-title">Claim Review</h1>
+      <p class="hub-sub">AI + rule-based review to flag gaps, issues, and missing evidence.</p>
+    </div>
+    <div class="hub-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('employee.hub') }}">Back to Hub</a>
+    </div>
+  </div>
+</section>
+
+<section class="hub-card">
+  <div class="hub-card-title">Run Review</div>
+  <form method="post" action="{{ url_for('employee.hub_claim_review_post') }}" class="grid" style="gap:12px;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div>
+      <label class="form-label">Client</label>
+      <select class="form-control" name="client_id" required>
+        <option value="">Select a client...</option>
+        {% for c in clients %}
+          <option value="{{ c.id }}" {% if selected_client and selected_client.id == c.id %}selected{% endif %}>
+            {{ c.display_name() }} ({{ c.email }})
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <input type="checkbox" name="run_ai" value="1" id="run_ai" {% if ran_ai %}checked{% endif %}>
+      <label for="run_ai" class="form-label" style="margin:0;">Run AI review (uses OPENAI_API_KEY)</label>
+    </div>
+    <div>
+      <button class="btn btn-primary" type="submit">Review Claim</button>
+    </div>
+  </form>
+</section>
+
+{% if rule_result %}
+<section class="hub-card">
+  <div class="hub-card-title">Rule-Based Checklist</div>
+  <div class="hub-card-body">
+    <div class="muted" style="margin-bottom:8px;">Score: <strong>{{ rule_result.score }}</strong></div>
+    <ul class="hub-list">
+      {% for item in rule_result.checks %}
+        <li>
+          <strong>[{{ item.level|upper }}]</strong> {{ item.title }} — {{ item.detail }}
+          {% if item.missing_evidence %}
+            <div class="muted small">Missing: {{ item.missing_evidence | join(", ") }}</div>
+          {% endif %}
+          {% if item.fix %}
+            <div class="muted small">Fix: {{ item.fix }}</div>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{% endif %}
+
+{% if ai_result %}
+<section class="hub-card">
+  <div class="hub-card-title">AI Review</div>
+  <div class="hub-card-body">
+    {% if ai_result.raw %}
+      <div class="muted small">AI output (unparsed):</div>
+      <pre style="white-space:pre-wrap;">{{ ai_result.raw }}</pre>
+    {% else %}
+      <div class="muted" style="margin-bottom:8px;">Score: <strong>{{ ai_result.score }}</strong></div>
+      <div class="muted" style="margin-bottom:8px;">{{ ai_result.summary }}</div>
+      {% if ai_result.issues %}
+        <div style="font-weight:800;margin-bottom:6px;">Issues</div>
+        <ul class="hub-list">
+          {% for i in ai_result.issues %}
+            <li>
+              <strong>[{{ i.level|upper }}]</strong> {{ i.title }} — {{ i.detail }}
+              {% if i.missing_evidence %}
+                <div class="muted small">Missing: {{ i.missing_evidence | join(", ") }}</div>
+              {% endif %}
+              {% if i.fix %}
+                <div class="muted small">Fix: {{ i.fix }}</div>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      {% if ai_result.missing_evidence %}
+        <div style="font-weight:800;margin-top:10px;">Suggested missing evidence</div>
+        <ul class="hub-list">
+          {% for m in ai_result.missing_evidence %}
+            <li>{{ m }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      {% if ai_result.strengths %}
+        <div style="font-weight:800;margin-top:10px;">Strengths</div>
+        <ul class="hub-list">
+          {% for s in ai_result.strengths %}
+            <li>{{ s }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      {% if ai_result.notes %}
+        <div style="font-weight:800;margin-top:10px;">Notes</div>
+        <ul class="hub-list">
+          {% for n in ai_result.notes %}
+            <li>{{ n }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      {% if ai_result.disclaimer %}
+        <div class="muted small" style="margin-top:10px;">{{ ai_result.disclaimer }}</div>
+      {% endif %}
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,495 @@
+{% extends "layout.html" %}
+{% block title %}Documents - {{ client.display_name() }}{% endblock %}
+{% block content %}
+<div class="doc-head">
+  <div class="doc-brand">
+    <img src="{{ url_for('static', filename='brand/banner.png') }}" alt="{{ COMPANY_NAME }}">
+    <div>
+      <div class="doc-title">Documents</div>
+      <div class="doc-sub">{{ client.display_name() }}</div>
+    </div>
+  </div>
+  <div class="row-actions">
+    <a class="btn secondary" href="{{ url_for('clients.view_client', client_id=client.id) }}">Back</a>
+  </div>
+</div>
+
+<div class="grid2">
+  <div class="card">
+    <h3>Upload (Drag & Drop)</h3>
+    <p class="muted small">Drop multiple files. PDFs will be processed in the background for AI. Supports documents, audio, and video.</p>
+
+    <form id="staffUploadForm" method="post" action="{{ url_for('documents.upload_staff', client_id=client.id) }}" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="dropzone" id="staffDropzone">
+        <div class="dz-title">Drop files here</div>
+        <div class="muted small">or click to browse</div>
+        <button class="btn btn-outline-primary btn-sm" type="button" id="staffPickBtn" style="margin-top:8px;">Choose files</button>
+        <input id="staffFiles" class="file-input-overlay" type="file" name="files" multiple accept=".pdf,.png,.jpg,.jpeg,.docx,.mp3,.wav,.m4a,.mp4,.mov,.webm,.ogg">
+      </div>
+
+      <div id="staffQueue" class="queue"></div>
+
+      <button class="btn" style="margin-top:10px;" type="submit">Upload</button>
+      <div id="staffUploadStatus" class="muted small" style="margin-top:8px; display:none;">Uploading...</div>
+      <div id="staffUploadProgress" class="upload-progress" style="display:none;">
+        <div id="staffUploadProgressBar" class="upload-progress-bar"></div>
+      </div>
+      <div id="staffUploadProgressText" class="upload-progress-text" style="display:none;">0%</div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3>Search</h3>
+    <form method="get" class="search">
+      <input name="q" value="{{ q }}" placeholder="Search filenames...">
+      <button class="btn secondary" type="submit">Search</button>
+    </form>
+    <div class="muted small">Tip: keep filenames meaningful (DecisionLetter, C&P, DBQ, TreatmentRecords).</div>
+    <form method="post" action="{{ url_for('documents.reclassify_client_docs', client_id=client.id) }}" style="margin-top:10px;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-outline-primary btn-sm" type="submit">Reclassify all documents</button>
+    </form>
+    <form id="bulkDeleteForm" method="post" action="{{ url_for('documents.delete_documents_bulk', client_id=client.id) }}" style="margin-top:10px;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div id="bulkDeleteInputs"></div>
+      <button class="btn btn-outline-primary btn-sm" type="submit" id="bulkDeleteBtn">Delete selected</button>
+    </form>
+    <form id="bulkPreviewForm" method="post" action="{{ url_for('documents.preview_documents', client_id=client.id) }}" style="margin-top:10px;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div id="bulkPreviewInputs"></div>
+      <button class="btn btn-outline-primary btn-sm" type="submit" id="bulkPreviewBtn">Preview selected</button>
+    </form>
+  </div>
+</div>
+
+<div class="card" style="margin-top:14px;">
+  <h3>All Documents</h3>
+  <div class="doc-filters">
+    <input id="docFilterName" placeholder="Filter by filename">
+    <select id="docFilterCategory">
+      <option value="">All categories</option>
+      {% for cat in ["Decision Letter","C&P Exam","DBQ","Treatment Records","Service Records (STR)","Buddy Statement","Employer Statement","Imaging/Labs","Other","Uncategorized"] %}
+        <option value="{{ cat }}">{{ cat }}</option>
+      {% endfor %}
+    </select>
+    <select id="docFilterStatus">
+      <option value="">All status</option>
+      <option value="READY">READY</option>
+      <option value="PROCESSING">PROCESSING</option>
+      <option value="PENDING">PENDING</option>
+      <option value="ERROR">ERROR</option>
+    </select>
+    <select id="docFilterShare">
+      <option value="">All sharing</option>
+      <option value="shared">Shared</option>
+      <option value="not_shared">Not shared</option>
+    </select>
+    <button class="btn tiny secondary" type="button" id="docFilterClear">Clear</button>
+    <button class="btn tiny secondary" type="button" id="docSortReset">Reset sort</button>
+  </div>
+  <div class="table doc-table">
+    <div class="thead" style="grid-template-columns: 36px 2.2fr 1.4fr 0.9fr 1fr 160px 200px;">
+      <div><input type="checkbox" id="selectAllDocs" title="Select all"></div>
+      <div>File</div>
+      <div class="sort-cell">
+        Category
+        <button class="sort-btn" type="button" data-sort="category">
+          Sort <span class="sort-arrow"></span><span class="sort-rank"></span>
+        </button>
+      </div>
+      <div class="sort-cell">
+        Status
+        <button class="sort-btn" type="button" data-sort="status">
+          Sort <span class="sort-arrow"></span><span class="sort-rank"></span>
+        </button>
+      </div>
+      <div class="sort-cell">
+        Uploaded
+        <button class="sort-btn" type="button" data-sort="date">
+          Sort <span class="sort-arrow"></span><span class="sort-rank"></span>
+        </button>
+      </div>
+      <div>Client Share</div>
+      <div>Actions</div>
+    </div>
+    {% for d in docs %}
+      <div class="trow" style="grid-template-columns: 36px 2.2fr 1.4fr 0.9fr 1fr 160px 200px;" data-category="{{ d.category or '' }}" data-status="{{ d.status or '' }}" data-date="{{ d.created_at.strftime('%Y-%m-%d') }}" data-share="{{ 'shared' if d.is_client_visible else 'not_shared' }}">
+        <div><input type="checkbox" class="doc-select" value="{{ d.id }}"></div>
+        <div class="doc-file">
+          <div class="doc-name">{{ d.filename }}</div>
+          <div class="muted small">{{ d.mime_type }}</div>
+        </div>
+        <div class="doc-category">
+          <form method="post" action="{{ url_for('documents.update_category', doc_id=d.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <select name="category">
+              {% for cat in ["Decision Letter","C&P Exam","DBQ","Treatment Records","Service Records (STR)","Buddy Statement","Employer Statement","Imaging/Labs","Other","Uncategorized"] %}
+                <option value="{{ cat }}" {{ "selected" if d.category == cat else "" }}>{{ cat }}</option>
+              {% endfor %}
+            </select>
+            <button class="btn tiny secondary" type="submit">Save</button>
+          </form>
+        </div>
+        <div class="pill {{ 'pill-ready' if d.status == 'READY' else 'pill-warn' }}">{{ d.status }}</div>
+        <div class="muted small">{{ d.created_at|format_et }}</div>
+        <div>
+          <form method="post" action="{{ url_for('documents.toggle_share', doc_id=d.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="pill-btn {{ 'pill-shared' if d.is_client_visible else 'pill-unshared' }}" type="submit">
+              {{ 'Shared' if d.is_client_visible else 'Not shared' }}
+            </button>
+          </form>
+        </div>
+        <div class="doc-actions">
+          <a class="btn tiny secondary" href="{{ url_for('documents.view_document', doc_id=d.id) }}" target="_blank" rel="noopener">View</a>
+          <a class="btn tiny secondary" href="{{ url_for('documents.download', doc_id=d.id) }}">Download</a>
+          <form method="post" action="{{ url_for('documents.delete_document', doc_id=d.id) }}" onsubmit="return confirm('Delete this document?');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn tiny secondary" type="submit">Delete</button>
+          </form>
+        </div>
+      </div>
+    {% else %}
+      <div class="muted" style="padding:16px;">No documents yet.</div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="drop-overlay" id="dropOverlay">
+  <div class="drop-overlay-box">Drop files to upload</div>
+</div>
+
+<script>
+(function(){
+  const dz = document.getElementById('staffDropzone');
+  const input = document.getElementById('staffFiles');
+  const queue = document.getElementById('staffQueue');
+  const pickBtn = document.getElementById('staffPickBtn');
+  const overlay = document.getElementById('dropOverlay');
+  const uploadForm = document.getElementById('staffUploadForm');
+  const uploadStatus = document.getElementById('staffUploadStatus');
+  const progressWrap = document.getElementById('staffUploadProgress');
+  const progressBar = document.getElementById('staffUploadProgressBar');
+  const progressText = document.getElementById('staffUploadProgressText');
+
+  function renderQueue(files){
+    queue.innerHTML = '';
+    if(!files || files.length === 0) return;
+    const ul = document.createElement('ul');
+    ul.className = 'bullets';
+    for(const f of files){
+      const li = document.createElement('li');
+      li.textContent = `${f.name} (${Math.round(f.size/1024)} KB)`;
+      ul.appendChild(li);
+    }
+    queue.appendChild(ul);
+  }
+
+  if(pickBtn){
+    pickBtn.addEventListener('click', function(e){
+      e.preventDefault();
+      input.click();
+    });
+  }
+  dz.addEventListener('click', (e)=>{
+    if (e.target === input || e.target === pickBtn) return;
+    input.click();
+  });
+  input.addEventListener('change', ()=> renderQueue(input.files));
+
+  ['dragenter','dragover'].forEach(ev=>{
+    dz.addEventListener(ev, (e)=>{ e.preventDefault(); dz.classList.add('drag'); e.dataTransfer.dropEffect = 'copy'; });
+  });
+  ['dragleave','drop'].forEach(ev=>{
+    dz.addEventListener(ev, (e)=>{ e.preventDefault(); dz.classList.remove('drag'); });
+  });
+  dz.addEventListener('drop', (e)=>{
+    const files = e.dataTransfer.files;
+    if (files && files.length){
+      input.files = files;
+      renderQueue(input.files);
+    }
+  });
+
+  if(uploadForm && uploadStatus && progressWrap && progressBar && progressText){
+    uploadForm.addEventListener('submit', function(e){
+      e.preventDefault();
+      if(uploadForm.dataset.busy === '1'){ return; }
+      uploadForm.dataset.busy = '1';
+      uploadStatus.textContent = 'Uploading...';
+      uploadStatus.style.display = 'block';
+      progressWrap.style.display = 'block';
+      progressText.style.display = 'block';
+      progressBar.style.width = '0%';
+      progressText.textContent = '0%';
+
+      const xhr = new XMLHttpRequest();
+      xhr.open(uploadForm.method || 'POST', uploadForm.action);
+      xhr.upload.addEventListener('progress', function(evt){
+        if(!evt.lengthComputable) return;
+        const pct = Math.min(100, Math.max(1, Math.round((evt.loaded / evt.total) * 100)));
+        progressBar.style.width = pct + '%';
+        progressText.textContent = pct + '%';
+      });
+      xhr.onreadystatechange = function(){
+        if(xhr.readyState !== 4) return;
+        uploadForm.dataset.busy = '0';
+        if(xhr.status >= 200 && xhr.status < 400){
+          progressBar.style.width = '100%';
+          progressText.textContent = '100%';
+          const redirectUrl = xhr.responseURL;
+          if(redirectUrl){
+            window.location = redirectUrl;
+          } else {
+            window.location.reload();
+          }
+          return;
+        }
+        uploadStatus.textContent = 'Upload failed. Please try again.';
+      };
+      xhr.onerror = function(){
+        uploadForm.dataset.busy = '0';
+        uploadStatus.textContent = 'Upload failed. Please try again.';
+      };
+      const formData = new FormData(uploadForm);
+      xhr.send(formData);
+    });
+  }
+})();
+</script>
+<script>
+(function(){
+  const overlay = document.getElementById('dropOverlay');
+  if(!overlay) return;
+  let dragDepth = 0;
+  window.addEventListener('dragenter', function(e){
+    dragDepth += 1;
+    overlay.classList.add('show');
+  });
+  window.addEventListener('dragleave', function(){
+    dragDepth -= 1;
+    if(dragDepth <= 0){
+      overlay.classList.remove('show');
+      dragDepth = 0;
+    }
+  });
+  window.addEventListener('drop', function(){
+    overlay.classList.remove('show');
+    dragDepth = 0;
+  });
+  window.addEventListener('dragover', function(e){
+    e.preventDefault();
+  });
+})();
+</script>
+<script>
+(function(){
+  const selectAll = document.getElementById('selectAllDocs');
+  const bulkForm = document.getElementById('bulkDeleteForm');
+  const bulkInputs = document.getElementById('bulkDeleteInputs');
+  const bulkBtn = document.getElementById('bulkDeleteBtn');
+  const previewForm = document.getElementById('bulkPreviewForm');
+  const previewInputs = document.getElementById('bulkPreviewInputs');
+  const previewBtn = document.getElementById('bulkPreviewBtn');
+  if(!bulkForm || !bulkInputs || !bulkBtn) return;
+  const boxes = Array.from(document.querySelectorAll('.doc-select'));
+  if(selectAll){
+    selectAll.addEventListener('change', function(){
+      boxes.forEach(b => { b.checked = selectAll.checked; });
+    });
+  }
+  bulkForm.addEventListener('submit', function(e){
+    const selected = boxes.filter(b => b.checked).map(b => b.value);
+    bulkInputs.innerHTML = '';
+    if(selected.length === 0){
+      e.preventDefault();
+      alert('Select at least one document to delete.');
+      return;
+    }
+    if(!confirm('Delete selected documents?')){ e.preventDefault(); return; }
+    selected.forEach(function(id){
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'doc_ids';
+      input.value = id;
+      bulkInputs.appendChild(input);
+    });
+  });
+  if(previewForm && previewInputs && previewBtn){
+    previewForm.addEventListener('submit', function(e){
+      const selected = boxes.filter(b => b.checked).map(b => b.value);
+      previewInputs.innerHTML = '';
+      if(selected.length === 0){
+        e.preventDefault();
+        alert('Select at least one document to preview.');
+        return;
+      }
+      selected.forEach(function(id){
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'doc_ids';
+        input.value = id;
+        previewInputs.appendChild(input);
+      });
+    });
+  }
+})();
+</script>
+<script>
+(function(){
+  const rows = Array.from(document.querySelectorAll('.doc-table .trow'));
+  if(!rows.length) return;
+  const tbody = rows[0].parentElement;
+  const sortState = [];
+  const sortButtons = Array.from(document.querySelectorAll('.sort-btn'));
+  const storageKey = 'doc_table_prefs_{{ client.id }}';
+  const prefsGetUrl = "{{ url_for('documents.get_doc_table_prefs', client_id=client.id) }}";
+  const prefsSetUrl = "{{ url_for('documents.set_doc_table_prefs', client_id=client.id) }}";
+  const csrfToken = "{{ csrf_token() }}";
+  let persistTimer = null;
+
+  function updateSortButtons(){
+    sortButtons.forEach(btn=>{
+      const key = btn.dataset.sort;
+      const state = sortState.find(s => s.key === key);
+      btn.classList.toggle('active', !!state);
+      btn.dataset.dir = state ? (state.dir === 1 ? 'asc' : 'desc') : '';
+      const arrow = btn.querySelector('.sort-arrow');
+      if(arrow){
+        arrow.textContent = state ? (state.dir === 1 ? '^' : 'v') : '';
+      }
+      const rank = btn.querySelector('.sort-rank');
+      if(rank){
+        rank.textContent = state ? String(sortState.indexOf(state) + 1) : '';
+      }
+    });
+  }
+
+  function sortRows(){
+    if(sortState.length === 0) return;
+    const sorted = rows.slice().sort((a,b)=>{
+      for(const s of sortState){
+        const av = (a.dataset[s.key] || '').toLowerCase();
+        const bv = (b.dataset[s.key] || '').toLowerCase();
+        if(av < bv) return -1 * s.dir;
+        if(av > bv) return 1 * s.dir;
+      }
+      return 0;
+    });
+    sorted.forEach(r => tbody.appendChild(r));
+  }
+
+  function setSortState(key, additive){
+    const existing = sortState.find(s => s.key === key);
+    if(existing){
+      existing.dir *= -1;
+    } else {
+      if(!additive) sortState.length = 0;
+      sortState.push({ key, dir: 1 });
+    }
+    updateSortButtons();
+    sortRows();
+    schedulePersist();
+  }
+
+  function parseSortParam(param){
+    sortState.length = 0;
+    if(!param) return;
+    param.split(',').forEach(part=>{
+      const [k,d] = part.split(':');
+      if(!k) return;
+      sortState.push({ key: k, dir: d === 'desc' ? -1 : 1 });
+    });
+  }
+
+  function persistState(){
+    const payload = {
+      sort: sortState.map(s => `${s.key}:${s.dir === 1 ? 'asc' : 'desc'}`).join(','),
+      name: (nameInput.value || '').trim(),
+      category: categorySelect.value || '',
+      status: statusSelect.value || '',
+      share: shareSelect.value || ''
+    };
+    function applySaved(saved){
+    if(!saved) return;
+    if(saved.name) nameInput.value = saved.name;
+    if(saved.category) categorySelect.value = saved.category;
+    if(saved.status) statusSelect.value = saved.status;
+    if(saved.share) shareSelect.value = saved.share;
+    parseSortParam(saved.sort || '');
+    updateSortButtons();
+    sortRows();
+    applyFilters();
+  }
+
+  function loadPrefs(){
+    fetch(prefsGetUrl, { headers: { 'Accept': 'application/json' } })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if(data && data.prefs){
+          applySaved(data.prefs);
+          return;
+        }
+        try{
+          const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
+          applySaved(saved);
+        } catch(e){}
+      })
+      .catch(() => {
+        try{
+          const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
+          applySaved(saved);
+        } catch(e){}
+      });
+  }
+
+  loadPrefs();
+})();
+</script>
+<style>
+.doc-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.doc-brand{display:flex;align-items:center;gap:12px}
+.doc-brand img{width:200px;height:64px;object-fit:contain;border-radius:12px;border:1px solid rgba(15,23,42,.10);background:#fff;padding:8px;box-shadow:0 10px 26px rgba(2,8,23,.10)}
+.doc-title{font-weight:900;color:#0B1F3A;font-size:1.3rem}
+.doc-sub{color:#4A5D73;font-weight:700}
+.doc-table .thead,.doc-table .trow{gap:10px}
+.doc-file{display:flex;flex-direction:column;gap:4px}
+.doc-name{font-weight:800;color:#0B1F3A;word-break:break-word}
+.doc-category form{display:flex;flex-direction:column;gap:6px}
+.doc-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.doc-filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.doc-filters input,.doc-filters select{padding:6px 8px;border-radius:10px;border:1px solid rgba(15,23,42,.12);background:#fff;min-width:180px}
+.sort-cell{display:flex;align-items:center;gap:8px}
+.sort-btn{border:1px solid rgba(15,23,42,.12);background:#f8fafc;border-radius:10px;padding:4px 8px;font-size:12px;font-weight:800;color:#0B1F3A;display:inline-flex;gap:6px;align-items:center}
+.sort-btn.active{background:#E0EAFF;border-color:#93C5FD;color:#1E3A8A}
+.sort-arrow{font-size:12px}
+.sort-rank{background:#1E3A8A;color:#fff;border-radius:999px;padding:0 6px;font-size:11px;font-weight:800}
+.pill-ready{background:#DCFCE7;color:#166534;border:1px solid #86EFAC}
+.pill-warn{background:#FEF3C7;color:#92400E;border:1px solid #FCD34D}
+.pill-btn{border:none;border-radius:999px;padding:6px 12px;font-weight:800;font-size:12px;cursor:pointer}
+.pill-shared{background:#DBEAFE;color:#1D4ED8;border:1px solid #93C5FD}
+.pill-unshared{background:#FEE2E2;color:#991B1B;border:1px solid #FCA5A5}
+.drop-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(15,23,42,.55);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .18s ease;
+  z-index: 9999;
+}
+.drop-overlay.show{ opacity:1; }
+.drop-overlay-box{
+  background:#fff;
+  color:#0B1F3A;
+  padding:18px 26px;
+  border-radius:14px;
+  font-weight:800;
+  box-shadow:0 20px 50px rgba(2,8,23,.3);
+}
+</style>
+{% endblock %}

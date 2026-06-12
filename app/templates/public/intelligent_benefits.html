@@ -1,0 +1,726 @@
+{% extends "base.html" %}
+{% block title %}Intelligent Benefits Finder - {{ COMPANY_NAME }}{% endblock %}
+
+{% block content %}
+<section class="ib-hero">
+  <div class="ib-hero-inner">
+    <div>
+      <div class="ib-kicker">Intelligent Benefits Finder</div>
+      <h1 class="ib-title">Find likely, conditional, and missed benefits</h1>
+      <p class="ib-sub">Answer a few questions and we'll surface federal, state, county, and nonprofit benefits you may qualify for.</p>
+    </div>
+    <div class="ib-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('public.benefits_hub') }}">Benefits Hub</a>
+      <a class="btn btn-primary" href="{{ url_for('public.intelligent_benefits') }}#services-locator">Services Locator</a>
+    </div>
+  </div>
+</section>
+
+{% if not ai_allowed %}
+<section class="ib-lock">
+  <div class="ib-lock-inner">
+    <div>
+      <div class="ib-lock-kicker">Pro required</div>
+      <div class="ib-lock-title">AI-powered benefits results are a Pro tool.</div>
+      <div class="ib-lock-sub">{{ ai_message or "Upgrade to Pro to unlock AI benefits matching." }}</div>
+    </div>
+    <div class="ib-lock-actions">
+      <a class="btn btn-primary" href="{{ url_for('diy.subscribe') }}">Upgrade to Pro</a>
+      <a class="btn btn-outline-primary" href="{{ url_for('diy.login') }}">Log in</a>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="ib-card">
+  <form id="ibForm" class="ib-form">
+    <div class="ib-field">
+      <label>City (optional)</label>
+      <input name="city" placeholder="Leesburg">
+    </div>
+    <div class="ib-field">
+      <label>State</label>
+      <select name="state">
+        <option value="">Select</option>
+        <option value="AL">AL</option><option value="AK">AK</option><option value="AZ">AZ</option>
+        <option value="AR">AR</option><option value="CA">CA</option><option value="CO">CO</option>
+        <option value="CT">CT</option><option value="DE">DE</option><option value="DC">DC</option>
+        <option value="FL">FL</option><option value="GA">GA</option><option value="HI">HI</option>
+        <option value="ID">ID</option><option value="IL">IL</option><option value="IN">IN</option>
+        <option value="IA">IA</option><option value="KS">KS</option><option value="KY">KY</option>
+        <option value="LA">LA</option><option value="ME">ME</option><option value="MD">MD</option>
+        <option value="MA">MA</option><option value="MI">MI</option><option value="MN">MN</option>
+        <option value="MS">MS</option><option value="MO">MO</option><option value="MT">MT</option>
+        <option value="NE">NE</option><option value="NV">NV</option><option value="NH">NH</option>
+        <option value="NJ">NJ</option><option value="NM">NM</option><option value="NY">NY</option>
+        <option value="NC">NC</option><option value="ND">ND</option><option value="OH">OH</option>
+        <option value="OK">OK</option><option value="OR">OR</option><option value="PA">PA</option>
+        <option value="RI">RI</option><option value="SC">SC</option><option value="SD">SD</option>
+        <option value="TN">TN</option><option value="TX">TX</option><option value="UT">UT</option>
+        <option value="VT">VT</option><option value="VA">VA</option><option value="WA">WA</option>
+        <option value="WV">WV</option><option value="WI">WI</option><option value="WY">WY</option>
+      </select>
+    </div>
+    <div class="ib-field">
+      <label>County (optional)</label>
+      <input name="county" placeholder="Lowndes">
+    </div>
+    <div class="ib-field">
+      <label>ZIP (optional)</label>
+      <input name="zip" placeholder="31602">
+    </div>
+    <div class="ib-field">
+      <label>Life Events</label>
+      <select name="life_events">
+        <option value="">Select</option>
+        <option value="marriage">Marriage</option>
+        <option value="divorce">Divorce</option>
+        <option value="birth">Birth of a child</option>
+        <option value="retirement">Retirement</option>
+        <option value="diagnosis">Medical diagnosis</option>
+        <option value="job_loss">Job loss</option>
+        <option value="relocation">Relocation</option>
+        <option value="death_family">Death in family</option>
+      </select>
+    </div>
+    <div class="ib-field">
+      <label>Disability Rating</label>
+      <select name="rating">
+        <option value="">Unknown</option>
+        <option value="0">0%</option>
+        <option value="10">10%</option>
+        <option value="20">20%</option>
+        <option value="30">30%</option>
+        <option value="40">40%</option>
+        <option value="50">50%</option>
+        <option value="60">60%</option>
+        <option value="70">70%</option>
+        <option value="80">80%</option>
+        <option value="90">90%</option>
+        <option value="100">100%</option>
+      </select>
+    </div>
+    <div class="ib-field">
+      <label>Service Era</label>
+      <select name="service_era">
+        <option value="">Unknown</option>
+        <option value="post-9-11">Post-9/11</option>
+        <option value="gulf-war">Gulf War</option>
+        <option value="vietnam">Vietnam</option>
+        <option value="korea">Korea</option>
+        <option value="wwii">WWII</option>
+      </select>
+    </div>
+    <div class="ib-field">
+      <label>Dependents</label>
+      <select name="dependents">
+        <option value="">Unknown</option>
+        <option value="none">None</option>
+        <option value="spouse">Spouse</option>
+        <option value="children">Children</option>
+        <option value="spouse_children">Spouse + Children</option>
+      </select>
+    </div>
+    <div class="ib-field">
+      <label>Household Income (optional)</label>
+      <input name="income" placeholder="$">
+    </div>
+    <div class="ib-actions-row">
+      <button class="btn btn-primary" type="submit">Find Benefits</button>
+      <button class="btn btn-outline-primary" type="reset" id="ibReset">Clear</button>
+    </div>
+  </form>
+</section>
+
+<section class="ib-results">
+  <div class="ib-results-head">
+    <div class="ib-results-title">Results</div>
+    <div id="ibMeta" class="ib-results-meta">Complete the form to begin.</div>
+  </div>
+  <div id="ibGrid" class="ib-grid"></div>
+  <div id="ibDisclaimer" class="ib-disclaimer"></div>
+</section>
+
+<section id="services-locator" class="bf-hero">
+  <div class="bf-hero-inner">
+    <div>
+      <div class="bf-kicker">Veteran Services Locator</div>
+      <h2 class="bf-title">Find local help by ZIP or city</h2>
+      <p class="bf-sub">Discover food, housing, mental health, transportation, legal aid, and veteran-specific programs nearby. Listings are AI-ingested and admin-verified.</p>
+    </div>
+    <div class="bf-badge">Public access - No login</div>
+  </div>
+</section>
+
+<section class="bf-card">
+  <form id="benefitsForm" class="bf-form">
+    <div class="bf-field">
+      <label>ZIP Code</label>
+      <input name="zip" inputmode="numeric" placeholder="31763">
+    </div>
+    <div class="bf-field">
+      <label>City</label>
+      <input name="city" placeholder="Leesburg">
+    </div>
+    <div class="bf-field">
+      <label>State</label>
+      <select name="state">
+        <option value="">Select</option>
+        <option value="AL">AL</option><option value="AK">AK</option><option value="AZ">AZ</option>
+        <option value="AR">AR</option><option value="CA">CA</option><option value="CO">CO</option>
+        <option value="CT">CT</option><option value="DE">DE</option><option value="DC">DC</option>
+        <option value="FL">FL</option><option value="GA">GA</option><option value="HI">HI</option>
+        <option value="ID">ID</option><option value="IL">IL</option><option value="IN">IN</option>
+        <option value="IA">IA</option><option value="KS">KS</option><option value="KY">KY</option>
+        <option value="LA">LA</option><option value="ME">ME</option><option value="MD">MD</option>
+        <option value="MA">MA</option><option value="MI">MI</option><option value="MN">MN</option>
+        <option value="MS">MS</option><option value="MO">MO</option><option value="MT">MT</option>
+        <option value="NE">NE</option><option value="NV">NV</option><option value="NH">NH</option>
+        <option value="NJ">NJ</option><option value="NM">NM</option><option value="NY">NY</option>
+        <option value="NC">NC</option><option value="ND">ND</option><option value="OH">OH</option>
+        <option value="OK">OK</option><option value="OR">OR</option><option value="PA">PA</option>
+        <option value="RI">RI</option><option value="SC">SC</option><option value="SD">SD</option>
+        <option value="TN">TN</option><option value="TX">TX</option><option value="UT">UT</option>
+        <option value="VT">VT</option><option value="VA">VA</option><option value="WA">WA</option>
+        <option value="WV">WV</option><option value="WI">WI</option><option value="WY">WY</option>
+      </select>
+    </div>
+    <div class="bf-field">
+      <label>County</label>
+      <input name="county" placeholder="Lowndes">
+    </div>
+    <div class="bf-field">
+      <label>Radius (miles)</label>
+      <input name="radius" type="number" min="5" max="200" value="50">
+    </div>
+    <div class="bf-field">
+      <label>Category</label>
+      <select name="category">
+        <option value="">All</option>
+        <option value="food">Food Banks</option>
+        <option value="shelter">Homeless Shelters</option>
+        <option value="housing">Housing</option>
+        <option value="mental_health">Mental Health</option>
+        <option value="health">Health</option>
+        <option value="employment">Employment</option>
+        <option value="legal">Legal</option>
+        <option value="financial">Financial Assistance</option>
+        <option value="transportation">Transportation</option>
+        <option value="education">Education</option>
+        <option value="family">Family Support</option>
+        <option value="emergency">Emergency</option>
+        <option value="vet_center">Vet Center</option>
+        <option value="benefits">Benefits</option>
+        <option value="cemetery">Cemetery</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="bf-actions">
+      <button class="btn btn-primary" type="submit">Search</button>
+      <button class="btn btn-outline-primary" type="reset" id="bfReset">Clear</button>
+    </div>
+  </form>
+</section>
+
+<section class="bf-results">
+  <div class="bf-results-head">
+    <div class="bf-results-title">Results</div>
+    <div id="bfMeta" class="bf-results-meta">Enter a ZIP or city to begin.</div>
+  </div>
+  <div class="bf-results-body">
+    <div class="bf-map-card">
+      <div class="bf-map-head">
+        <div class="bf-map-title">Area View</div>
+        <div id="bfMapMeta" class="bf-map-meta">No points yet.</div>
+      </div>
+      <div id="bfMap" class="bf-map"></div>
+    </div>
+    <div id="bfGrid" class="bf-grid"></div>
+  </div>
+</section>
+
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+  crossorigin=""
+/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+  crossorigin=""></script>
+
+<style>
+.ib-hero{
+  background:
+    radial-gradient(900px 320px at 12% 18%, rgba(255,255,255,.12), transparent 60%),
+    linear-gradient(135deg, #10233f 0%, #1b3f6b 60%, #0d1728 100%);
+  color:#fff;border-radius:22px;padding:20px 22px;border:1px solid rgba(255,255,255,.15);
+  box-shadow:0 18px 44px rgba(2,8,23,.22);margin-bottom:16px;
+}
+.ib-hero-inner{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap}
+.ib-kicker{display:inline-flex;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);font-weight:800}
+.ib-title{margin:8px 0 4px;font-size:2rem}
+.ib-sub{margin:0;opacity:.9;max-width:760px}
+.ib-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+.ib-card{
+  background:#fff;border:1px solid rgba(15,23,42,.10);
+  border-radius:18px;box-shadow:0 18px 44px rgba(2,8,23,.10);
+  padding:16px;margin-bottom:16px;
+}
+.ib-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.ib-field label{display:block;font-weight:900;color:#0B1F3A;margin-bottom:6px}
+.ib-field input,.ib-field select{
+  width:100%;border-radius:14px;border:1px solid rgba(15,23,42,.12);
+  padding:10px 12px;background:#fff;
+}
+.ib-actions-row{grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap}
+
+.ib-results{
+  background:#fff;border:1px solid rgba(15,23,42,.10);
+  border-radius:18px;box-shadow:0 18px 44px rgba(2,8,23,.10);
+  padding:16px;
+}
+.ib-results-head{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+.ib-results-title{font-weight:900;color:#0B1F3A}
+.ib-results-meta{color:#4A5D73;font-weight:700}
+.ib-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:12px}
+.ib-card-item{
+  border:1px solid rgba(15,23,42,.10);border-radius:16px;padding:12px;background:linear-gradient(180deg,#f7f9fc,#ffffff);
+}
+.ib-card-title{font-weight:900;color:#0B1F3A;margin-bottom:4px}
+.ib-card-meta{color:#4A5D73;font-size:.9rem}
+.ib-pill{display:inline-flex;padding:4px 8px;border-radius:999px;background:#eaf2ff;color:#1b4b8a;font-weight:800;font-size:.75rem;margin-top:6px}
+.ib-pill.verify{background:rgba(16,185,129,.12);color:#0f766e}
+.ib-pill.pending{background:rgba(245,158,11,.16);color:#92400e}
+.ib-section-title{grid-column:1/-1;font-weight:900;color:#0B1F3A;background:rgba(15,23,42,.06);border:1px solid rgba(15,23,42,.08);border-radius:12px;padding:8px 12px}
+.ib-disclaimer{margin-top:12px;color:#4A5D73;font-size:.9rem}
+
+.bf-hero{
+  background:
+    radial-gradient(800px 300px at 12% 10%, rgba(255,255,255,.18), transparent 60%),
+    radial-gradient(520px 220px at 80% 0%, rgba(110,176,255,.16), transparent 60%),
+    linear-gradient(135deg, #10233f 0%, #1b3f6b 60%, #0d1728 100%);
+  color: #fff;
+  border-radius: 22px;
+  padding: 20px 22px;
+  border: 1px solid rgba(255,255,255,.15);
+  box-shadow: 0 18px 44px rgba(2,8,23,.22);
+  margin: 32px 0 16px;
+}
+.ib-lock{
+  background:#fff;
+  border:1px solid rgba(15,23,42,.12);
+  border-radius:18px;
+  box-shadow:0 18px 44px rgba(2,8,23,.10);
+  padding:16px;
+  margin:16px 0;
+}
+.ib-lock-inner{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap}
+.ib-lock-kicker{
+  display:inline-flex;padding:6px 10px;border-radius:999px;
+  background:#fff4eb;border:1px solid rgba(245,158,11,.35);
+  color:#9a3412;font-weight:900;font-size:.8rem;letter-spacing:.02em;
+}
+.ib-lock-title{margin:8px 0 4px;font-weight:900;color:#0B1F3A}
+.ib-lock-sub{color:#4A5D73;font-weight:700}
+.ib-lock-actions{display:flex;gap:10px;flex-wrap:wrap}
+.bf-hero-inner{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap}
+.bf-kicker{display:inline-flex;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);font-weight:800}
+.bf-title{margin:8px 0 4px;font-size:1.9rem}
+.bf-sub{margin:0;opacity:.9;max-width:720px}
+.bf-badge{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.18);padding:8px 12px;border-radius:12px;font-weight:800}
+
+.bf-card{
+  background:#fff;border:1px solid rgba(15,23,42,.10);
+  border-radius:18px;box-shadow:0 18px 44px rgba(2,8,23,.10);
+  padding:16px;margin-bottom:16px;
+}
+.bf-form{display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr auto;gap:12px;align-items:end}
+.bf-field label{display:block;font-weight:900;color:#0B1F3A;margin-bottom:6px}
+.bf-field input,.bf-field select{
+  width:100%;border-radius:14px;border:1px solid rgba(15,23,42,.12);
+  padding:10px 12px;background:#fff;
+}
+.bf-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+.bf-results{
+  background:#fff;border:1px solid rgba(15,23,42,.10);
+  border-radius:18px;box-shadow:0 18px 44px rgba(2,8,23,.10);
+  padding:16px;
+}
+.bf-results-head{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+.bf-results-title{font-weight:900;color:#0B1F3A}
+.bf-results-meta{color:#4A5D73;font-weight:700}
+.bf-results-body{display:grid;grid-template-columns:360px 1fr;gap:12px;margin-top:12px}
+.bf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.bf-group-title{
+  grid-column: 1 / -1;
+  font-weight:900;
+  color:#0B1F3A;
+  background: rgba(15,23,42,.06);
+  border: 1px solid rgba(15,23,42,.08);
+  border-radius: 12px;
+  padding: 8px 12px;
+}
+.bf-card-item{
+  border:1px solid rgba(15,23,42,.10);border-radius:16px;padding:12px;background:linear-gradient(180deg,#f7f9fc,#ffffff);
+}
+.bf-card-title{font-weight:900;color:#0B1F3A;margin-bottom:4px}
+.bf-card-meta{color:#4A5D73;font-size:.9rem}
+.bf-pill{display:inline-flex;padding:4px 8px;border-radius:999px;background:#eaf2ff;color:#1b4b8a;font-weight:800;font-size:.75rem;margin-top:6px}
+.bf-empty{color:#4A5D73;font-weight:700;padding:10px}
+
+.bf-map-card{
+  border:1px solid rgba(15,23,42,.10);
+  border-radius:16px;
+  padding:12px;
+  background:linear-gradient(180deg,#f7f9fc,#ffffff);
+  min-height:420px;
+}
+.bf-map-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+.bf-map-title{font-weight:900;color:#0B1F3A}
+.bf-map-meta{color:#4A5D73;font-weight:700;font-size:.85rem}
+.bf-map{
+  width:100%;
+  height:360px;
+  border-radius:14px;
+  background:
+    radial-gradient(700px 260px at 20% 20%, rgba(43,119,196,.12), transparent 60%),
+    linear-gradient(180deg, #0b1220, #132643);
+  border:1px solid rgba(15,23,42,.12);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+.bf-map .leaflet-container{border-radius:14px}
+
+@media (max-width: 980px){
+  .bf-form{grid-template-columns:1fr 1fr}
+  .bf-results-body{grid-template-columns:1fr}
+}
+@media (max-width: 640px){
+  .bf-form{grid-template-columns:1fr}
+}
+@media (max-width: 720px){
+  .bf-results-body{grid-template-columns:1fr;}
+  .bf-grid{order:1;}
+  .bf-map-card{order:2; min-height:260px;}
+  .bf-map{height:240px;}
+  .bf-results-head{align-items:flex-start;}
+  .bf-actions{width:100%;}
+  .bf-actions .btn{flex:1 1 auto;}
+}
+</style>
+
+<script>
+(function(){
+  const form = document.getElementById("ibForm");
+  const grid = document.getElementById("ibGrid");
+  const meta = document.getElementById("ibMeta");
+  const disclaimer = document.getElementById("ibDisclaimer");
+
+  function renderList(title, items){
+    if(!items || !items.length) return "";
+    return [
+      '<div class="ib-section-title">' + title + '</div>',
+      items.map(function(it){
+        const conf = (it.confidence != null) ? (it.confidence + "%") : "";
+        const verification = it.verification
+          ? ('<div class="ib-pill ' + (it.verification.indexOf("Pending") >= 0 ? "pending" : "verify") + '">' + it.verification + '</div>')
+          : "";
+        return [
+          '<div class="ib-card-item">',
+          '<div class="ib-card-title">' + (it.title || "Benefit") + '</div>',
+          '<div class="ib-card-meta">' + (it.summary || "") + '</div>',
+          '<div class="ib-card-meta">' + (it.notes || "") + '</div>',
+          (it.plain_english ? '<div class="ib-card-meta"><strong>Plain English:</strong> ' + it.plain_english + '</div>' : ''),
+          (it.what_it_means ? '<div class="ib-card-meta"><strong>What this means:</strong> ' + it.what_it_means + '</div>' : ''),
+          (it.what_it_does_not_affect ? '<div class="ib-card-meta"><strong>Does not affect:</strong> ' + it.what_it_does_not_affect + '</div>' : ''),
+          (conf ? '<div class="ib-pill">Confidence: ' + conf + '</div>' : ''),
+          verification,
+          '</div>'
+        ].join("");
+      }).join("")
+    ].join("");
+  }
+
+  function renderTimeline(timeline){
+    if(!timeline) return "";
+    const sections = [
+      ["Available Now", timeline.now],
+      ["In 1 Year", timeline.one_year],
+      ["In 5 Years", timeline.five_years],
+      ["At Retirement", timeline.retirement]
+    ];
+    return [
+      '<div class="ib-section-title">Benefits Roadmap</div>',
+      sections.map(function(pair){
+        const label = pair[0];
+        const items = pair[1] || [];
+        if(!items.length) return "";
+        return [
+          '<div class="ib-card-item">',
+          '<div class="ib-card-title">' + label + '</div>',
+          items.map(function(it){ return '<div class="ib-card-meta">- ' + it + '</div>'; }).join(""),
+          '</div>'
+        ].join("");
+      }).join("")
+    ].join("");
+  }
+
+  function renderLifeEvents(items){
+    if(!items || !items.length) return "";
+    return [
+      '<div class="ib-section-title">Life-Event Triggers</div>',
+      items.map(function(it){
+        const list = (it.benefits || []).map(function(b){ return '<div class="ib-card-meta">- ' + b + '</div>'; }).join("");
+        return '<div class="ib-card-item"><div class="ib-card-title">' + (it.event || "Event") + '</div>' + list + '</div>';
+      }).join("")
+    ].join("");
+  }
+
+  function renderStacking(items){
+    if(!items || !items.length) return "";
+    return [
+      '<div class="ib-section-title">Stacking Awareness</div>',
+      items.map(function(it){
+        const status = it.status || "";
+        return '<div class="ib-card-item"><div class="ib-card-title">' + (it.title || "Stacking") + '</div><div class="ib-card-meta">' + status + '</div><div class="ib-card-meta">' + (it.details || "") + '</div></div>';
+      }).join("")
+    ].join("");
+  }
+
+  form.addEventListener("submit", function(e){
+    e.preventDefault();
+    const fd = new FormData(form);
+    const data = Object.fromEntries(fd.entries());
+    data.life_events = fd.getAll("life_events");
+    if(!data.state && !data.zip && !data.city){
+      meta.textContent = "State, ZIP, or city is required.";
+      grid.innerHTML = "";
+      return;
+    }
+    meta.textContent = "Evaluating benefits...";
+    grid.innerHTML = "";
+    disclaimer.textContent = "";
+    fetch("{{ url_for('public.intelligent_benefits_api') }}", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(data)
+    }).then(r => r.json()).then(function(resp){
+      if(resp.error){
+        meta.textContent = resp.error;
+        return;
+      }
+      meta.textContent = "Results for " + (resp.state || data.state);
+      grid.innerHTML = [
+        renderList("Likely Benefits", resp.likely),
+        renderList("Conditional Benefits", resp.conditional),
+        renderList("Missed & Hidden Benefits", resp.missed_hidden),
+        renderStacking(resp.stacking),
+        renderLifeEvents(resp.life_event_triggers),
+        renderTimeline(resp.timeline)
+      ].join("");
+      disclaimer.textContent = resp.disclaimer || "Results are informational and not a guarantee of eligibility.";
+    }).catch(function(){
+      meta.textContent = "Service unavailable.";
+    });
+  });
+
+  const params = new URLSearchParams(window.location.search || "");
+  if(params.toString()){
+    ["city","state","county","zip","rating","service_era","dependents","income"].forEach(function(key){
+      if(!params.get(key)) return;
+      const el = form.querySelector("[name='" + key + "']");
+      if(el){ el.value = params.get(key); }
+    });
+    if(params.get("life_events")){
+      const values = params.get("life_events").split(",");
+      const sel = form.querySelector("[name='life_events']");
+      if(sel){
+        if(!sel.multiple){
+          sel.value = values[0] || "";
+        } else {
+          Array.from(sel.options).forEach(function(opt){
+            if(values.includes(opt.value)){ opt.selected = true; }
+          });
+        }
+      }
+    }
+    form.dispatchEvent(new Event("submit"));
+  }
+})();
+</script>
+
+<script>
+(function(){
+  const form = document.getElementById("benefitsForm");
+  if(!form) return;
+  const grid = document.getElementById("bfGrid");
+  const meta = document.getElementById("bfMeta");
+  const mapMeta = document.getElementById("bfMapMeta");
+  const resetBtn = document.getElementById("bfReset");
+  const mapEl = document.getElementById("bfMap");
+
+  const categoryLabels = {
+    benefits: "Benefits",
+    health: "Health",
+    mental_health: "Mental Health",
+    food: "Food Banks",
+    shelter: "Homeless Shelters",
+    housing: "Housing",
+    employment: "Employment",
+    legal: "Legal",
+    counseling: "Counseling",
+    financial: "Financial Assistance",
+    transportation: "Transportation",
+    education: "Education",
+    family: "Family Support",
+    emergency: "Emergency",
+    vet_center: "Vet Center",
+    cemetery: "Cemetery",
+    other: "Other",
+    VA_FACILITY: "VA Facilities"
+  };
+
+  function renderEmpty(msg){
+    grid.innerHTML = '<div class="bf-empty">' + msg + '</div>';
+    mapMeta.textContent = "No points yet.";
+    drawMap([]);
+  }
+
+  function renderResults(items, selectedCategory){
+    if(!items || !items.length){
+      renderEmpty("No results found.");
+      return;
+    }
+    function renderCard(it){
+      const name = it.name || "VA Facility";
+      const distance = (it.distance_miles != null) ? (it.distance_miles + " mi") : "";
+      const phone = it.phone ? ("Phone: " + it.phone) : "";
+      const address = it.address || "";
+      const pillText = it.exact_match ? "Local" : "Nearby";
+      const verification = it.verification ? ('<div class="bf-pill" style="margin-left:6px;">' + it.verification + '</div>') : '';
+      return [
+        '<div class="bf-card-item">',
+        '<div class="bf-card-title">' + name + '</div>',
+        '<div class="bf-card-meta">' + [distance, address, phone].filter(Boolean).join(" - ") + '</div>',
+        '<div class="bf-pill">' + pillText + '</div>' + verification,
+        '</div>'
+      ].join("");
+    }
+    if(selectedCategory){
+      grid.innerHTML = items.map(renderCard).join("");
+      return;
+    }
+    const grouped = {};
+    items.forEach(function(it){
+      const key = it.category || "other";
+      if(!grouped[key]) grouped[key] = [];
+      grouped[key].push(it);
+    });
+    const order = Object.keys(categoryLabels);
+    const sections = [];
+    order.forEach(function(key){
+      if(!grouped[key] || !grouped[key].length) return;
+      const label = categoryLabels[key] || key;
+      sections.push('<div class="bf-group-title">' + label + '</div>');
+      sections.push(grouped[key].map(renderCard).join(""));
+    });
+    grid.innerHTML = sections.join("") || '<div class="bf-empty">No results found.</div>';
+  }
+
+  let map = null;
+  let markersLayer = null;
+
+  function initMap(center){
+    if(map){ return; }
+    map = L.map(mapEl, { zoomControl: true }).setView(center || [33.0, -84.0], 8);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      attribution: "&copy; OpenStreetMap",
+    }).addTo(map);
+    markersLayer = L.layerGroup().addTo(map);
+    setTimeout(function(){ map.invalidateSize(); }, 0);
+  }
+
+  function drawMap(items, origin){
+    const points = items
+      .filter(it => typeof it.lat === "number" && typeof it.lon === "number")
+      .map(it => ({ lat: it.lat, lon: it.lon, name: it.name, address: it.address }));
+    const center = (origin && typeof origin.lat === "number") ? [origin.lat, origin.lon] : [33.0, -84.0];
+    initMap(center);
+    markersLayer.clearLayers();
+    if(!points.length){
+      mapMeta.textContent = "No geocoded points.";
+      map.setView(center, 8);
+      return;
+    }
+    const bounds = [];
+    points.forEach(p => {
+      const marker = L.marker([p.lat, p.lon]).addTo(markersLayer);
+      if(p.name || p.address){
+        marker.bindPopup([p.name, p.address].filter(Boolean).join("<br>"));
+      }
+      bounds.push([p.lat, p.lon]);
+    });
+    if(bounds.length){
+      map.fitBounds(bounds, { padding: [20, 20] });
+    }
+    mapMeta.textContent = points.length + " locations plotted";
+  }
+
+  form.addEventListener("submit", function(e){
+    e.preventDefault();
+    const data = new FormData(form);
+    const zip = (data.get("zip") || "").toString().trim();
+    const city = (data.get("city") || "").toString().trim();
+    const state = (data.get("state") || "").toString().trim();
+    if(!zip && !city){
+      meta.textContent = "Enter a ZIP code or city.";
+      renderEmpty("Enter a ZIP code or city.");
+      return;
+    }
+    if(city && !state){
+      meta.textContent = "Select a state for city search.";
+      renderEmpty("Select a state for city search.");
+      return;
+    }
+    const params = new URLSearchParams(data);
+    const url = "{{ url_for('resources.benefits_finder_search') }}?" + params.toString();
+    meta.textContent = "Searching...";
+    mapMeta.textContent = "Loading...";
+    fetch(url).then(r => r.json()).then(function(resp){
+      if(resp.error){
+        meta.textContent = resp.error;
+        renderEmpty("No results to show.");
+        return;
+      }
+      meta.textContent = (resp.count || 0) + " results";
+      renderResults(resp.results || [], (data.get("category") || "").toString().trim());
+      drawMap(resp.results || [], resp.origin || null);
+    }).catch(function(){
+      meta.textContent = "Service unavailable.";
+      renderEmpty("Try again in a moment.");
+    });
+  });
+
+  const params = new URLSearchParams(window.location.search || "");
+  if(params.toString()){
+    ["zip","city","state","county","radius","category"].forEach(function(key){
+      if(!params.get(key)) return;
+      const el = form.querySelector("[name='" + key + "']");
+      if(el){ el.value = params.get(key); }
+    });
+    form.dispatchEvent(new Event("submit"));
+  }
+
+  resetBtn.addEventListener("click", function(){
+    meta.textContent = "Enter a ZIP or city to begin.";
+    renderEmpty("");
+  });
+})();
+</script>
+{% endblock %}

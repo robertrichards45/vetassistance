@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}FAQ - {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">FAQ</div>
+      <h1 class="page-title">Common Questions</h1>
+      <p class="page-sub">Clear answers about benefits support, privacy, and next steps.</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('public.home') }}">Back</a>
+    </div>
+  </div>
+</section>
+
+<div class="admin-wrap">
+  {% if grouped %}
+    {% for group in grouped %}
+      <div class="card-shell">
+        <div class="card-body-pad">
+          <div class="panel-title">{{ group["category"] }}</div>
+          <div class="faq-list">
+            {% for item in group["items"] %}
+              <details class="faq-item">
+                <summary>{{ item.question }}</summary>
+                <div class="muted" style="margin-top:8px;">{{ item.answer }}</div>
+              </details>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="card-shell">
+      <div class="card-body-pad">
+        <div class="muted">No FAQ items yet.</div>
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+<style>
+.faq-list{display:grid;gap:10px;margin-top:10px}
+.faq-item{border:1px solid rgba(15,23,42,.12);border-radius:12px;padding:10px 12px;background:#fff}
+.faq-item summary{cursor:pointer;font-weight:800;color:#0B1F3A}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {% set first = true %}
+    {% for group in grouped %}
+      {% for item in group["items"] %}
+        {% if not first %},{% endif %}
+        {
+          "@type": "Question",
+          "name": {{ item.question|tojson }},
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": {{ item.answer|tojson }}
+          }
+        }
+        {% set first = false %}
+      {% endfor %}
+    {% endfor %}
+  ]
+}
+</script>
+{% endblock %}

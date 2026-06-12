@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}Employee Hub - CRSC Appeals{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Employee Hub</div>
+      <h1 class="page-title">CRSC Denial Review & Appeal Workflow</h1>
+      <p class="page-sub">Use this checklist to identify why a CRSC claim was denied and how to correct it.</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('employee.hub') }}">Back to Hub</a>
+      <a class="btn btn-outline-light" href="{{ url_for('employee.hub_crsc') }}">Open CRSC Workspace</a>
+    </div>
+  </div>
+</section>
+
+<div class="admin-wrap">
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <div class="panel-title">Step 1: Identify the Denial Reason</div>
+      <ul class="muted small" style="margin-top:8px;">
+        <li>Combat nexus not established or unclear.</li>
+        <li>Injury or condition not linked to a qualifying combat category.</li>
+        <li>Evidence packet missing required documents.</li>
+        <li>Insufficient clarity in the narrative or incident description.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card-shell" style="margin-top:12px;">
+    <div class="card-body-pad">
+      <div class="panel-title">Denial Review Assistant</div>
+      <div class="muted small">Paste denial language and get a structured correction checklist.</div>
+      <div style="margin-top:10px;">
+        <textarea class="form-control" id="crscDenialText" rows="6" placeholder="Paste denial language here..."></textarea>
+      </div>
+      <button class="btn btn-outline-primary" id="crscDenialAnalyze" style="margin-top:10px;">Analyze denial</button>
+      <div class="grid2" style="margin-top:12px;">
+        <div class="mini">
+          <strong>Likely failure points</strong>
+          <ul class="muted small" id="crscFailurePoints"></ul>
+        </div>
+        <div class="mini">
+          <strong>Suggested evidence fixes</strong>
+          <ul class="muted small" id="crscFixes"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-shell" style="margin-top:12px;">
+    <div class="card-body-pad">
+      <div class="panel-title">Step 2: Rebuild the Evidence Stack</div>
+      <ul class="muted small" style="margin-top:8px;">
+        <li>Update the CRSC intake form with the exact combat category.</li>
+        <li>Attach line-of-duty or incident reports that match the combat category.</li>
+        <li>Add deployment records or awards that show combat exposure.</li>
+        <li>Confirm VA rating decision and medical records are current.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card-shell" style="margin-top:12px;">
+    <div class="card-body-pad">
+      <div class="panel-title">Step 3: Improve the Narrative</div>
+      <ul class="muted small" style="margin-top:8px;">
+        <li>Use the CRSC Nexus Narrative tool to map evidence to the category.</li>
+        <li>Highlight the incident timeline and medical continuity.</li>
+        <li>Explicitly connect the condition to the combat criteria.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card-shell" style="margin-top:12px;">
+    <div class="card-body-pad">
+      <div class="panel-title">Step 4: Resubmit the Packet</div>
+      <ul class="muted small" style="margin-top:8px;">
+        <li>Use the CRSC packet checklist to verify completeness.</li>
+        <li>Generate a new packet summary for the file.</li>
+        <li>Store the resubmission notes in the client record.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  const btn = document.getElementById('crscDenialAnalyze');
+  const input = document.getElementById('crscDenialText');
+  const outFails = document.getElementById('crscFailurePoints');
+  const outFixes = document.getElementById('crscFixes');
+  if(!btn || !input || !outFails || !outFixes){ return; }
+  function addItem(el, text){
+    const li = document.createElement('li');
+    li.textContent = text;
+    el.appendChild(li);
+  }
+  btn.addEventListener('click', function(){
+    const text = (input.value || '').toLowerCase();
+    outFails.innerHTML = '';
+    outFixes.innerHTML = '';
+    if(!text.trim()){
+      addItem(outFails, 'Add the denial language to analyze.');
+      return;
+    }
+    if(text.includes('combat') && text.includes('not') && text.includes('related')){
+      addItem(outFails, 'Combat nexus not established.');
+      addItem(outFixes, 'Add incident reports, LOD, awards, or deployment records tied to the combat category.');
+    }
+    if(text.includes('insufficient') || text.includes('inadequate')){
+      addItem(outFails, 'Evidence was considered insufficient.');
+      addItem(outFixes, 'Provide additional medical records, diagnosis confirmation, or clearer nexus narrative.');
+    }
+    if(text.includes('no evidence') || text.includes('missing')){
+      addItem(outFails, 'Missing required evidence.');
+      addItem(outFixes, 'Attach VA rating decision, medical records, and retired pay statement.');
+    }
+    if(text.includes('training') && text.includes('not')){
+      addItem(outFails, 'Training event not tied to simulated war criteria.');
+      addItem(outFixes, 'Frame the event as simulated war with supporting records and official training documentation.');
+    }
+    if(text.includes('retirement') && text.includes('not')){
+      addItem(outFails, 'Retirement eligibility not established.');
+      addItem(outFixes, 'Include retirement orders and proof of retired pay.');
+    }
+    if(outFails.children.length === 0){
+      addItem(outFails, 'No specific denial reason detected. Review manually.');
+      addItem(outFixes, 'Confirm combat category, evidence stack, and nexus narrative.');
+    }
+  });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Employee Hub - Evidence Checklist{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Employee Hub</div>
+      <h1 class="page-title">Evidence Checklist Builder</h1>
+      <p class="page-sub">Generate a checklist from intake answers and track progress.</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('employee.hub') }}">Back to Hub</a>
+    </div>
+  </div>
+</section>
+
+<div class="admin-wrap">
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <form method="get" class="row" style="gap:12px;align-items:end;">
+        <div style="min-width:240px;">
+          <label>Client</label>
+          <select name="client_id">
+            <option value="">Select a client</option>
+            {% for c in clients %}
+              <option value="{{ c.id }}" {% if selected_client and c.id == selected_client.id %}selected{% endif %}>{{ c.display_name() }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <button class="btn btn-primary">Open</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if selected_client %}
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <div class="panel-title">Create Checklist</div>
+      <form method="post" action="{{ url_for('employee.hub_checklists_create') }}" class="row" style="gap:12px;align-items:end;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="client_id" value="{{ selected_client.id }}">
+        <div style="min-width:220px;">
+          <label>Title</label>
+          <input name="title" value="Evidence Checklist">
+        </div>
+        <div>
+          <label>Use intake answers</label>
+          <select name="from_intake">
+            <option value="1">Yes</option>
+            <option value="0">No</option>
+          </select>
+        </div>
+        <div>
+          <button class="btn btn-primary">Generate</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <div class="panel-title">Checklist Items</div>
+      {% if items %}
+      <div class="table" style="margin-top:10px;">
+        <div class="thead" style="grid-template-columns: 2fr 1fr 1fr;">
+          <div>Item</div><div>Category</div><div>Status</div>
+        </div>
+        {% for it in items %}
+          <div class="trow" style="grid-template-columns: 2fr 1fr 1fr;">
+            <div>{{ it.label }}</div>
+            <div class="muted small">{{ it.category }}</div>
+            <div>
+              <form method="post" action="{{ url_for('employee.hub_checklists_toggle', item_id=it.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-outline-primary btn-sm" type="submit">
+                  {% if it.is_done %}Complete{% else %}Mark done{% endif %}
+                </button>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+      {% else %}
+        <div class="muted" style="margin-top:8px;">No checklist yet.</div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

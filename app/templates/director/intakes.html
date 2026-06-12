@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="pagehead">
+  <div>
+    <h1 class="h-title">Intake Requests</h1>
+    <div class="h-sub">Approve an intake to create a client (required for Veteran Upload access).</div>
+  </div>
+  <div class="h-actions">
+    <a class="btn btn-secondary" href="{{ url_for('director_dashboard') }}">Back</a>
+  </div>
+</div>
+
+<div class="cardx">
+  <div class="cardx-head">
+    <form method="get" class="searchbar">
+      <input class="input" name="q" value="{{ q }}" placeholder="Search name, email, phone, status">
+      <button class="btn btn-outline-dark" type="submit">Search</button>
+      {% if q %}<a class="btn btn-outline-dark" href="{{ url_for('director_intakes') }}">Clear</a>{% endif %}
+    </form>
+  </div>
+
+  <div class="tablex">
+    <div class="tablex-row tablex-head">
+      <div>Name</div>
+      <div>Email</div>
+      <div>Phone</div>
+      <div>Status</div>
+      <div class="right">Actions</div>
+    </div>
+
+    {% for it in intakes %}
+      <div class="tablex-row">
+        <div><strong>{{ it.first_name }} {{ it.last_name }}</strong></div>
+        <div class="muted">{{ it.email }}</div>
+        <div class="muted">{{ it.phone or "—" }}</div>
+        <div><span class="pill">{{ it.status }}</span></div>
+
+        <div class="right">
+          {% if it.status != "Approved" and not it.linked_client_id %}
+            <form method="post" action="{{ url_for('director_intake_approve', intake_id=it.id) }}" class="approve">
+              <input class="input input-sm" name="claim_number" placeholder="Claim #" required>
+              <button class="btn btn-sm btn-primary" type="submit">Approve</button>
+            </form>
+          {% else %}
+            <span class="muted">Approved</span>
+          {% endif %}
+
+          {% if it.status != "Closed" %}
+            <form method="post" action="{{ url_for('director_intake_close', intake_id=it.id) }}" class="inline">
+              <button class="btn btn-sm btn-outline-dark" type="submit">Close</button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if it.description %}
+        <div class="desc">
+          <div class="desc-label">Request</div>
+          <div class="desc-text">{{ it.description }}</div>
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+</div>
+
+<style>
+.pagehead{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:end;margin:8px 0 14px}
+.h-title{margin:0;font-size:1.6rem;letter-spacing:-.3px;color:#0B1F3A}
+.h-sub{margin-top:6px;color:#4A5D73}
+.h-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+.cardx{background:#fff;border:1px solid rgba(15,23,42,.10);border-radius:18px;box-shadow:0 18px 44px rgba(2,8,23,.10);overflow:hidden}
+.cardx-head{padding:12px 12px;border-bottom:1px solid rgba(15,23,42,.06)}
+.searchbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+.tablex{padding:8px 10px}
+.tablex-row{display:grid;grid-template-columns:1.1fr 1.3fr .9fr .7fr 1.4fr;gap:10px;align-items:center;padding:12px 8px;border-top:1px solid rgba(15,23,42,.06)}
+.tablex-head{border-top:none;color:#4A5D73;font-weight:900;font-size:.9rem}
+.right{text-align:right}
+.muted{color:#4A5D73}
+
+.pill{display:inline-flex;padding:6px 10px;border-radius:999px;background:rgba(43,119,196,.10);border:1px solid rgba(43,119,196,.18);font-weight:900;color:#0B1F3A;font-size:.85rem}
+
+.approve{display:inline-flex;gap:8px;align-items:center;justify-content:flex-end;margin-right:8px}
+.inline{display:inline-block;margin-left:6px}
+
+.input{
+  border:1px solid rgba(15,23,42,.14);
+  border-radius:14px;
+  padding:10px 12px;
+  background:#fff;
+  min-width: 240px;
+}
+.input-sm{padding:8px 10px;border-radius:12px;min-width: 140px}
+
+.desc{
+  margin:0 10px 10px;
+  padding:12px 12px;
+  border-radius:16px;
+  background:linear-gradient(180deg,#f4f7fb,#fff);
+  border:1px solid rgba(15,23,42,.08);
+}
+.desc-label{font-weight:900;margin-bottom:4px;color:#0B1F3A}
+.desc-text{color:#3b4d63;line-height:1.55}
+</style>
+
+{% endblock %}

@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="hub-hero">
+  <div class="hub-hero-inner">
+    <div>
+      <div class="hub-kicker">Employee Hub</div>
+      <h1 class="hub-title">Onboarding Checklist</h1>
+      <p class="hub-sub">Each item links to the exact task page. Mark complete as you finish.</p>
+    </div>
+    <div class="hub-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('employee.hub') }}">Back to Hub</a>
+      <a class="btn btn-primary" href="{{ url_for('employee.hub_compliance') }}">Compliance</a>
+    </div>
+  </div>
+</section>
+
+<section class="hub-card">
+  <div class="hub-card-head">
+    <div class="hub-card-title">Progress</div>
+    <div class="hub-card-sub"><span id="progressValue">{{ progress }}</span>% complete</div>
+  </div>
+  <div class="hub-progress">
+    <div id="progressFill" class="hub-progress-fill" style="width: {{ progress }}%;"></div>
+  </div>
+</section>
+
+<section class="hub-card">
+  <div class="hub-card-head">
+    <div class="hub-card-title">Checklist</div>
+    <div class="hub-card-sub">{{ items|length }} total items</div>
+  </div>
+  <div class="hub-list-grid">
+    {% for item in items %}
+      {% set done = item.id in done_keys %}
+      <div class="hub-list-item" data-id="{{ item.id }}" data-done="{{ '1' if done else '0' }}" data-required="{{ '1' if item.is_required else '0' }}">
+        <div class="hub-list-info">
+          <div class="hub-list-title">{{ item.title }}</div>
+          <div class="hub-list-desc">{{ item.description }}</div>
+          <div class="hub-list-meta">
+            {% if item.is_required %}
+              <span class="pill ready">Required</span>
+            {% else %}
+              <span class="pill warn">Optional</span>
+            {% endif %}
+            {% if done %}
+              <span class="pill ready">Completed</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="hub-list-actions">
+          <a class="btn btn-sm btn-outline-primary" href="{{ item.task_url }}" target="_self">Go to Task</a>
+          <button class="btn btn-sm {{ 'btn-secondary' if done else 'btn-outline-primary' }} js-ack" {% if done %}disabled{% endif %}>
+            {{ 'Completed' if done else 'Mark Complete' }}
+          </button>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+
+<style>
+.hub-hero{
+  background:
+    radial-gradient(880px 320px at 10% 20%, rgba(255,255,255,.16), transparent 60%),
+    radial-gradient(660px 260px at 88% 12%, rgba(124,185,255,.14), transparent 55%),
+    linear-gradient(135deg, #10233f 0%, #1b3f6b 60%, #0d1728 100%);
+  color:#fff;border-radius:22px;padding:20px 22px;border:1px solid rgba(255,255,255,.15);
+  box-shadow:0 18px 44px rgba(2,8,23,.22);margin-bottom:16px;
+}
+.hub-hero-inner{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap}
+.hub-kicker{display:inline-flex;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);font-weight:800}
+.hub-title{margin:8px 0 4px;font-size:1.9rem}
+.hub-sub{margin:0;opacity:.92;max-width:760px}
+.hub-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+.hub-card{
+  background:#fff;border:1px solid rgba(15,23,42,.10);
+  border-radius:18px;box-shadow:0 18px 44px rgba(2,8,23,.10);
+  padding:16px;margin-bottom:16px;
+}
+.hub-card-head{margin-bottom:10px}
+.hub-card-title{font-weight:900;color:#0B1F3A}
+.hub-card-sub{color:#4A5D73;font-weight:700}
+.hub-progress{height:10px;border-radius:999px;background:rgba(15,23,42,.08);overflow:hidden;margin:12px 0}
+.hub-progress-fill{height:100%;background:linear-gradient(135deg,#2b77c4,#0f3058);border-radius:999px}
+
+.hub-list-grid{display:grid;gap:10px}
+.hub-list-item{
+  display:flex;justify-content:space-between;gap:14px;align-items:flex-start;
+  padding:14px;border-radius:14px;border:1px solid rgba(15,23,42,.10);
+  background:linear-gradient(180deg,#f7f9fc,#ffffff);
+}
+.hub-list-title{font-weight:900;color:#0B1F3A;margin-bottom:6px}
+.hub-list-desc{color:#4A5D73;font-weight:700;line-height:1.5}
+.hub-list-meta{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap}
+.hub-list-actions{display:flex;flex-direction:column;gap:8px;min-width:160px}
+
+@media (max-width: 860px){
+  .hub-list-item{flex-direction:column}
+  .hub-list-actions{flex-direction:row;flex-wrap:wrap}
+}
+</style>
+
+<script>
+(function(){
+  const items = document.querySelectorAll(".hub-list-item");
+  const progressFill = document.getElementById("progressFill");
+  const progressValue = document.getElementById("progressValue");
+  if(!items.length) return;
+
+  function recalcFromServer(pct){
+    progressFill.style.width = pct + "%";
+    progressValue.textContent = pct;
+  }
+
+  items.forEach(function(row){
+    const btn = row.querySelector(".js-ack");
+    if(!btn) return;
+    btn.addEventListener("click", function(e){
+      e.preventDefault();
+      const itemId = row.dataset.id;
+      if(!itemId || row.dataset.done === "1") return;
+      fetch("{{ url_for('employee.onboarding_complete') }}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({item_id: itemId, is_complete: true})
+      }).then(r => r.json()).then(function(resp){
+        if(!resp.ok && resp.ok !== true) return;
+        row.dataset.done = "1";
+        btn.textContent = "Completed";
+        btn.classList.remove("btn-outline-primary");
+        btn.classList.add("btn-secondary");
+        btn.setAttribute("disabled", "disabled");
+        if(typeof resp.progress === "number"){
+          recalcFromServer(resp.progress);
+        }
+      });
+    });
+  });
+})();
+</script>
+
+{% endblock %}

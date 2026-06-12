@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+{% block title %}Admin • {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<section class="section">
+  <div class="section-header">
+    <h2>Admin</h2>
+    <p style="color:var(--text-soft);">Admin tools</p>
+  </div>
+
+  <div class="card">
+    <ul style="margin:0 0 0 18px;">
+      <li><a href="{{ url_for('director_employees_list') }}">Employees</a></li>
+      <li><a href="{{ url_for('director_clients_list') }}">Clients</a></li>
+      <li><a href="{{ url_for('director_dashboard') }}">Dashboard</a></li>
+    </ul>
+  </div>
+</section>
+{% endblock %}

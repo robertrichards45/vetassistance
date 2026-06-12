@@ -1,0 +1,33 @@
+{% extends "layout.html" %}
+{% block title %}Portal Messages - {{ BRAND_NAME }}{% endblock %}
+{% block content %}
+<div class="row">
+  <div>
+    <h2>Messages</h2>
+    <div class="muted small">{{ client.display_name() }}</div>
+  </div>
+  <div class="row-actions">
+    <a class="btn secondary" href="{{ url_for('portal.dashboard') }}">Back to Portal</a>
+  </div>
+</div>
+
+<div class="chat card">
+  {% for m in messages %}
+    <div class="bubble {{ 'client' if m.sender_role == 'CLIENT' else 'staff' }}">
+      <div class="meta">{{ m.sender_role }} - {{ m.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+      <div class="body">{{ m.body }}</div>
+    </div>
+  {% else %}
+    <div class="muted">No messages yet.</div>
+  {% endfor %}
+</div>
+
+<div class="card" style="margin-top:12px;">
+  <form method="post" action="{{ url_for('portal.send_message') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Send message to your team</label>
+    <textarea name="body" rows="4" placeholder="Example: I uploaded my decision letter and my recent neurology records. My deadline is ..."></textarea>
+    <button class="btn btn-primary" style="margin-top:10px;">Send</button>
+  </form>
+</div>
+{% endblock %}

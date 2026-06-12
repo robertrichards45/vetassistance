@@ -1,0 +1,42 @@
+{% extends "layout.html" %}
+{% set title="Letter Generator" %}
+{% block content %}
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+      <div>
+        <h1 style="margin:0;">Generate Letter</h1>
+        <div class="muted">{{ client.first_name }} {{ client.last_name }} • Claim #: <span class="badge">{{ client.claim_number }}</span></div>
+      </div>
+      <a class="btn" href="{{ url_for('client_files', client_id=client.id) }}">Back</a>
+    </div>
+
+    <div class="grid grid-2" style="margin-top:14px;">
+      <div class="card">
+        <h2>Instructions</h2>
+        <form method="post">
+          <label>Tone</label>
+          <select name="tone">
+            <option value="formal" {% if tone=="formal" %}selected{% endif %}>Formal</option>
+            <option value="friendly" {% if tone=="friendly" %}selected{% endif %}>Friendly</option>
+            <option value="firm" {% if tone=="firm" %}selected{% endif %}>Firm</option>
+          </select>
+          <label>What should the letter say?</label>
+          <textarea name="instruction" placeholder="Example: Request the veteran to provide private therapy notes from 2021–2024 and sign VA Form 21-4142/4142a. Include deadline and contact info.">{{ instruction }}</textarea>
+          <div style="margin-top:10px;">
+            <button class="btn" type="submit">Generate</button>
+          </div>
+          <p class="muted" style="margin-top:10px;">Tip: Once generated, copy/paste into Word and print to PDF.</p>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Generated Letter</h2>
+        {% if generated %}
+          <textarea readonly style="min-height:420px;">{{ generated }}</textarea>
+        {% else %}
+          <p class="muted">No letter generated yet.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endblock %}

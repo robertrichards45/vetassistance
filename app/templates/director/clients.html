@@ -1,0 +1,68 @@
+
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+  <div>
+    <h1 class="h4 mb-0">Clients</h1>
+    <div class="text-muted">Create clients, search, and launch AI/letter tools.</div>
+  </div>
+  <a class="btn btn-outline-dark" href="{{ url_for('director_dashboard') }}">Back</a>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="card vca-card">
+      <div class="card-body p-4">
+        <h2 class="h6 mb-3">Create Client</h2>
+        <form method="post" class="vca-form">
+          <div class="mb-3">
+            <label class="form-label">Full Name</label>
+            <input class="form-control" name="full_name" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input class="form-control" type="email" name="email" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Claim Number</label>
+            <input class="form-control" name="claim_number" required>
+          </div>
+          <button class="btn btn-primary" type="submit">Create</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card vca-card">
+      <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+          <h2 class="h6 mb-0">Client List</h2>
+          <form class="d-flex gap-2" method="get">
+            <input class="form-control" name="q" value="{{ q }}" placeholder="Search name, email, claim #">
+            <button class="btn btn-outline-secondary" type="submit">Search</button>
+          </form>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead><tr><th>Name</th><th>Email</th><th>Claim #</th><th class="text-end">Tools</th></tr></thead>
+            <tbody>
+              {% for c in clients %}
+              <tr>
+                <td><strong>{{ c.full_name }}</strong></td>
+                <td>{{ c.email }}</td>
+                <td><span class="badge text-bg-light">{{ c.claim_number }}</span></td>
+                <td class="text-end">
+                  <a class="btn btn-sm btn-outline-primary" href="{{ url_for('ai_scan', client_id=c.id) }}">AI Scan</a>
+                  <a class="btn btn-sm btn-outline-dark" href="{{ url_for('letters_new', client_id=c.id) }}">Letter</a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

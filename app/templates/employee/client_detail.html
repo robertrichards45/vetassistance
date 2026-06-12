@@ -1,0 +1,252 @@
+{% extends "layout.html" %}
+{% block title %}Client – {{ client.display_name() }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h2 class="mb-1">{{ client.display_name() }}</h2>
+      <div class="text-muted small">
+        Claim Number:
+        {{ client.claim_number or ("CLIENT-" ~ "%06d"|format(client.id)) }}
+        &middot;
+        Created: {{ client.created_at.strftime("%Y-%m-%d %H:%M") if client.created_at else "N/A" }}
+      </div>
+      {% if client.case_status %}
+        <div class="mt-1">
+          <span class="badge bg-info text-dark">Case Status: {{ client.case_status }}</span>
+        </div>
+      {% elif client.status %}
+        <div class="mt-1">
+          <span class="badge bg-secondary">Status: {{ client.status }}</span>
+        </div>
+      {% endif %}
+      {% if (client.account_type and client.account_type.lower() == "guest") or (not client.email) or (client.email_verified is false) %}
+        <div class="mt-1">
+          <span class="badge bg-warning text-dark">Unverified - Email Not On File</span>
+        </div>
+      {% endif %}
+    </div>
+    <div class="text-end">
+      <a href="{{ url_for('clients') }}" class="btn btn-secondary btn-sm mb-1">Back to Clients</a><br>
+
+      <!-- AI Guidance -->
+      <a href="{{ url_for('client_ai_guidance', client_id=client.id) }}"
+         class="btn btn-outline-primary btn-sm mb-1">
+        AI Guidance
+      </a>
+
+      <!-- Scan Upload -->
+      <a href="{{ url_for('client_scan', client_id=client.id) }}"
+         class="btn btn-outline-info btn-sm mb-1">
+        Scan / CFR Review
+      </a>
+
+      <!-- Welcome Packet -->
+      <a href="{{ url_for('welcome_packet', client_id=client.id) }}"
+         class="btn btn-outline-success btn-sm mb-1" target="_blank">
+        Generate Welcome Letter
+      </a>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Left column: client info & status -->
+    <div class="col-12 col-lg-5 mb-4">
+
+      <!-- Client details / update form -->
+      <div class="card mb-3">
+        <div class="card-header">
+          Client Information
+        </div>
+        <div class="card-body">
+          <form method="post" action="{{ url_for('client_update', client_id=client.id) }}">
+            <div class="mb-2">
+              <label class="form-label" for="first_name">First Name</label>
+              <input type="text" class="form-control form-control-sm"
+                     id="first_name" name="first_name"
+                     value="{{ client.first_name or '' }}">
+            </div>
+            <div class="mb-2">
+              <label class="form-label" for="last_name">Last Name</label>
+              <input type="text" class="form-control form-control-sm"
+                     id="last_name" name="last_name"
+                     value="{{ client.last_name or '' }}">
+            </div>
+            <div class="mb-2">
+              <label class="form-label" for="claim_number">Claim Number</label>
+              <input type="text" class="form-control form-control-sm"
+                     id="claim_number" name="claim_number"
+                     value="{{ client.claim_number or '' }}"
+                     placeholder="Leave blank to use internal ID">
+              <div class="form-text">
+                If blank, the system will treat this as
+                CLIENT-{{ "%06d"|format(client.id) }} internally.
+              </div>
+            </div>
+            <div class="mb-2">
+              <label class="form-label" for="email">Email</label>
+              <input type="email" class="form-control form-control-sm"
+                     id="email" name="email"
+                     value="{{ client.email or '' }}">
+            </div>
+            <div class="mb-2">
+              <label class="form-label" for="phone">Phone</label>
+              <input type="text" class="form-control form-control-sm"
+                     id="phone" name="phone"
+                     value="{{ client.phone or '' }}">
+            </div>
+            <div class="mb-2">
+              <label class="form-label" for="notes">Internal Notes</label>
+              <textarea class="form-control form-control-sm" id="notes"
+                        name="notes" rows="3"
+                        placeholder="Internal notes for staff only.">{{ client.notes or '' }}</textarea>
+            </div>
+
+            <div class="d-flex justify-content-end">
+              <button type="submit" class="btn btn-primary btn-sm">
+                Save Client Info
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Case status -->
+      <div class="card">
+        <div class="card-header">
+          Case Status / Timeline
+        </div>
+        <div class="card-body">
+          <form method="post" action="{{ url_for('client_case_status_update', client_id=client.id) }}">
+            <div class="mb-2">
+              <label class="form-label" for="case_status">Current Status</label>
+              <select id="case_status" name="case_status" class="form-select form-select-sm">
+                {% set current_status = client.case_status or client.status or "" %}
+                {% set options = [
+                  ("documents_received", "Documents Received"),
+                  ("intake_review", "Intake Review"),
+                  ("records_gathering", "Records Gathering"),
+                  ("drafting_forms", "Drafting Forms"),
+                  ("awaiting_va_decision", "Awaiting VA Decision"),
+                  ("post_decision_review", "Post-Decision Review"),
+                  ("closed", "Closed / Completed")
+                ] %}
+                {% for value, label in options %}
+                  <option value="{{ value }}"
+                          {% if current_status == value %}selected{% endif %}>
+                    {{ label }}
+                  </option>
+                {% endfor %}
+              </select>
+              <div class="form-text small">
+                This status is used for your internal tracking and, if exposed later, for the client portal.
+              </div>
+            </div>
+            <div class="d-flex justify-content-end">
+              <button type="submit" class="btn btn-outline-primary btn-sm">
+                Update Status
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right column: files & uploads -->
+    <div class="col-12 col-lg-7">
+
+      <!-- Upload new file for this client -->
+      <div class="card mb-3">
+        <div class="card-header">
+          Upload File to Client Record
+        </div>
+        <div class="card-body">
+          <form method="post"
+                action="{{ url_for('client_upload', client_id=client.id) }}"
+                enctype="multipart/form-data">
+            <div class="mb-2">
+              <label for="file" class="form-label">File (PDF, DOCX, TXT, image)</label>
+              <input class="form-control form-control-sm" type="file" id="file" name="file" required>
+            </div>
+            <div class="mb-2">
+              <label for="note" class="form-label">Note (optional)</label>
+              <input class="form-control form-control-sm" type="text"
+                     id="note" name="note"
+                     placeholder="e.g. VA decision letter, private psych eval, STRs, etc.">
+            </div>
+            <div class="d-flex justify-content-end">
+              <button type="submit" class="btn btn-success btn-sm">
+                Upload File
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Existing files -->
+      <div class="card">
+        <div class="card-header">
+          Files for This Client
+        </div>
+        <div class="card-body p-0">
+          {% if files|length == 0 %}
+            <div class="p-3 text-muted">
+              No files have been uploaded yet for this client.
+            </div>
+          {% else %}
+            <div class="table-responsive">
+              <table class="table table-sm table-striped table-hover mb-0 align-middle">
+                <thead>
+                  <tr>
+                    <th>File Name</th>
+                    <th>Source</th>
+                    <th>Uploaded</th>
+                    <th style="width:220px;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for f in files %}
+                    <tr>
+                      <td>{{ f.original_name }}</td>
+                      <td>{{ f.source or "employee" }}</td>
+                      <td>
+                        {{ f.created_at.strftime("%Y-%m-%d %H:%M") if f.created_at else "" }}
+                      </td>
+                      <td>
+                        <!-- Scan / CFR review on this file -->
+                        <form method="post"
+                              action="{{ url_for('client_file_rescan', client_id=client.id, file_id=f.id) }}"
+                              class="d-inline">
+                          <button type="submit" class="btn btn-outline-info btn-sm">
+                            Scan / CFR
+                          </button>
+                        </form>
+
+                        <!-- Delete file -->
+                        <form method="post"
+                              action="{{ url_for('client_file_delete', client_id=client.id, file_id=f.id) }}"
+                              class="d-inline">
+                          <button type="submit"
+                                  class="btn btn-outline-danger btn-sm"
+                                  onclick="return confirm('Delete this file from the client record (and attempt to remove it from disk)?');">
+                            Delete
+                          </button>
+                        </form>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

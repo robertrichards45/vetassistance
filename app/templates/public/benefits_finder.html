@@ -1,0 +1,94 @@
+{% extends "layout.html" %}
+{% block title %}Benefits Finder • {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<div class="card" style="padding:18px;">
+  <h1 style="margin:0 0 6px;">Benefits Finder</h1>
+  <p class="muted" style="margin:0 0 16px;">
+    Enter a ZIP code and a radius to discover nearby services and benefits resources — including VA facilities and any private resources we’ve added.
+  </p>
+
+  <div class="grid" style="grid-template-columns: 1fr 140px 220px 140px; gap:10px;">
+    <div>
+      <label class="label">ZIP Code</label>
+      <input id="zip" class="input" placeholder="e.g., 31705" maxlength="10">
+    </div>
+    <div>
+      <label class="label">Radius (mi)</label>
+      <input id="radius" class="input" type="number" min="1" max="250" value="25">
+    </div>
+    <div>
+      <label class="label">Category</label>
+      <select id="category" class="input">
+        {% for value,label in categories %}
+          <option value="{{ value }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="display:flex; align-items:flex-end;">
+      <button id="searchBtn" class="btn btn-primary" style="width:100%;">Search</button>
+    </div>
+  </div>
+
+  <div id="status" class="muted" style="margin-top:12px;"></div>
+
+  <div id="results" style="margin-top:14px;"></div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+function esc(s){
+  return String(s ?? "").replace(/[&<>"]/g, (c)=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+}
+
+function card(r){
+  const addr = r.address ? `<div class="muted" style="margin-top:4px;">${esc(r.address)}</div>` : "";
+  const phone = r.phone ? `<div style="margin-top:6px;"><strong>Phone:</strong> ${esc(r.phone)}</div>` : "";
+  const web = r.website ? `<div><strong>Website:</strong> <a href="${esc(r.website)}" target="_blank" rel="noopener">Open</a></div>` : "";
+  const map = (r.lat && r.lon) ? `<div><a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.lat + "," + r.lon)}">Map</a></div>` : "";
+  const desc = r.description ? `<div style="margin-top:6px;">${esc(r.description)}</div>` : "";
+  const badge = `<span class="badge">${esc(r.source || "RESOURCE")}</span>`;
+  return `
+    <div class="card" style="padding:14px; margin: 10px 0;">
+      <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start;">
+        <div>
+          <div style="font-weight:800; font-size:16px;">${esc(r.name || "Resource")}</div>
+          <div class="muted">${esc(r.category || "")} • ${esc(r.distance_miles)} mi</div>
+        </div>
+        <div>${badge}</div>
+      </div>
+      ${addr}
+      ${desc}
+      <div style="display:flex; gap:14px; flex-wrap:wrap; margin-top:10px;">
+        ${map}
+        ${web}
+        ${phone}
+      </div>
+    </div>
+  `;
+}
+
+async function search(){
+  const zip = $("zip").value.trim();
+  const radius = $("radius").value.trim() || "25";
+  const category = $("category").value;
+  $("status").textContent = "Searching...";
+  $("results").innerHTML = "";
+  const url = `/api/benefits-finder/search?zip=${encodeURIComponent(zip)}&radius=${encodeURIComponent(radius)}&category=${encodeURIComponent(category)}`;
+  try{
+    const resp = await fetch(url);
+    const data = await resp.json();
+    if(!resp.ok || !data.ok){
+      $("status").textContent = data.error || "Search failed.";
+      return;
+    }
+    $("status").textContent = `Found ${data.results.length} results within ${data.center.radius_miles} miles of ${data.center.zip}.`;
+    $("results").innerHTML = data.results.map(card).join("");
+  }catch(e){
+    $("status").textContent = "Search failed. Check your internet connection and try again.";
+  }
+}
+
+$("searchBtn").addEventListener("click", search);
+</script>
+{% endblock %}

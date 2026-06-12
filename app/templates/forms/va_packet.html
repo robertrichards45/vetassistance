@@ -1,0 +1,51 @@
+{% extends "layout.html" %}
+{% block title %}VA Forms Packet - {{ client.display_name() }}{% endblock %}
+{% block content %}
+<div class="row">
+  <div>
+    <h2>VA Forms Packet</h2>
+    <div class="muted small">{{ client.display_name() }}</div>
+  </div>
+  <div class="row-actions">
+    <a class="btn secondary" href="{{ url_for('clients.view_client', client_id=client.id) }}">Back</a>
+  </div>
+</div>
+
+<div class="card">
+  <p class="muted small">Select the official VA forms needed for this client. These links go to VA.gov PDF forms.</p>
+  <p class="muted small">Prefilled PDFs are XFA-based. Use Adobe Acrobat Reader to view filled fields.</p>
+  <form method="post" action="{{ url_for('forms.va_packet_create', client_id=client.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="table">
+      <div class="thead" style="grid-template-columns: 80px 1fr 1fr;">
+        <div>Select</div>
+        <div>Form</div>
+        <div>Purpose</div>
+      </div>
+      {% for f in forms %}
+      <div class="trow" style="grid-template-columns: 80px 1fr 1fr;">
+        <div><input type="checkbox" name="form_key" value="{{ f.key }}"></div>
+        <div>
+          <strong>{{ f.title }}</strong>
+          <div class="muted small">Category: {{ f.category }}</div>
+          <div class="muted small">{{ f.url }}</div>
+        </div>
+        <div class="muted small">
+          {{ f.use }}
+          {% if f.template %}
+          <div class="muted small" style="margin-top:6px;">
+            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('forms.va_prefill_single', client_id=client.id, form_key=f.key) }}">Download Prefilled PDF</a>
+          </div>
+          {% else %}
+          <div class="muted small" style="margin-top:6px;">Prefill not configured</div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <div style="margin-top:12px;">
+      <button class="btn btn-primary" type="submit">Generate Packet</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

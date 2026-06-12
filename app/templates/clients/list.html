@@ -1,0 +1,208 @@
+﻿{% extends "base.html" %}
+{% block title %}Clients | {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Workspace</div>
+      <h1 class="page-title">Clients</h1>
+      <p class="page-sub">Search, manage, and control portal access.</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('clients.new_client') }}">New Client</a>
+    </div>
+  </div>
+</section>
+
+<div class="card-shell mb-3">
+  <div class="card-body-pad">
+    <form method="get" class="d-flex gap-2 flex-wrap">
+      <input class="form-control" name="q" value="{{ q }}" placeholder="Search name or email" style="min-width:260px;">
+      <button class="btn btn-primary" type="submit">Search</button>
+    </form>
+  </div>
+</div>
+
+<div class="card-shell">
+  <div class="card-body-pad">
+    <form id="bulkClientForm" method="post" action="{{ url_for('clients.bulk_archive_clients') }}" style="margin-bottom:10px;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        <select id="bulkAction" class="form-control" style="max-width:220px;">
+          <option value="">Bulk action...</option>
+          <option value="archive">Archive selected</option>
+          {% if current_user.is_director %}
+          <option value="delete">Delete selected</option>
+          {% endif %}
+        </select>
+        <button class="btn btn-outline-primary btn-sm" type="submit">Apply</button>
+      </div>
+      <div id="bulkClientInputs"></div>
+    </form>
+    <div class="table-responsive">
+      <table class="table align-middle premium-table" id="clientsTable">
+        <thead>
+          <tr>
+            <th style="width:36px;"><input type="checkbox" id="selectAllClients" title="Select all"></th>
+            <th><button type="button" class="sort-btn" data-sort="name">Name</button></th>
+            <th><button type="button" class="sort-btn" data-sort="email">Email</button></th>
+            <th><button type="button" class="sort-btn" data-sort="account">Account</button></th>
+            <th><button type="button" class="sort-btn" data-sort="portal">Portal</button></th>
+            <th><button type="button" class="sort-btn" data-sort="crsc">CRSC</button></th>
+            <th><button type="button" class="sort-btn" data-sort="last_login">Last Login</button></th>
+            {% if current_user.is_director %}
+            <th class="text-end">Delete</th>
+            {% endif %}
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for c in clients %}
+          <tr data-client-row
+              data-name="{{ c.display_name()|lower }}"
+              data-email="{{ (c.email or '')|lower }}"
+              data-account="{% if (c.account_type and c.account_type.lower() == "guest") or (not c.email) or (c.email_verified is false) %}guest{% else %}verified{% endif %}"
+              data-portal="{{ 'enabled' if c.portal_enabled else 'off' }}"
+              data-crsc="{% set cr = crsc_map.get(c.id) if crsc_map is defined else None %}{{ cr.sort if cr else '' }}"
+              data-last-login="{% set u = user_map.get(c.portal_user_id) if user_map is defined else None %}{% if u and u.last_login_at %}{{ u.last_login_at.strftime('%Y-%m-%d %H:%M') }}{% endif %}"
+          >
+            <td><input type="checkbox" class="client-select" value="{{ c.id }}"></td>
+            <td style="font-weight:900;color:var(--heading);">
+              <a href="{{ url_for('clients.view_client', client_id=c.id) }}">{{ c.display_name() }}</a>
+            </td>
+            <td class="text-muted">{{ c.email }}</td>
+            <td>
+              {% if (c.account_type and c.account_type.lower() == "guest") or (not c.email) or (c.email_verified is false) %}
+                <span class="pill pill-bad">Guest Account</span>
+                <span class="pill">Restricted</span>
+              {% else %}
+                <span class="pill pill-good">Verified Account</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="pill {{ 'pill-good' if c.portal_enabled else 'pill-bad' }}">
+                {{ 'ENABLED' if c.portal_enabled else 'OFF' }}
+              </span>
+            </td>
+            <td>
+              {% set cr = crsc_map.get(c.id) if crsc_map is defined else None %}
+              {% if cr %}
+                <span class="{{ cr.class }}">{{ cr.label }}</span>
+              {% else %}
+                <span class="pill">Not started</span>
+              {% endif %}
+            </td>
+            <td class="text-muted">
+              {% set u = user_map.get(c.portal_user_id) if user_map is defined else None %}
+              {% if u and u.last_login_at %}
+                {{ u.last_login_at.strftime('%Y-%m-%d %H:%M') }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            {% if current_user.is_director %}
+            <td class="text-end">
+              <form method="post" action="{{ url_for('clients.delete_client', client_id=c.id) }}" onsubmit="return confirm('Permanently delete this client and all related data?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-outline-primary" type="submit">Delete</button>
+              </form>
+            </td>
+            {% endif %}
+            <td class="text-end">
+              {% if not c.is_archived %}
+              <form method="post" action="{{ url_for('clients.archive_client', client_id=c.id) }}" style="display:inline-block;" onsubmit="return confirm('Archive this client?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-outline-primary" type="submit">Archive</button>
+              </form>
+              {% else %}
+              <form method="post" action="{{ url_for('clients.restore_client', client_id=c.id) }}" style="display:inline-block;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-outline-primary" type="submit">Restore</button>
+              </form>
+              {% endif %}
+              <a class="btn btn-sm btn-outline-primary" href="{{ url_for('clients.view_client', client_id=c.id) }}">Open</a>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="{{ 9 if current_user.is_director else 8 }}" class="text-muted">No clients yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  const selectAll = document.getElementById('selectAllClients');
+  const boxes = Array.from(document.querySelectorAll('.client-select'));
+  const form = document.getElementById('bulkClientForm');
+  const action = document.getElementById('bulkAction');
+  const inputs = document.getElementById('bulkClientInputs');
+  if(selectAll){
+    selectAll.addEventListener('change', function(){
+      boxes.forEach(b => { b.checked = selectAll.checked; });
+    });
+  }
+  if(form){
+    form.addEventListener('submit', function(e){
+      const selected = boxes.filter(b => b.checked).map(b => b.value);
+      inputs.innerHTML = '';
+      if(!action.value){
+        e.preventDefault();
+        alert('Choose a bulk action.');
+        return;
+      }
+      if(selected.length === 0){
+        e.preventDefault();
+        alert('Select at least one client.');
+        return;
+      }
+      if(action.value === 'archive'){
+        form.action = "{{ url_for('clients.bulk_archive_clients') }}";
+      } else if(action.value === 'delete'){
+        form.action = "{{ url_for('clients.bulk_delete_clients') }}";
+        if(!confirm('Permanently delete selected clients and all related data?')){ e.preventDefault(); return; }
+      }
+      selected.forEach(function(id){
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'client_ids';
+        input.value = id;
+        inputs.appendChild(input);
+      });
+    });
+  }
+})();
+</script>
+<style>
+  .sort-btn{
+    background:none;border:none;color:#0B1F3A;font-weight:900;cursor:pointer;padding:0;
+  }
+  .sort-btn:after{content:" ⇅";font-weight:700;color:#4A5D73;font-size:.85rem;}
+</style>
+<script>
+(function(){
+  const table = document.getElementById('clientsTable');
+  if(!table) return;
+  const tbody = table.querySelector('tbody');
+  const rows = Array.from(tbody.querySelectorAll('tr[data-client-row]'));
+  const state = {};
+  function sortRows(key){
+    const asc = !(state[key] === 'asc');
+    state[key] = asc ? 'asc' : 'desc';
+    const sorted = rows.slice().sort((a,b) => {
+      const av = (a.dataset[key] || '').toString();
+      const bv = (b.dataset[key] || '').toString();
+      if (key === 'lastLogin' || key === 'last_login'){
+        return asc ? av.localeCompare(bv) : bv.localeCompare(av);
+      }
+      return asc ? av.localeCompare(bv) : bv.localeCompare(av);
+    });
+    sorted.forEach(r => tbody.appendChild(r));
+  }
+  table.querySelectorAll('.sort-btn').forEach(btn => {
+    btn.addEventListener('click', () => sortRows(btn.dataset.sort));
+  });
+})();
+</script>
+{% endblock %}

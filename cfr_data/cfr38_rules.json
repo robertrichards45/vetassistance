@@ -1,0 +1,98 @@
+{
+  "version": "2025-12-12",
+  "rules": [
+    {
+      "key": "tinnitus",
+      "aliases": ["tinnitus", "ringing in ears", "ear ringing"],
+      "title": "Tinnitus",
+      "cfr": "38 CFR Section 4.87",
+      "diagnostic_code": "6260",
+      "rating_criteria": [
+        "10% - recurrent tinnitus (one or both ears)."
+      ],
+      "evidence_tips": [
+        "Describe onset and persistence (constant vs intermittent) in a clear timeline.",
+        "Document noise exposure history: MOS, weapons ranges, flight line, engines, IEDs, or training events.",
+        "Include lay statements describing when ringing started and how it affects sleep, focus, or work.",
+        "List treatments tried (hearing protection, audiology visits, masking devices).",
+        "Include any audiology records that mention tinnitus complaints."
+      ]
+    },
+    {
+      "key": "migraines",
+      "aliases": ["migraine", "headache", "prostrating", "migraine headaches"],
+      "title": "Migraines / Headaches",
+      "cfr": "38 CFR Section 4.124a",
+      "diagnostic_code": "8100",
+      "rating_criteria": [
+        "0% - less frequent attacks.",
+        "10% - characteristic prostrating attacks averaging 1 in 2 months over last several months.",
+        "30% - characteristic prostrating attacks occurring on an average once a month over last several months.",
+        "50% - very frequent completely prostrating and prolonged attacks productive of severe economic inadaptability."
+      ],
+      "evidence_tips": [
+        "Keep a headache log: date, duration, severity, and whether it was prostrating (had to lie down).",
+        "Document work impact: missed days, reduced hours, productivity loss, or accommodations.",
+        "Include ER or urgent care visits related to headaches.",
+        "List medications (prescribed and OTC) and note side effects.",
+        "Provide lay statements describing how attacks affect daily life and ability to function."
+      ]
+    },
+    {
+      "key": "ptsd",
+      "aliases": ["ptsd", "post traumatic", "nightmares", "hypervigilance", "flashbacks", "panic"],
+      "title": "PTSD / Trauma-related condition",
+      "cfr": "38 CFR Section 4.130",
+      "diagnostic_code": "9411 (common PTSD DC)",
+      "rating_criteria": [
+        "Ratings are based on occupational and social impairment (symptoms and functional impact).",
+        "Document frequency, severity, and duration of symptoms."
+      ],
+      "evidence_tips": [
+        "Describe functional impact at work, home, and relationships with specific examples.",
+        "Include treatment notes, therapy notes, and medication history.",
+        "Provide buddy or family statements describing observable symptoms and changes over time.",
+        "Document sleep disruption, panic episodes, avoidance behaviors, or hypervigilance.",
+        "Include disciplinary actions, performance issues, or job loss tied to symptoms if applicable."
+      ]
+    },
+    {
+      "key": "sleep_apnea",
+      "aliases": ["sleep apnea", "cpap", "ahi", "osa"],
+      "title": "Sleep Apnea",
+      "cfr": "38 CFR Section 4.97",
+      "diagnostic_code": "6847",
+      "rating_criteria": [
+        "0% - asymptomatic but with documented sleep disorder breathing.",
+        "30% - persistent daytime hypersomnolence.",
+        "50% - requires use of breathing assistance device such as CPAP.",
+        "100% - chronic respiratory failure with carbon dioxide retention or cor pulmonale, or requires tracheostomy."
+      ],
+      "evidence_tips": [
+        "Include sleep study results (AHI, diagnosis, date).",
+        "Provide CPAP prescription and compliance reports if available.",
+        "Document daytime sleepiness, fatigue, and safety impact (driving, work).",
+        "Include buddy statements describing loud snoring, witnessed apneas, gasping, or choking.",
+        "Note any related conditions (hypertension, headaches, depression) as possible secondary issues."
+      ]
+    },
+    {
+      "key": "lumbar_spine",
+      "aliases": ["low back", "lumbar", "ddd", "degenerative disc"],
+      "title": "Thoracolumbar spine condition",
+      "cfr": "38 CFR Section 4.71a",
+      "diagnostic_code": "General Rating Formula (Spine)",
+      "rating_criteria": [
+        "Ratings often depend on range of motion, functional loss, flare-ups, and neurologic symptoms.",
+        "Document limitations: lifting, standing, sitting, bending."
+      ],
+      "evidence_tips": [
+        "Provide ROM measurements from exams and note pain on motion.",
+        "Describe flare-ups: frequency, duration, triggers, and functional limits.",
+        "Include imaging (X-ray, MRI) and physical therapy notes.",
+        "Document radiculopathy symptoms (shooting pain, numbness, weakness).",
+        "Provide lay statements about daily limitations and missed work or activities."
+      ]
+    }
+  ]
+}

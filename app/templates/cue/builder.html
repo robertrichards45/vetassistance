@@ -1,0 +1,562 @@
+{% extends "base.html" %}
+{% block title %}CUE Motion Builder{% endblock %}
+{% block content %}
+<style>
+  .cue-wrap{ max-width: 1200px; margin: 0 auto; display:grid; gap:16px; }
+  .cue-hero{
+    background: linear-gradient(135deg, #0b1f3a, #1b3f6b);
+    color:#fff; border-radius:18px; padding:18px 20px;
+    box-shadow: 0 18px 44px rgba(2,8,23,.18);
+  }
+  .cue-hero h1{ margin:0; font-size:26px; }
+  .cue-hero p{ margin:6px 0 0; opacity:.88; font-weight:700; }
+  .cue-grid{ display:grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); gap:16px; }
+  @media (max-width: 980px){ .cue-grid{ grid-template-columns: 1fr; } }
+  .cue-card{
+    background:#fff; border:1px solid rgba(15,23,42,.10);
+    border-radius:18px; box-shadow:0 18px 44px rgba(2,8,23,.08);
+    padding:16px;
+  }
+  .cue-steps{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+  .cue-step-pill{
+    padding:6px 10px; border-radius:999px; font-weight:900; font-size:.85rem;
+    background: rgba(15,23,42,.06); border:1px solid rgba(15,23,42,.12);
+  }
+  .cue-step-pill.active{ background: rgba(44,95,168,.14); border-color: rgba(44,95,168,.34); color:#12335e; }
+  .cue-progress{ height:8px; border-radius:999px; background: rgba(15,23,42,.08); overflow:hidden; }
+  .cue-progress > div{ height:100%; width:0%; background: linear-gradient(135deg, #2b77c4, #12335e); }
+  .cue-section{ display:none; }
+  .cue-section.active{ display:block; }
+  .cue-lock{ opacity:.55; pointer-events:none; }
+  .cue-risk{ font-weight:900; }
+  .cue-risk.green{ color:#166534; }
+  .cue-risk.yellow{ color:#a16207; }
+  .cue-risk.red{ color:#b91c1c; }
+  .cue-warning{
+    background: rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.35);
+    color:#92400e; border-radius:12px; padding:10px 12px; font-weight:800;
+  }
+  .cue-danger{
+    background: rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.35);
+    color:#7f1d1d; border-radius:12px; padding:10px 12px; font-weight:800;
+  }
+  .cue-success{
+    background: rgba(22,163,74,.12); border:1px solid rgba(22,163,74,.35);
+    color:#166534; border-radius:12px; padding:10px 12px; font-weight:800;
+  }
+  .error-block{ border:1px solid rgba(15,23,42,.10); border-radius:14px; padding:12px; background: rgba(244,247,251,.6); margin-bottom:12px; }
+  .error-block h4{ margin:0 0 8px; }
+  .cue-actions{ display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; margin-top:12px; }
+  .cue-side-list{ display:grid; gap:10px; }
+  .cue-side-item{ border:1px solid rgba(15,23,42,.10); border-radius:14px; padding:10px 12px; background:#fff; }
+  .cue-side-item small{ color: var(--muted); font-weight:800; }
+  .cue-autosave{ font-size:.85rem; color: var(--muted); font-weight:800; }
+</style>
+
+<div class="cue-wrap">
+  <section class="cue-hero">
+    <h1>CUE Motion Builder</h1>
+    <p>{{ client.display_name() }} | {{ client.email or "No email on file" }}</p>
+  </section>
+
+  <div class="cue-grid">
+    <div class="cue-card">
+      <div class="cue-steps" id="cueSteps">
+        <span class="cue-step-pill" data-step-pill="0">Step 0</span>
+        <span class="cue-step-pill" data-step-pill="1">Step 1</span>
+        <span class="cue-step-pill" data-step-pill="2">Step 2</span>
+        <span class="cue-step-pill" data-step-pill="3">Step 3</span>
+        <span class="cue-step-pill" data-step-pill="4">Step 4</span>
+        <span class="cue-step-pill" data-step-pill="5">Step 5</span>
+        <span class="cue-step-pill" data-step-pill="6">Step 6</span>
+      </div>
+      <div class="cue-progress"><div id="cueProgress"></div></div>
+
+      {% if not disclaimer_accepted %}
+      <div class="cue-warning" style="margin-top:12px;">
+        Disclaimer required before continuing.
+      </div>
+      {% endif %}
+
+      {% if risk_flag %}
+        <div style="margin-top:10px;">
+          <span class="cue-risk {{ risk_flag }}">Risk status: {{ risk_flag|upper }}</span>
+          {% if risk_note %}
+            <div class="muted small" style="margin-top:6px;">{{ risk_note }}</div>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      <form id="cueForm" method="post" action="{{ url_for('cue.staff_save', client_id=client.id) if is_staff else url_for('cue.portal_save') }}" enctype="multipart/form-data" data-disclaimer="{{ '1' if disclaimer_accepted else '0' }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="motion_id" value="{{ motion.id }}">
+        <input type="hidden" name="action" id="cueAction" value="save">
+
+        <div class="cue-section {{ 'active' if not disclaimer_accepted else '' }}" data-step="0">
+          <h3>Before You Begin: Important CUE Information</h3>
+          <div class="cue-card" style="margin-top:10px; line-height:1.6;">
+            <p style="margin:0 0 10px 0;"><strong>A Clear and Unmistakable Error (CUE)</strong> is a legal challenge to a <strong>final VA decision</strong>.</p>
+            <p style="margin:0 0 10px 0;"><strong>CUE is not a “new claim.”</strong> It is a request for VA to correct a past decision because VA made an error that is <strong>undebatable</strong>, based on:</p>
+            <ul style="margin:0 0 10px 0; padding-left:18px;">
+              <li>The <strong>evidence that was already in the record</strong> at the time of the decision, and</li>
+              <li>The <strong>laws and rating criteria in effect</strong> at the time of the decision.</li>
+            </ul>
+            <p style="margin:0 0 10px 0;"><strong>New evidence cannot be used to prove CUE.</strong> If your argument depends on new medical opinions, new exams, or records created after the decision date, that usually supports a <strong>new claim or increase</strong>, not CUE.</p>
+            <p style="margin:0 0 10px 0;"><strong>A disagreement with how VA weighed evidence is not CUE.</strong> Saying “VA should have believed me” or “VA should have rated me higher” is not enough unless you can point to a specific legal or factual error.</p>
+            <p style="margin:0 0 10px 0;">This tool helps you <strong>organize information and draft a document</strong>, but it does <strong>not</strong> guarantee approval. You are responsible for reviewing the document for accuracy and submitting it to VA.</p>
+            <p style="margin:0;"><strong>Not legal advice.</strong> If you have an accredited representative or attorney, you should consult them.</p>
+          </div>
+          <div style="margin-top:12px;">
+            {% if not disclaimer_accepted %}
+              <label style="display:flex; gap:8px; align-items:center; font-weight:800;">
+                <input type="checkbox" id="cueDisclaimerAck">
+                I have read and understand the information above.
+              </label>
+              <button class="btn btn-primary" type="submit" id="cueDisclaimerBtn" style="margin-top:10px;"
+                formaction="{{ url_for('cue.staff_disclaimer', client_id=client.id) if is_staff else url_for('cue.portal_disclaimer') }}"
+                formmethod="post">I Understand — Continue</button>
+            {% else %}
+              <div class="pill pill-good">Disclaimer accepted</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="cue-section {{ 'cue-lock' if not disclaimer_accepted else '' }}" data-step="1">
+          <h3>Step 1 - Decision Details</h3>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label" title="Choose the type of VA decision you are challenging. Most CUE motions target a Rating Decision from the Regional Office.">Decision type</label>
+              <select class="form-select" name="decision_type">
+                <option value="">Select</option>
+                <option value="Rating Decision" {{ "selected" if motion.decision_type == "Rating Decision" else "" }}>Rating Decision</option>
+                <option value="BVA Decision" {{ "selected" if motion.decision_type == "BVA Decision" else "" }}>BVA Decision</option>
+                <option value="Other" {{ "selected" if motion.decision_type == "Other" else "" }}>Other</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" title="Enter the date shown on the VA decision letter. This must be the exact decision you want revised.">Decision date (required)</label>
+              <input class="form-control" name="decision_date" placeholder="YYYY-MM-DD" value="{{ motion.decision_date or '' }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label" title="Optional. Include the VA Regional Office shown on the decision letter.">VA Regional Office (optional)</label>
+              <input class="form-control" name="decision_office" value="{{ motion.decision_office or '' }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label" title="List the specific issue(s) from that decision (examples: “PTSD rating percentage,” “Back condition evaluation,” “Denied service connection for migraines”).">Issue(s) challenged (required)</label>
+              <textarea class="form-control" name="issues_text" rows="3" spellcheck="true" title="Example: PTSD rating, effective date for tinnitus.">{{ motion.issues_text or '' }}</textarea>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label" title="If the decision was appealed and a later decision replaced it, the final decision date may matter for where the CUE is filed.">Was this appealed?</label>
+              <select class="form-select" name="appealed">
+                <option value="">Select</option>
+                <option value="Yes" {{ "selected" if motion.appealed == "Yes" else "" }}>Yes</option>
+                <option value="No" {{ "selected" if motion.appealed == "No" else "" }}>No</option>
+                <option value="Not sure" {{ "selected" if motion.appealed == "Not sure" else "" }}>Not sure</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Appeal outcome</label>
+              <input class="form-control" name="appeal_outcome" value="{{ motion.appeal_outcome or '' }}">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Appeal date</label>
+              <input class="form-control" name="appeal_date" placeholder="YYYY-MM-DD" value="{{ motion.appeal_date or '' }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label" title="Uploading the decision helps ensure the motion references the correct decision date and issue wording.">Upload decision letter (optional)</label>
+              <input class="form-control" type="file" name="decision_letter">
+            </div>
+          </div>
+        </div>
+
+        <div class="cue-section {{ 'cue-lock' if not disclaimer_accepted else '' }}" data-step="2">
+          <h3>Step 2 - CUE Eligibility Screener</h3>
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label" title="CUE must be based only on what VA had at the time. New exams or medical opinions are usually for a new claim/increase, not CUE.">Are you relying on NEW medical evidence created after the decision date?</label>
+              <select class="form-select" name="screener_new_evidence" data-risk="red">
+                <option value="">Select</option>
+                <option value="yes" {{ "selected" if screener.get("new_evidence") == "yes" else "" }}>Yes</option>
+                <option value="no" {{ "selected" if screener.get("new_evidence") == "no" else "" }}>No</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label" title="Disagreement with how VA weighed evidence is usually not CUE unless a required rule was ignored or evidence was missed.">Are you arguing the VA should have weighed the evidence differently?</label>
+              <select class="form-select" name="screener_weigh_evidence" data-risk="red">
+                <option value="">Select</option>
+                <option value="yes" {{ "selected" if screener.get("weigh_evidence") == "yes" else "" }}>Yes</option>
+                <option value="no" {{ "selected" if screener.get("weigh_evidence") == "no" else "" }}>No</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label" title="Examples: wrong diagnostic code, wrong rating criteria, failure to apply rules that existed at the time.">Do you believe the VA applied the wrong law or rating criteria at the time?</label>
+              <select class="form-select" name="screener_wrong_law" data-risk="green">
+                <option value="">Select</option>
+                <option value="yes" {{ "selected" if screener.get("wrong_law") == "yes" else "" }}>Yes</option>
+                <option value="no" {{ "selected" if screener.get("wrong_law") == "no" else "" }}>No</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label" title="Examples: service treatment records, VA exams, private records submitted before the decision, or written statements already in the file.">Was evidence already in the file that the VA failed to consider?</label>
+              <select class="form-select" name="screener_missing_evidence" data-risk="green">
+                <option value="">Select</option>
+                <option value="yes" {{ "selected" if screener.get("missing_evidence") == "yes" else "" }}>Yes</option>
+                <option value="no" {{ "selected" if screener.get("missing_evidence") == "no" else "" }}>No</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label" title="You must explain why the correction would have required a higher rating or a grant, not just that it might have.">If the error is corrected, would the result be undebatably different?</label>
+              <select class="form-select" name="screener_undebatable" data-risk="green">
+                <option value="">Select</option>
+                <option value="yes" {{ "selected" if screener.get("undebatable") == "yes" else "" }}>Yes</option>
+                <option value="no" {{ "selected" if screener.get("undebatable") == "no" else "" }}>No</option>
+              </select>
+            </div>
+          </div>
+          <div id="cueRiskPanel" style="margin-top:12px;"></div>
+        </div>
+
+        <div class="cue-section {{ 'cue-lock' if not disclaimer_accepted else '' }}" data-step="3">
+          <h3>Step 3 - Specific Error(s)</h3>
+          <div id="errorBlocks">
+            {% for block in motion.error_blocks %}
+            <div class="error-block">
+              <h4>Error Block</h4>
+              <label class="form-label" title="Pick the closest match. Add multiple error blocks if more than one clear error occurred.">Error category</label>
+              <select class="form-select" name="error_category[]">
+                <option value="">Select</option>
+                <option value="Wrong diagnostic code used" {{ "selected" if block.category == "Wrong diagnostic code used" else "" }}>Wrong diagnostic code used</option>
+                <option value="Failure to apply rating criteria in effect at the time" {{ "selected" if block.category == "Failure to apply rating criteria in effect at the time" else "" }}>Failure to apply rating criteria in effect at the time</option>
+                <option value="Failure to consider evidence already of record" {{ "selected" if block.category == "Failure to consider evidence already of record" else "" }}>Failure to consider evidence already of record</option>
+                <option value="Failure to assign separate rating(s) required" {{ "selected" if block.category == "Failure to assign separate rating(s) required" else "" }}>Failure to assign separate rating(s) required</option>
+                <option value="Effective date error" {{ "selected" if block.category == "Effective date error" else "" }}>Effective date error</option>
+                <option value="Other" {{ "selected" if block.category == "Other" else "" }}>Other</option>
+              </select>
+              <label class="form-label" style="margin-top:8px;" title="Be specific: “VA used diagnostic code ___ instead of ___,” “VA failed to apply §4.40/§4.45,” “VA did not address the VA exam dated ___.”">What VA did incorrectly (required)</label>
+              <textarea class="form-control" name="error_va_error[]" rows="3" spellcheck="true">{{ block.va_error_text }}</textarea>
+              <label class="form-label" style="margin-top:8px;" title="List items that already existed at the time (VA exam, STR entry, private record submitted). Include dates if possible.">Evidence that existed at the time (required)</label>
+              <textarea class="form-control" name="error_evidence[]" rows="3" spellcheck="true" title="Example: STR dated 1995-03-02; C&P exam 1996-01-10.">{{ block.evidence_text }}</textarea>
+              <label class="form-label" style="margin-top:8px;" title="If you know the diagnostic code or CFR section, add it. If not, leave blank and focus on facts and evidence.">Law/regulation at the time (optional)</label>
+              <textarea class="form-control" name="error_law[]" rows="2" spellcheck="true">{{ block.law_text }}</textarea>
+              <label class="form-label" style="margin-top:8px;" title="Example: “Based on the exam findings already in the record, the only reasonable rating would have been at least __%.”">Outcome would have been different (required)</label>
+              <textarea class="form-control" name="error_outcome[]" rows="3" spellcheck="true" title="Example: Should have been 50% effective 1996-05-10.">{{ block.outcome_text }}</textarea>
+              <div class="cue-actions">
+                <button class="btn btn-outline-secondary cue-remove-block" type="button">Remove Block</button>
+                <button class="btn btn-outline-primary cue-sample" type="button" data-template="diagnostic">Copy: Wrong Diagnostic Code</button>
+                <button class="btn btn-outline-primary cue-sample" type="button" data-template="missed">Copy: Missed Evidence</button>
+                <button class="btn btn-outline-primary cue-sample" type="button" data-template="functional">Copy: Functional Loss (§4.40/§4.45)</button>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          <button class="btn btn-outline-primary" type="button" id="addErrorBlock">Add Error Block</button>
+        </div>
+
+        <div class="cue-section {{ 'cue-lock' if not disclaimer_accepted else '' }}" data-step="4">
+          <h3>Step 4 - Remedy Requested</h3>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Remedy requested</label>
+              <select class="form-select" name="remedy_requested">
+                <option value="">Select</option>
+                <option value="Grant service connection" {{ "selected" if motion.remedy_requested == "Grant service connection" else "" }}>Grant service connection</option>
+                <option value="Increase rating" {{ "selected" if motion.remedy_requested == "Increase rating" else "" }}>Increase rating</option>
+                <option value="Correct effective date" {{ "selected" if motion.remedy_requested == "Correct effective date" else "" }}>Correct effective date</option>
+                <option value="Other" {{ "selected" if motion.remedy_requested == "Other" else "" }}>Other</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Requested rating % (if applicable)</label>
+              <input class="form-control" name="requested_rating" value="{{ motion.requested_rating or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Requested effective date</label>
+              <input class="form-control" name="requested_effective_date" placeholder="YYYY-MM-DD" value="{{ motion.requested_effective_date or '' }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Veteran statement</label>
+              <textarea class="form-control" name="veteran_statement" rows="3" spellcheck="true">{{ motion.veteran_statement or '' }}</textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="cue-section {{ 'cue-lock' if not disclaimer_accepted else '' }}" data-step="5">
+          <h3>Step 5 - Veteran Identity</h3>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Full legal name</label>
+              <input class="form-control" name="full_legal_name" value="{{ motion.full_legal_name or client.full_legal_name or client.display_name() }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" title="Optional. We recommend last 4 only. Do not enter a full SSN unless you are comfortable.">VA file number or last 4 SSN (optional)</label>
+              <input class="form-control" name="file_number_last4" value="{{ motion.file_number_last4 or client.ssn_last4 or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Date of birth</label>
+              <input class="form-control" name="dob" placeholder="YYYY-MM-DD" value="{{ motion.dob or client.dob or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Phone</label>
+              <input class="form-control" name="phone" value="{{ motion.phone or client.phone or '' }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Mailing address</label>
+              <textarea class="form-control" name="mailing_address" rows="2" spellcheck="true">{{ motion.mailing_address or ((client.mailing_address1 or "") ~ " " ~ (client.mailing_address2 or "") ~ ", " ~ (client.mailing_city or "") ~ ", " ~ (client.mailing_state or "") ~ " " ~ (client.mailing_zip or "")) }}</textarea>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Email</label>
+              <input class="form-control" name="email" value="{{ motion.email or client.email or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" title="Typed signatures are commonly accepted for submissions, but the veteran must review and confirm accuracy before submitting.">Signature name</label>
+              <input class="form-control" name="signature_name" value="{{ motion.signature_name or motion.full_legal_name or client.display_name() }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Signature date</label>
+              <input class="form-control" name="signature_date" placeholder="YYYY-MM-DD" value="{{ motion.signature_date or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Upload signature image (optional)</label>
+              <input class="form-control" type="file" name="signature_image">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Representative name (optional)</label>
+              <input class="form-control" name="rep_name" value="{{ motion.rep_name or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Representative organization (optional)</label>
+              <input class="form-control" name="rep_org" value="{{ motion.rep_org or '' }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Representative contact (optional)</label>
+              <input class="form-control" name="rep_contact" value="{{ motion.rep_contact or '' }}">
+            </div>
+          </div>
+        </div>
+
+        <div class="cue-section {{ 'cue-lock' if not disclaimer_accepted else '' }}" data-step="6">
+          <h3>Step 6 - Generate Document</h3>
+          <div class="cue-card">
+            <p class="muted" style="margin:0;">Generate a DOCX + PDF motion packet. This will be stored in the client portal.</p>
+          </div>
+          {% if risk_flag %}
+            <div style="margin-top:10px;">
+              {% if risk_flag == "green" %}
+                <div class="cue-success">Your answers suggest this may be a valid CUE argument because it focuses on a specific error in a final decision and relies on evidence and rules that existed at the time. You can proceed to generate a draft motion.</div>
+              {% elif risk_flag == "red" %}
+                <div class="cue-danger">Your answers suggest this may not qualify as CUE because it appears to rely on new evidence, a worsening condition over time, or disagreement with judgment rather than a specific undebatable error. You can still generate a draft, but you should strongly consider filing a standard claim/increase as a separate option.</div>
+              {% else %}
+                <div class="cue-warning">You may have a CUE argument, but some parts of your explanation may depend on interpretation or may be viewed as a disagreement with how evidence was weighed. You can still generate a motion, but this is considered higher risk.</div>
+              {% endif %}
+              {% if risk_note %}
+                <div class="muted small" style="margin-top:6px;">{{ risk_note }}</div>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="cue-actions">
+          <div class="cue-autosave" id="cueAutosave">Auto-save ready.</div>
+          <div style="flex:1;"></div>
+          <button class="btn btn-outline-secondary" type="button" id="cuePrev">Back</button>
+          <button class="btn btn-outline-primary" type="button" id="cueNext">Next</button>
+          <button class="btn btn-outline-primary" type="submit" onclick="document.getElementById('cueAction').value='save'">Save Draft</button>
+          <button class="btn btn-primary" type="submit" onclick="document.getElementById('cueAction').value='generate'">Generate CUE Motion</button>
+        </div>
+      </form>
+      {% if is_staff %}
+        <form method="post" action="{{ url_for('cue.staff_delete_motion', motion_id=motion.id) }}" onsubmit="return confirm('Delete this CUE motion?');" style="margin-top:10px;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-outline-secondary" type="submit">Delete Motion</button>
+        </form>
+      {% endif %}
+    </div>
+
+    <div class="cue-card">
+      <h3>Motion List</h3>
+      <div class="cue-side-list">
+        {% for m in motions %}
+          <div class="cue-side-item">
+            <strong>{{ m.decision_date or "Draft" }}</strong>
+            <div><small>Status: {{ m.status or "draft" }}</small></div>
+            <div><small>Updated: {{ m.updated_at.strftime('%Y-%m-%d') if m.updated_at else "" }}</small></div>
+            <div style="margin-top:6px;">
+              {% if is_staff %}
+                <a class="btn btn-outline-primary btn-sm" href="{{ url_for('cue.staff_builder', client_id=client.id, motion_id=m.id) }}">Open</a>
+              {% else %}
+                <a class="btn btn-outline-primary btn-sm" href="{{ url_for('cue.portal_builder', motion_id=m.id) }}">Open</a>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+      <div class="cue-card" style="margin-top:12px;">
+        <h4>Quick Guidance</h4>
+        <p class="muted" style="margin:0;">
+          CUE must be based on the record and law at the time. New evidence cannot establish CUE.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<template id="errorBlockTemplate">
+  <div class="error-block">
+    <h4>Error Block</h4>
+    <label class="form-label" title="Pick the closest match. Add multiple error blocks if more than one clear error occurred.">Error category</label>
+    <select class="form-select" name="error_category[]">
+      <option value="">Select</option>
+      <option value="Wrong diagnostic code used">Wrong diagnostic code used</option>
+      <option value="Failure to apply rating criteria in effect at the time">Failure to apply rating criteria in effect at the time</option>
+      <option value="Failure to consider evidence already of record">Failure to consider evidence already of record</option>
+      <option value="Failure to assign separate rating(s) required">Failure to assign separate rating(s) required</option>
+      <option value="Effective date error">Effective date error</option>
+      <option value="Other">Other</option>
+    </select>
+    <label class="form-label" style="margin-top:8px;" title="Be specific: “VA used diagnostic code ___ instead of ___,” “VA failed to apply §4.40/§4.45,” “VA did not address the VA exam dated ___.”">What VA did incorrectly (required)</label>
+    <textarea class="form-control" name="error_va_error[]" rows="3" spellcheck="true"></textarea>
+    <label class="form-label" style="margin-top:8px;" title="List items that already existed at the time (VA exam, STR entry, private record submitted). Include dates if possible.">Evidence that existed at the time (required)</label>
+    <textarea class="form-control" name="error_evidence[]" rows="3" spellcheck="true" title="Example: STR dated 1995-03-02; C&P exam 1996-01-10."></textarea>
+    <label class="form-label" style="margin-top:8px;" title="If you know the diagnostic code or CFR section, add it. If not, leave blank and focus on facts and evidence.">Law/regulation at the time (optional)</label>
+    <textarea class="form-control" name="error_law[]" rows="2" spellcheck="true"></textarea>
+    <label class="form-label" style="margin-top:8px;" title="Example: “Based on the exam findings already in the record, the only reasonable rating would have been at least __%.”">Outcome would have been different (required)</label>
+    <textarea class="form-control" name="error_outcome[]" rows="3" spellcheck="true" title="Example: Should have been 50% effective 1996-05-10."></textarea>
+    <div class="cue-actions">
+      <button class="btn btn-outline-secondary cue-remove-block" type="button">Remove Block</button>
+      <button class="btn btn-outline-primary cue-sample" type="button" data-template="diagnostic">Copy: Wrong Diagnostic Code</button>
+      <button class="btn btn-outline-primary cue-sample" type="button" data-template="missed">Copy: Missed Evidence</button>
+      <button class="btn btn-outline-primary cue-sample" type="button" data-template="functional">Copy: Functional Loss (§4.40/§4.45)</button>
+    </div>
+  </div>
+</template>
+
+<script>
+(function(){
+  const form = document.getElementById("cueForm");
+  const sections = Array.from(document.querySelectorAll(".cue-section"));
+  const stepPills = Array.from(document.querySelectorAll("[data-step-pill]"));
+  const progress = document.getElementById("cueProgress");
+  const prevBtn = document.getElementById("cuePrev");
+  const nextBtn = document.getElementById("cueNext");
+  const autosave = document.getElementById("cueAutosave");
+  const disclaimerBtn = document.getElementById("cueDisclaimerBtn");
+  const disclaimerAck = document.getElementById("cueDisclaimerAck");
+  let currentStep = Number(localStorage.getItem("cue-step") || "0");
+
+  function showStep(idx){
+    currentStep = Math.max(0, Math.min(sections.length - 1, idx));
+    sections.forEach((s, i) => s.classList.toggle("active", i === currentStep));
+    stepPills.forEach((p, i) => p.classList.toggle("active", i === currentStep));
+    const pct = ((currentStep) / (sections.length - 1)) * 100;
+    progress.style.width = pct + "%";
+    localStorage.setItem("cue-step", String(currentStep));
+  }
+
+  if (prevBtn) prevBtn.addEventListener("click", () => showStep(currentStep - 1));
+  if (nextBtn) nextBtn.addEventListener("click", () => showStep(currentStep + 1));
+  showStep(currentStep);
+
+  const addBlock = document.getElementById("addErrorBlock");
+  const blockWrap = document.getElementById("errorBlocks");
+  const template = document.getElementById("errorBlockTemplate");
+
+  function bindBlock(block){
+    const removeBtn = block.querySelector(".cue-remove-block");
+    if (removeBtn){
+      removeBtn.addEventListener("click", () => block.remove());
+    }
+    block.querySelectorAll(".cue-sample").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const template = btn.getAttribute("data-template") || "";
+        const decisionDate = form.querySelector("input[name='decision_date']").value || "[Decision Date]";
+        const requestedRating = form.querySelector("input[name='requested_rating']").value || "[Requested %]";
+        const requestedDate = form.querySelector("input[name='requested_effective_date']").value || "[Requested Effective Date / Original claim date]";
+        const va = block.querySelector("textarea[name='error_va_error[]']");
+        const evidence = block.querySelector("textarea[name='error_evidence[]']");
+        const law = block.querySelector("textarea[name='error_law[]']");
+        const outcome = block.querySelector("textarea[name='error_outcome[]']");
+
+        if (template === "diagnostic"){
+          va.value = "The VA committed clear and unmistakable error by evaluating the condition under an incorrect diagnostic code and/or by failing to apply the correct rating criteria in effect at the time of the decision dated " + decisionDate + ". The evidence already of record at that time documented symptoms and functional impairment consistent with the criteria for a higher evaluation under the appropriate diagnostic code.";
+          evidence.value = "Evidence of record at the time: [List evidence items with dates]";
+          law.value = "Law/criteria in effect at the time: [Enter DC / CFR references if known]";
+          outcome.value = "Had the VA applied the correct diagnostic code and rating criteria, the veteran would have been assigned at least " + requestedRating + " effective " + requestedDate + ". The outcome would have been manifestly different.";
+          return;
+        }
+        if (template === "missed"){
+          va.value = "The VA committed clear and unmistakable error in the decision dated " + decisionDate + " by failing to consider material, relevant evidence that was already in the record at the time of the decision. This evidence directly supported a higher evaluation and/or entitlement that should have been granted.";
+          evidence.value = "Evidence of record at the time that supports the correction: [List evidence items with dates]";
+          law.value = "";
+          outcome.value = "If this evidence had been properly considered, the only reasonable outcome would have been a grant and/or a higher evaluation of at least " + requestedRating + " effective " + requestedDate + ". The outcome would have been manifestly different.";
+          return;
+        }
+        if (template === "functional"){
+          va.value = "The VA committed clear and unmistakable error in the decision dated " + decisionDate + " by failing to properly consider functional loss due to pain, flare-ups, weakness, fatigability, or incoordination documented in the evidence of record at the time, consistent with 38 C.F.R. §§ 4.40 and 4.45 (as in effect at that time).";
+          evidence.value = "Evidence of record at the time: [VA exam date, STR entries, treatment notes, lay statements already submitted]";
+          law.value = "Law/criteria in effect at the time: 38 C.F.R. §§ 4.40, 4.45";
+          outcome.value = "Had the VA correctly applied these provisions to the facts already of record, the veteran would have been assigned at least " + requestedRating + " effective " + requestedDate + ". The outcome would have been manifestly different.";
+        }
+      });
+    });
+  }
+
+  if (addBlock){
+    addBlock.addEventListener("click", () => {
+      const clone = template.content.firstElementChild.cloneNode(true);
+      bindBlock(clone);
+      blockWrap.appendChild(clone);
+    });
+  }
+
+  blockWrap.querySelectorAll(".error-block").forEach(bindBlock);
+
+  function updateRiskPanel(){
+    const panel = document.getElementById("cueRiskPanel");
+    if (!panel) return;
+    const newEvidence = form.querySelector("select[name='screener_new_evidence']").value;
+    const weigh = form.querySelector("select[name='screener_weigh_evidence']").value;
+    const wrongLaw = form.querySelector("select[name='screener_wrong_law']").value;
+    const missed = form.querySelector("select[name='screener_missing_evidence']").value;
+    const undebatable = form.querySelector("select[name='screener_undebatable']").value;
+    if (newEvidence === "yes" || weigh === "yes"){
+      panel.innerHTML = "<div class='cue-danger'>Your answers suggest this may not qualify as CUE because it appears to rely on new evidence, a worsening condition over time, or disagreement with judgment rather than a specific undebatable error. You can still generate a draft, but you should strongly consider filing a standard claim/increase as a separate option.</div>";
+      return;
+    }
+    if (wrongLaw === "yes" || missed === "yes" || undebatable === "yes"){
+      panel.innerHTML = "<div class='cue-success'>Your answers suggest this may be a valid CUE argument because it focuses on a specific error in a final decision and relies on evidence and rules that existed at the time. You can proceed to generate a draft motion.</div>";
+      return;
+    }
+    panel.innerHTML = "<div class='cue-warning'>You may have a CUE argument, but some parts of your explanation may depend on interpretation or may be viewed as a disagreement with how evidence was weighed. You can still generate a motion, but this is considered higher risk.</div>";
+  }
+  form.querySelectorAll("select[name^='screener_']").forEach(sel => sel.addEventListener("change", updateRiskPanel));
+  updateRiskPanel();
+
+  function autosaveDraft(){
+    if (!form || form.dataset.disclaimer !== "1") return;
+    const data = new FormData(form);
+    data.set("action", "autosave");
+    data.delete("decision_letter");
+    data.delete("signature_image");
+    const actionUrl = form.getAttribute("action") || "";
+    fetch(actionUrl + "?autosave=1", { method: "POST", body: data, credentials: "same-origin" })
+      .then(r => r.json())
+      .then(resp => {
+        if (resp && resp.ok && autosave){
+          autosave.textContent = "Auto-saved " + new Date().toLocaleTimeString();
+        }
+      })
+      .catch(() => {});
+  }
+  setInterval(autosaveDraft, 20000);
+
+  if (disclaimerBtn && disclaimerAck){
+    disclaimerBtn.addEventListener("click", function(e){
+      if (!disclaimerAck.checked){
+        e.preventDefault();
+        alert("Please confirm the disclaimer checkbox before continuing.");
+      }
+    });
+  }
+})();
+</script>
+{% endblock %}

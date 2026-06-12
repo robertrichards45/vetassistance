@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}CUE Motions{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">CUE Motions</div>
+      <h1 class="page-title">CUE Motion Tracker</h1>
+      <p class="page-sub">Drafts, generated motions, and submission status.</p>
+    </div>
+  </div>
+</section>
+
+<div class="card-shell">
+  <div class="card-body-pad">
+    {% if motions %}
+      <div class="table" style="margin-top:10px;">
+        <div class="thead" style="grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr;">
+          <div>Client</div><div>Decision Date</div><div>Status</div><div>Risk</div><div>Updated</div>
+        </div>
+        {% for m in motions %}
+          <div class="trow" style="grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr;">
+            <div>
+              <strong>{{ client_map.get(m.client_id, "Client #" ~ m.client_id) }}</strong>
+              <div class="muted small">{{ m.issues_text or "Draft" }}</div>
+              <div style="margin-top:6px;">
+                <a class="btn btn-outline-primary btn-sm" href="{{ url_for('cue.staff_builder', client_id=m.client_id, motion_id=m.id) }}">Open</a>
+                <form method="post" action="{{ url_for('cue.staff_delete_motion', motion_id=m.id) }}" style="display:inline-block;" onsubmit="return confirm('Delete this CUE motion?');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-outline-secondary btn-sm" type="submit">Delete</button>
+                </form>
+              </div>
+            </div>
+            <div>{{ m.decision_date or "--" }}</div>
+            <div><span class="pill {{ 'pill-good' if m.status == 'generated' else 'pill-claim' }}">{{ m.status or "draft" }}</span></div>
+            <div><span class="pill {{ 'pill-bad' if m.risk_flag == 'red' else 'pill-good' if m.risk_flag == 'green' else 'pill-claim' }}">{{ m.risk_flag or "--" }}</span></div>
+            <div class="muted small">{{ m.updated_at.strftime('%Y-%m-%d') if m.updated_at else "" }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="muted">No CUE motions yet.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

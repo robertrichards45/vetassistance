@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Client Portal - {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<section class="bf-hero">
+  <div class="bf-hero-inner">
+    <div>
+      <div class="bf-kicker">Client Portal</div>
+      <h1 class="bf-title">Secure access to your case</h1>
+      <p class="bf-sub">Log in to view messages, upload documents, and track what we still need from you.</p>
+    </div>
+    <div class="bf-badge">Private - Login required</div>
+  </div>
+</section>
+
+<section class="bf-card" style="max-width:560px;">
+  <form method="post" action="{{ url_for('auth.login_post') }}">
+    {% if csrf_token is defined %}
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% endif %}
+    <input type="hidden" name="next" value="{{ request.args.get('next') or url_for('root.client_portal_redirect') }}">
+    <div class="bf-field">
+      <label>Email</label>
+      <input class="form-control" type="email" name="email" placeholder="you@example.com" required>
+    </div>
+    <div class="bf-field">
+      <label>Password</label>
+      <input class="form-control" type="password" name="password" required>
+    </div>
+    <div class="bf-actions" style="margin-top:10px;">
+      <button class="btn btn-primary" type="submit">Sign in</button>
+      <a class="btn btn-outline-primary" href="{{ url_for('portal.portal_forgot') }}">Forgot password?</a>
+    </div>
+  </form>
+  <div class="muted small" style="margin-top:10px;">
+    New client? <a href="{{ url_for('portal.portal_register') }}">Create an account</a>.
+  </div>
+</section>
+{% endblock %}

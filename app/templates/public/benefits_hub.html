@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Veteran Resources & Benefits Hub • {{ COMPANY_NAME }}{% endblock %}
+
+{% block content %}
+<section class="hub-hero">
+  <div class="hub-hero-inner">
+    <div>
+      <div class="hub-kicker">Veteran Resources & Benefits Hub</div>
+      <h1 class="hub-title">One gateway for every veteran benefit</h1>
+      <p class="hub-sub">Skip the maze of separate websites. Find federal, state, county, and nonprofit veteran resources from one curated hub.</p>
+    </div>
+    <div class="hub-actions">
+      <a class="btn btn-primary" href="{{ url_for('public.intelligent_benefits') }}">Intelligent Finder</a>
+      <a class="btn btn-outline-light" href="{{ url_for('public.intelligent_benefits') }}#services-locator">Services Locator</a>
+    </div>
+  </div>
+</section>
+
+<section class="hub-section">
+  <div class="hub-grid">
+    <div class="hub-card">
+      <div class="hub-title-sm">Federal & VA</div>
+      <div class="hub-links">
+        <a href="https://www.va.gov" target="_blank" rel="noopener">VA.gov</a>
+        <a href="https://www.va.gov/communitycare/" target="_blank" rel="noopener">VA Community Care</a>
+        <a href="https://www.va.gov/health-care/" target="_blank" rel="noopener">VA Health Care</a>
+        <a href="https://www.va.gov/education/" target="_blank" rel="noopener">Education & GI Bill</a>
+      </div>
+    </div>
+
+    <div class="hub-card">
+      <div class="hub-title-sm">Search Visibility</div>
+      <div class="hub-links">
+        <a href="{{ url_for('public.guide_detail', slug='google-search-visibility') }}">How We Appear in Google Search</a>
+        <a href="{{ url_for('public.guides') }}">All Guides</a>
+      </div>
+    </div>
+
+    <div class="hub-card">
+      <div class="hub-title-sm">State & County Benefits</div>
+      <div class="hub-links">
+        <a href="{{ url_for('public.state_benefits') }}">State Benefits Guide</a>
+        <a href="https://www.naavets.org/nasosa" target="_blank" rel="noopener">State VA Offices Directory</a>
+        <a href="https://www.va.gov/ogc/apps/accreditation/index.asp" target="_blank" rel="noopener">Accredited Reps (State)</a>
+        <a href="https://www.naco.org/resources/directory" target="_blank" rel="noopener">County Veteran Services</a>
+      </div>
+    </div>
+
+    <div class="hub-card">
+      <div class="hub-title-sm">Taxes & Exemptions</div>
+      <div class="hub-links">
+        <a href="https://www.irs.gov/individuals/military" target="_blank" rel="noopener">IRS Military/Veteran</a>
+        <a href="{{ url_for('public.state_benefits') }}">State Tax Exemptions</a>
+        <a href="https://www.usa.gov/benefits-for-veterans" target="_blank" rel="noopener">USA.gov Veteran Benefits</a>
+      </div>
+    </div>
+
+    <div class="hub-card">
+      <div class="hub-title-sm">Employment & Education</div>
+      <div class="hub-links">
+        <a href="https://www.dol.gov/agencies/vets" target="_blank" rel="noopener">DOL VETS</a>
+        <a href="https://www.careeronestop.org/ResourcesFor/Veterans/" target="_blank" rel="noopener">CareerOneStop Veterans</a>
+        <a href="https://www.va.gov/careers-employment/" target="_blank" rel="noopener">VA Careers & Employment</a>
+        <a href="https://www.va.gov/education/survivor-dependent-benefits/" target="_blank" rel="noopener">Dependents & Survivors Education</a>
+      </div>
+    </div>
+
+    <div class="hub-card">
+      <div class="hub-title-sm">Housing & Financial</div>
+      <div class="hub-links">
+        <a href="https://www.va.gov/housing-assistance/" target="_blank" rel="noopener">VA Housing Assistance</a>
+        <a href="https://www.hud.gov/program_offices/public_indian_housing/programs/hcv/vash" target="_blank" rel="noopener">HUD-VASH</a>
+        <a href="https://www.ssa.gov/people/veterans/" target="_blank" rel="noopener">SSA Veterans</a>
+      </div>
+    </div>
+
+    <div class="hub-card">
+      <div class="hub-title-sm">Mental Health & Support</div>
+      <div class="hub-links">
+        <a href="https://www.vetcenter.va.gov/" target="_blank" rel="noopener">Vet Centers</a>
+        <a href="https://www.veteranscrisisline.net/" target="_blank" rel="noopener">Veterans Crisis Line</a>
+        <a href="https://www.va.gov/health-care/health-needs-conditions/mental-health/" target="_blank" rel="noopener">VA Mental Health</a>
+        <a href="https://www.giveanhour.org/" target="_blank" rel="noopener">Give an Hour</a>
+      </div>
+    </div>
+
+    <div class="hub-card">
+      <div class="hub-title-sm">Nonprofit Support</div>
+      <div class="hub-links">
+        <a href="https://www.dav.org/" target="_blank" rel="noopener">DAV</a>
+        <a href="https://www.vfw.org/" target="_blank" rel="noopener">VFW</a>
+        <a href="https://www.legion.org/" target="_blank" rel="noopener">American Legion</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+.hub-hero{
+  background:
+    radial-gradient(900px 320px at 12% 18%, rgba(255,255,255,.12), transparent 60%),
+    linear-gradient(135deg, #10233f 0%, #1b3f6b 60%, #0d1728 100%);
+  color:#fff;border-radius:22px;padding:20px 22px;border:1px solid rgba(255,255,255,.15);
+  box-shadow:0 18px 44px rgba(2,8,23,.22);margin-bottom:16px;
+}
+.hub-hero-inner{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap}
+.hub-kicker{display:inline-flex;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);font-weight:800}
+.hub-title{margin:8px 0 4px;font-size:2rem}
+.hub-sub{margin:0;opacity:.9;max-width:760px}
+.hub-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+.hub-section{
+  background:#fff;border:1px solid rgba(15,23,42,.10);
+  border-radius:18px;box-shadow:0 18px 44px rgba(2,8,23,.10);padding:16px;
+}
+.hub-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.hub-card{
+  border:1px solid rgba(15,23,42,.10);border-radius:16px;padding:14px;background:linear-gradient(180deg,#f7f9fc,#ffffff);
+}
+.hub-title-sm{font-weight:900;color:#0B1F3A;margin-bottom:8px}
+.hub-links{display:grid;gap:6px}
+.hub-links a{color:#1b3f6b;font-weight:800;text-decoration:none}
+.hub-links a:hover{text-decoration:underline}
+</style>
+
+{% endblock %}

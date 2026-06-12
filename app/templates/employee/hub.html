@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="hub-hero">
+  <div class="hub-hero-inner">
+    <div>
+      <div class="hub-kicker">Employee Hub</div>
+      <h1 class="hub-title">Guidance, compliance, and onboarding</h1>
+      <p class="hub-sub">Everything a staff member needs to operate confidently with veteran-first standards.</p>
+    </div>
+    <div class="hub-actions">
+      <a class="btn btn-primary" href="{{ url_for('employee.hub_onboarding') }}">Open Onboarding</a>
+      <a class="btn btn-outline-light" href="{{ url_for('employee.hub_compliance') }}">Compliance Library</a>
+    </div>
+  </div>
+</section>
+
+<section class="hub-grid">
+  <div class="hub-card">
+    <div class="hub-card-head">
+      <div class="hub-card-title">Onboarding Progress</div>
+      <div class="hub-card-sub">{{ progress }}% complete</div>
+    </div>
+    <div class="hub-progress">
+      <div class="hub-progress-fill" style="width: {{ progress }}%;"></div>
+    </div>
+    <div class="hub-card-actions">
+      <a class="btn btn-outline-primary" href="{{ url_for('employee.hub_onboarding') }}">Checklist</a>
+      <a class="btn btn-outline-primary" href="{{ url_for('employee.hub_howto') }}">How-To Guides</a>
+    </div>
+  </div>
+
+  <div class="hub-card">
+    <div class="hub-card-head">
+      <div class="hub-card-title">Compliance Basics</div>
+      <div class="hub-card-sub">No outcome guarantees. No medical or legal advice.</div>
+    </div>
+    <ul class="hub-list">
+      <li>Document what is supported by evidence only.</li>
+      <li>Track diagnosis, in-service event, and nexus.</li>
+      <li>Use approved channels and protect client data.</li>
+    </ul>
+    <div class="hub-card-actions">
+      <a class="btn btn-outline-primary" href="{{ url_for('employee.hub_compliance') }}">Open Compliance</a>
+    </div>
+  </div>
+</section>
+
+<section class="hub-panels">
+  <div class="hub-panel">
+    <div class="hub-panel-title">How-To Walkthroughs</div>
+    <div class="hub-panel-body">Step-by-step flows for new client setup, evidence intake, and letters.</div>
+    <a class="hub-link" href="{{ url_for('employee.hub_howto') }}">View guides</a>
+  </div>
+  <div class="hub-panel">
+    <div class="hub-panel-title">Common Issues</div>
+    <div class="hub-panel-body">Fix the most common problems without escalation.</div>
+    <a class="hub-link" href="{{ url_for('employee.hub_issues') }}">View fixes</a>
+  </div>
+  <div class="hub-panel">
+    <div class="hub-panel-title">Messages</div>
+    <div class="hub-panel-body">Unread-first inbox with client threads.</div>
+    <a class="hub-link" href="{{ url_for('messages.inbox') }}">Open inbox</a>
+  </div>
+  <div class="hub-panel">
+    <div class="hub-panel-title">VA Forms Library</div>
+    <div class="hub-panel-body">Quick reference for what each form is for.</div>
+    <a class="hub-link" href="{{ url_for('employee.hub_forms') }}">Browse forms</a>
+  </div>
+  <div class="hub-panel">
+    <div class="hub-panel-title">Claim Review</div>
+    <div class="hub-panel-body">AI + rules checklist to find gaps and missing evidence.</div>
+    <a class="hub-link" href="{{ url_for('employee.hub_claim_review') }}">Run review</a>
+  </div>
+  <div class="hub-panel">
+    <div class="hub-panel-title">Claim Tracker</div>
+    <div class="hub-panel-body">Update status and keep a clean timeline.</div>
+    <a class="hub-link" href="{{ url_for('employee.hub_claim_tracker') }}">Open tracker</a>
+  </div>
+  <div class="hub-panel">
+    <div class="hub-panel-title">Evidence Checklist</div>
+    <div class="hub-panel-body">Generate checklists from intake answers.</div>
+    <a class="hub-link" href="{{ url_for('employee.hub_checklists') }}">Build checklist</a>
+  </div>
+  <div class="hub-panel">
+    <div class="hub-panel-title">Document Quality Scan</div>
+    <div class="hub-panel-body">Scan uploaded files for OCR and readability.</div>
+    <a class="hub-link" href="{{ url_for('employee.hub_doc_scan') }}">Scan now</a>
+  </div>
+  <div class="hub-panel">
+    <div class="hub-panel-title">Reminders</div>
+    <div class="hub-panel-body">Schedule email-only client reminders.</div>
+    <a class="hub-link" href="{{ url_for('employee.hub_reminders') }}">Manage reminders</a>
+  </div>
+  <div class="hub-panel">
+    <div class="hub-panel-title">VA Ratings Tools</div>
+    <div class="hub-panel-body">Rating chart plus combined percentage calculator.</div>
+    <a class="hub-link" href="{{ url_for('employee.hub_ratings') }}">Open tools</a>
+  </div>
+  <div class="hub-panel">
+    <div class="hub-panel-title">CRSC Packet Workspace</div>
+    <div class="hub-panel-body">Assemble CRSC packet materials for retirees.</div>
+    <a class="hub-link" href="{{ url_for('employee.hub_crsc') }}">Open CRSC</a>
+  </div>
+  <div class="hub-panel">
+    <div class="hub-panel-title">CRSC Training</div>
+    <div class="hub-panel-body">Staff training modules for CRSC eligibility and evidence.</div>
+    <a class="hub-link" href="{{ url_for('employee.hub_crsc_training') }}">Open training</a>
+  </div>
+  <div class="hub-panel">
+    <div class="hub-panel-title">CRSC Appeals</div>
+    <div class="hub-panel-body">Denial review and resubmission checklist.</div>
+    <a class="hub-link" href="{{ url_for('employee.hub_crsc_appeals') }}">Open appeals</a>
+  </div>
+</section>
+
+<style>
+.hub-hero{
+  background:
+    radial-gradient(880px 320px at 10% 20%, rgba(255,255,255,.16), transparent 60%),
+    radial-gradient(660px 260px at 88% 12%, rgba(124,185,255,.14), transparent 55%),
+    linear-gradient(135deg, #10233f 0%, #1b3f6b 60%, #0d1728 100%);
+  color:#fff;
+  border-radius:22px;
+  padding:20px 22px;
+  border:1px solid rgba(255,255,255,.15);
+  box-shadow:0 18px 44px rgba(2,8,23,.22);
+  margin-bottom:16px;
+}
+.hub-hero-inner{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap}
+.hub-kicker{display:inline-flex;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);font-weight:800}
+.hub-title{margin:8px 0 4px;font-size:1.9rem}
+.hub-sub{margin:0;opacity:.92;max-width:760px}
+.hub-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+.hub-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.hub-card{
+  background:#fff;border:1px solid rgba(15,23,42,.10);
+  border-radius:18px;box-shadow:0 18px 44px rgba(2,8,23,.10);
+  padding:16px;
+}
+.hub-card-head{margin-bottom:10px}
+.hub-card-title{font-weight:900;color:#0B1F3A}
+.hub-card-sub{color:#4A5D73;font-weight:700}
+.hub-progress{height:10px;border-radius:999px;background:rgba(15,23,42,.08);overflow:hidden;margin:12px 0}
+.hub-progress-fill{height:100%;background:linear-gradient(135deg,#2b77c4,#0f3058);border-radius:999px}
+.hub-card-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.hub-list{margin:0;padding-left:18px;color:#4A5D73;font-weight:600}
+
+.hub-panels{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.hub-panel{
+  background:linear-gradient(180deg,#f7f9fc,#ffffff);
+  border:1px solid rgba(15,23,42,.10);
+  border-radius:16px;
+  padding:14px;
+}
+.hub-panel-title{font-weight:900;color:#0B1F3A;margin-bottom:6px}
+.hub-panel-body{color:#4A5D73;font-weight:600;margin-bottom:8px}
+.hub-link{color:#1b4b8a;text-decoration:none;font-weight:800}
+.hub-link:hover{text-decoration:underline}
+
+@media (max-width: 980px){
+  .hub-grid{grid-template-columns:1fr}
+}
+</style>
+
+{% endblock %}

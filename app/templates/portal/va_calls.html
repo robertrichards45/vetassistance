@@ -1,0 +1,201 @@
+{% extends "layout.html" %}
+{% block title %}VA Call Log - {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<div class="row">
+  <div>
+    <h2>VA Call Log</h2>
+    <div class="muted small">{{ client.display_name() }}</div>
+  </div>
+  <div class="row-actions">
+    <a class="btn secondary" href="{{ url_for('portal.dashboard') }}">Back to Dashboard</a>
+  </div>
+</div>
+
+<div class="card" id="va-calls" style="margin-top:12px;">
+  <h3>Log a call</h3>
+  <div class="muted small">Track calls with the VA so nothing gets missed.</div>
+  <form method="post" action="{{ url_for('portal.va_calls_post') }}" style="margin-top:10px;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="grid2">
+      <div>
+        <label class="form-label">Call date</label>
+        <input class="form-control" type="date" name="call_date">
+      </div>
+      <div>
+        <label class="form-label">Call time (optional)</label>
+        <input class="form-control" type="time" name="call_time">
+      </div>
+      <div>
+        <label class="form-label">Call type</label>
+        <select class="form-control" name="call_type">
+          <option value="">Select</option>
+          <option>VA</option>
+          <option>Doctor</option>
+          <option>Hospital / Clinic</option>
+          <option>VSO / Representative</option>
+          <option>C&amp;P Contractor</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Topic</label>
+        <select class="form-control" name="topic">
+          <option value="">Select</option>
+          <option>Claim status</option>
+          <option>Evidence submission</option>
+          <option>C&amp;P exam</option>
+          <option>Records request</option>
+          <option>Payments</option>
+          <option>Appeal / Supplemental</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">VA phone number (optional)</label>
+        <input class="form-control" name="phone" placeholder="800-827-1000">
+      </div>
+      <div>
+        <label class="form-label">VA agent name (optional)</label>
+        <input class="form-control" name="agent_name" placeholder="First or agent ID">
+      </div>
+      <div>
+        <label class="form-label">Reference # (optional)</label>
+        <input class="form-control" name="reference_id" placeholder="Call or case reference">
+      </div>
+      <div>
+        <label class="form-label">Outcome</label>
+        <select class="form-control" name="outcome">
+          <option value="">Select</option>
+          <option>Resolved</option>
+          <option>Follow-up needed</option>
+          <option>Pending</option>
+          <option>Escalated</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-top:10px;">
+      <label class="form-label">Summary</label>
+      <textarea class="form-control" name="summary" rows="3" required placeholder="What was discussed and what the VA said."></textarea>
+    </div>
+    <div style="margin-top:10px;">
+      <label class="form-label">Next steps (optional)</label>
+      <textarea class="form-control" name="next_steps" rows="2" placeholder="What you need to do next."></textarea>
+    </div>
+    <button class="btn btn-primary" type="submit" style="margin-top:10px;">Save call log</button>
+  </form>
+</div>
+
+<div class="card" style="margin-top:14px;">
+  <h3>Recent call logs</h3>
+  {% if logs %}
+    <div class="table" style="margin-top:8px;">
+      <div class="thead" style="grid-template-columns: 1.2fr 1fr 1.6fr;">
+        <div>Date / Time</div><div>Type / Outcome</div><div>Summary</div>
+      </div>
+      {% for log in logs %}
+        <div class="trow" style="grid-template-columns: 1.2fr 1fr 1.6fr;">
+          <div>
+            <div><strong>{{ log.call_date or log.created_at.strftime('%Y-%m-%d') }}</strong></div>
+            <div class="muted small">
+              {{ log.call_time or '' }}
+              {% if log.phone %} · {{ log.phone }}{% endif %}
+              {% if log.agent_name %} · {{ log.agent_name }}{% endif %}
+              {% if log.reference_id %} · Ref {{ log.reference_id }}{% endif %}
+            </div>
+          </div>
+          <div class="muted small">
+            {{ log.call_type or "—" }}{% if log.topic %} · {{ log.topic }}{% endif %}
+            {% if log.outcome %}<div>{{ log.outcome }}</div>{% endif %}
+          </div>
+          <div>
+            <div class="muted small">{{ log.summary }}</div>
+            {% if log.next_steps %}<div class="muted small"><strong>Next:</strong> {{ log.next_steps }}</div>{% endif %}
+            <details style="margin-top:8px;">
+              <summary class="start-link">Edit / Delete</summary>
+              <form method="post" action="{{ url_for('portal.va_calls_edit', log_id=log.id) }}" style="margin-top:8px;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="grid2">
+                  <div>
+                    <label class="form-label">Call date</label>
+                    <input class="form-control" type="date" name="call_date" value="{{ log.call_date }}">
+                  </div>
+                  <div>
+                    <label class="form-label">Call time</label>
+                    <input class="form-control" type="time" name="call_time" value="{{ log.call_time }}">
+                  </div>
+                  <div>
+                    <label class="form-label">Call type</label>
+                    <select class="form-control" name="call_type">
+                      <option value="">Select</option>
+                      <option {% if log.call_type == 'VA' %}selected{% endif %}>VA</option>
+                      <option {% if log.call_type == 'Doctor' %}selected{% endif %}>Doctor</option>
+                      <option {% if log.call_type == 'Hospital / Clinic' %}selected{% endif %}>Hospital / Clinic</option>
+                      <option {% if log.call_type == 'VSO / Representative' %}selected{% endif %}>VSO / Representative</option>
+                      <option {% if log.call_type == 'C&P Contractor' %}selected{% endif %}>C&amp;P Contractor</option>
+                      <option {% if log.call_type == 'Other' %}selected{% endif %}>Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="form-label">Topic</label>
+                    <select class="form-control" name="topic">
+                      <option value="">Select</option>
+                      <option {% if log.topic == 'Claim status' %}selected{% endif %}>Claim status</option>
+                      <option {% if log.topic == 'Evidence submission' %}selected{% endif %}>Evidence submission</option>
+                      <option {% if log.topic == 'C&P exam' %}selected{% endif %}>C&amp;P exam</option>
+                      <option {% if log.topic == 'Records request' %}selected{% endif %}>Records request</option>
+                      <option {% if log.topic == 'Payments' %}selected{% endif %}>Payments</option>
+                      <option {% if log.topic == 'Appeal / Supplemental' %}selected{% endif %}>Appeal / Supplemental</option>
+                      <option {% if log.topic == 'Other' %}selected{% endif %}>Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="form-label">Phone</label>
+                    <input class="form-control" name="phone" value="{{ log.phone }}">
+                  </div>
+                  <div>
+                    <label class="form-label">Agent</label>
+                    <input class="form-control" name="agent_name" value="{{ log.agent_name }}">
+                  </div>
+                  <div>
+                    <label class="form-label">Reference #</label>
+                    <input class="form-control" name="reference_id" value="{{ log.reference_id }}">
+                  </div>
+                  <div>
+                    <label class="form-label">Outcome</label>
+                    <select class="form-control" name="outcome">
+                      <option value="">Select</option>
+                      <option {% if log.outcome == 'Resolved' %}selected{% endif %}>Resolved</option>
+                      <option {% if log.outcome == 'Follow-up needed' %}selected{% endif %}>Follow-up needed</option>
+                      <option {% if log.outcome == 'Pending' %}selected{% endif %}>Pending</option>
+                      <option {% if log.outcome == 'Escalated' %}selected{% endif %}>Escalated</option>
+                      <option {% if log.outcome == 'Other' %}selected{% endif %}>Other</option>
+                    </select>
+                  </div>
+                </div>
+                <div style="margin-top:10px;">
+                  <label class="form-label">Summary</label>
+                  <textarea class="form-control" name="summary" rows="2" required>{{ log.summary }}</textarea>
+                </div>
+                <div style="margin-top:10px;">
+                  <label class="form-label">Next steps</label>
+                  <textarea class="form-control" name="next_steps" rows="2">{{ log.next_steps }}</textarea>
+                </div>
+                <div style="margin-top:10px;">
+                  <button class="btn btn-outline-primary btn-sm" type="submit">Save</button>
+                </div>
+              </form>
+              <form method="post" action="{{ url_for('portal.va_calls_delete', log_id=log.id) }}" onsubmit="return confirm('Delete this call log?');" style="margin-top:8px;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-outline-secondary btn-sm" type="submit">Delete</button>
+              </form>
+            </details>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="muted">No call logs yet.</div>
+  {% endif %}
+</div>
+{% endblock %}

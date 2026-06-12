@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Employee Hub - Reminders{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Employee Hub</div>
+      <h1 class="page-title">Email Reminders</h1>
+      <p class="page-sub">Schedule email-only reminders for clients.</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('employee.hub') }}">Back to Hub</a>
+    </div>
+  </div>
+</section>
+
+<div class="admin-wrap">
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <form method="get" class="row" style="gap:12px;align-items:end;">
+        <div style="min-width:240px;">
+          <label>Client</label>
+          <select name="client_id">
+            <option value="">Select a client</option>
+            {% for c in clients %}
+              <option value="{{ c.id }}" {% if selected_client and c.id == selected_client.id %}selected{% endif %}>{{ c.display_name() }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <button class="btn btn-primary">Open</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if selected_client %}
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <div class="panel-title">Create Reminder</div>
+      <form method="post" action="{{ url_for('employee.hub_reminders_create') }}" class="row" style="gap:12px;align-items:end;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="client_id" value="{{ selected_client.id }}">
+        <div style="min-width:220px;">
+          <label>Subject</label>
+          <input name="subject" placeholder="Reminder subject">
+        </div>
+        <div style="min-width:220px;">
+          <label>Send at (optional)</label>
+          <input type="datetime-local" name="send_at">
+        </div>
+        <div style="flex:1;">
+          <label>Message</label>
+          <textarea name="body" rows="3" placeholder="Write a clear reminder."></textarea>
+        </div>
+        <div>
+          <button class="btn btn-primary">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <div class="panel-title">Existing Reminders</div>
+      <div class="table" style="margin-top:10px;">
+        <div class="thead" style="grid-template-columns: 2fr 1fr 1fr 1fr;">
+          <div>Subject</div><div>Status</div><div>Send at</div><div>Action</div>
+        </div>
+        {% for r in reminders %}
+          <div class="trow" style="grid-template-columns: 2fr 1fr 1fr 1fr;">
+            <div>{{ r.subject }}</div>
+            <div class="pill {{ 'ready' if r.status == 'sent' else 'warn' }}">{{ r.status }}</div>
+            <div class="muted small">{{ r.send_at|format_et if r.send_at else "—" }}</div>
+            <div>
+              {% if r.status != 'sent' %}
+              <form method="post" action="{{ url_for('employee.hub_reminders_send', reminder_id=r.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-outline-primary btn-sm">Send now</button>
+              </form>
+              {% else %}
+                <span class="muted small">Sent</span>
+              {% endif %}
+            </div>
+          </div>
+        {% else %}
+          <div class="muted" style="padding:16px;">No reminders yet.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

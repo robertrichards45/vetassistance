@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}DIY Subscription{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Do It Yourself</div>
+      <h1 class="page-title">Choose your plan</h1>
+      <p class="page-sub">Monthly access to tools that guide your claim.</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('diy.tools') }}">Go to tools</a>
+    </div>
+  </div>
+</section>
+
+<div class="admin-wrap">
+  <div class="pricing-grid">
+    <div class="card-shell">
+      <div class="card-body-pad">
+        <div class="panel-title">Basic</div>
+        <div class="muted small">$29 / month</div>
+        <ul class="bullets" style="margin-top:8px;">
+          <li>VA rating chart</li>
+          <li>Combined rating calculator</li>
+          <li>DIY guide & forms list</li>
+        </ul>
+        <form method="post" action="{{ url_for('diy.checkout') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="plan" value="basic">
+          <button class="btn btn-primary" type="submit">Subscribe Basic</button>
+        </form>
+      </div>
+    </div>
+    <div class="card-shell">
+      <div class="card-body-pad">
+        <div class="panel-title">Pro</div>
+        <div class="muted small">$59 / month</div>
+        <ul class="bullets" style="margin-top:8px;">
+          <li>Everything in Basic</li>
+          <li>Evidence checklist builder</li>
+          <li>Claim tracker</li>
+          <li>Document quality scan</li>
+        </ul>
+        <form method="post" action="{{ url_for('diy.checkout') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="plan" value="pro">
+          <button class="btn btn-primary" type="submit">Subscribe Pro</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="muted small" style="margin-top:12px;">
+    Refunds: cancel within 72 hours = 100% refund if no uploads, 50% refund with uploads.
+  </div>
+</div>
+
+<style>
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+</style>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}DIY Tools - Subscribe{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Do It Yourself</div>
+      <h1 class="page-title">Subscribe to unlock tools</h1>
+      <p class="page-sub">Get access to the rating chart, calculator, checklist, tracker, and document scan.</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-primary" href="{{ url_for('diy.subscribe') }}">View Plans</a>
+      <a class="btn btn-outline-light" href="{{ url_for('diy.landing') }}">Learn more</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

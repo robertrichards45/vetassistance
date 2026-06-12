@@ -1,0 +1,180 @@
+<!-- templates/director/employees.html -->
+{% extends "base.html" %}
+{% block title %}Employees - {{ COMPANY_NAME }}{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Director Panel</div>
+      <h1 class="page-title">Employees</h1>
+      <p class="page-sub">Create staff accounts, enable/disable access, and reset passwords.</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-secondary" href="{{ url_for('director_dashboard') }}">Director Dashboard</a>
+      <a class="btn btn-secondary" href="{{ url_for('director_pricing_list') }}">Pricing</a>
+      <a class="btn btn-secondary" href="{{ url_for('director_site_content') }}">Site Content</a>
+    </div>
+  </div>
+</section>
+
+{% if not config.get('SMTP_HOST') %}
+  <div class="card-shell" style="margin-bottom:12px;">
+    <div class="card-body-pad">
+      <div class="panel-title">Email not configured</div>
+      <div class="muted">SMTP is not configured, so invite emails and message notifications will not send yet. Add SMTP settings in `.env` to enable email delivery.</div>
+    </div>
+  </div>
+{% endif %}
+
+<div class="card-shell">
+  <div class="card-body-pad">
+
+    <div class="pricing-grid">
+      <!-- LEFT: Create user -->
+      <div class="pricing-side">
+        <div class="card p-3">
+          <h3 class="mb-2" style="font-weight:900;color:var(--heading);">Add employee</h3>
+          <p class="mb-3" style="color:var(--muted);font-weight:700;">
+            Create a new staff login (employee/admin). Director should generally stay as the primary director account.
+          </p>
+
+          <form method="post" action="{{ url_for('director_employees') }}">
+            <div class="mb-2">
+              <label class="form-label">Username</label>
+              <input class="form-control" name="username" required>
+            </div>
+
+            <div class="mb-2">
+              <label class="form-label">Full name</label>
+              <input class="form-control" name="full_name" required>
+            </div>
+
+            <div class="mb-2">
+              <label class="form-label">Email (optional)</label>
+              <input class="form-control" name="email" type="email">
+            </div>
+
+            <div class="mb-2">
+              <label class="form-label">Role</label>
+              <select class="form-select" name="role">
+                <option value="employee" selected>Employee</option>
+                <option value="admin">Admin</option>
+                <option value="director">Director</option>
+              </select>
+              <div style="color:var(--muted);font-weight:700;font-size:.9rem;margin-top:6px;">
+                Admin can manage operations; Director has full system controls.
+              </div>
+            </div>
+
+            <div class="mb-2">
+              <label class="form-label">Temporary password</label>
+              <input class="form-control" name="password" required>
+            </div>
+
+            <div class="mt-3 d-flex gap-2 flex-wrap">
+              <button class="btn btn-primary" type="submit">Create</button>
+              <a class="btn btn-outline-secondary" href="{{ url_for('director_employees') }}">Clear</a>
+            </div>
+          </form>
+        </div>
+
+        <div class="card p-3 mt-3">
+          <h4 class="mb-1" style="font-weight:900;color:var(--heading);">Security note</h4>
+          <div style="color:var(--muted);font-weight:700;line-height:1.5;">
+            After creating a user, have them log in and change their password immediately.
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Users table -->
+      <div>
+        <div class="card p-3">
+          <div class="d-flex justify-content-between align-items-end flex-wrap gap-2">
+            <div>
+              <h3 class="mb-1" style="font-weight:900;color:var(--heading);">Users</h3>
+              <div style="color:var(--muted);font-weight:800;">{{ users|length if users else 0 }} total</div>
+            </div>
+          </div>
+
+          {% if users %}
+            <div class="table-responsive mt-3">
+              <table class="table table-premium align-middle">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th style="width:160px;">Role</th>
+                    <th style="width:140px;">Status</th>
+                    <th style="width:320px;" class="text-end">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for u in users %}
+                    <tr>
+                      <td>
+                        <div style="font-weight:900;color:var(--heading);">{{ u.full_name }}</div>
+                        <div style="color:var(--muted);font-weight:750;font-size:.92rem;">
+                          <span class="mono">{{ u.username }}</span>
+                          {% if u.email %} - {{ u.email }}{% endif %}
+                        </div>
+                      </td>
+                      <td>
+                        <span class="pill pill-claim">{{ (u.role or 'employee')|capitalize }}</span>
+                      </td>
+                      <td>
+                        {% if u.active %}
+                          <span class="pill pill-good">Active</span>
+                        {% else %}
+                          <span class="pill pill-bad">Disabled</span>
+                        {% endif %}
+                      </td>
+                      <td class="text-end">
+                        <div class="d-flex gap-2 flex-wrap justify-content-end">
+
+                          <!-- Toggle -->
+                          <form method="post" action="{{ url_for('director_employees') }}">
+                            <input type="hidden" name="toggle_user_id" value="{{ u.id }}">
+                            <button class="btn btn-sm btn-outline-primary" type="submit"
+                              {% if u.username == 'director' %}disabled{% endif %}>
+                              {% if u.active %}Disable{% else %}Enable{% endif %}
+                            </button>
+                          </form>
+
+                          <!-- Reset password -->
+                          <button class="btn btn-sm btn-outline-secondary" type="button"
+                                  data-bs-toggle="collapse" data-bs-target="#pw{{ u.id }}">
+                            Reset Password
+                          </button>
+                        </div>
+
+                        <div class="collapse mt-2" id="pw{{ u.id }}">
+                          <form method="post" action="{{ url_for('director_employees') }}" class="d-flex gap-2 justify-content-end flex-wrap">
+                            <input type="hidden" name="reset_user_id" value="{{ u.id }}">
+                            <input class="form-control form-control-sm" name="new_password" placeholder="New password" style="max-width:240px;" required>
+                            <button class="btn btn-sm btn-primary" type="submit"
+                              onclick="return confirm('Reset password for {{ u.username }}?');">
+                              Save
+                            </button>
+                          </form>
+                        </div>
+
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="empty mt-3">
+              <div class="empty-title">No users yet</div>
+              <div class="empty-sub">Create your first employee account to get started.</div>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+{% endblock %}

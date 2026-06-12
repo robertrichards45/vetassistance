@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Reset Portal Password - {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<section class="bf-hero">
+  <div class="bf-hero-inner">
+    <div>
+      <div class="bf-kicker">Client Portal</div>
+      <h1 class="bf-title">Reset your password</h1>
+      <p class="bf-sub">Create a new password to regain access.</p>
+    </div>
+    <div class="bf-badge">Secure access</div>
+  </div>
+</section>
+
+<section class="bf-card" style="max-width:560px;">
+  <form method="post" action="{{ url_for('portal.portal_reset_post', token=token) }}">
+    {% if csrf_token is defined %}
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% endif %}
+    <div class="bf-field">
+      <label>New password</label>
+      <input class="form-control" type="password" name="password" minlength="8" required>
+    </div>
+    <div class="bf-field">
+      <label>Confirm new password</label>
+      <input class="form-control" type="password" name="confirm_password" minlength="8" required>
+    </div>
+    <div class="bf-actions" style="margin-top:10px;">
+      <button class="btn btn-primary" type="submit">Update password</button>
+      <a class="btn btn-outline-primary" href="{{ url_for('portal.portal_home') }}">Back to login</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

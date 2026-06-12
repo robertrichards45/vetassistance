@@ -1,0 +1,31 @@
+
+:root{
+  --vca-radius: 18px;
+}
+.vca-shadow{
+  border-radius: var(--vca-radius);
+  box-shadow: 0 8px 22px rgba(0,0,0,.08);
+}
+.vca-logo{
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+}
+.vca-hero{
+  background: linear-gradient(135deg, rgba(13,110,253,.10), rgba(33,37,41,.06));
+}
+.vca-form .form-control,
+.vca-form .form-select,
+.vca-form textarea{
+  border-radius: 14px;
+  padding: .75rem .9rem;
+}
+.vca-prose p{ margin-bottom: .9rem; }
+.vca-pre{
+  white-space: pre-wrap;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  line-height: 1.45;
+}
+.vca-letter{
+  font-size: 1.02rem;
+}

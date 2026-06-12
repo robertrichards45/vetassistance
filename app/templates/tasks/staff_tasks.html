@@ -1,0 +1,41 @@
+{% extends "layout.html" %}
+{% block title %}Checklist • {{ client.display_name() }}{% endblock %}
+{% block content %}
+<div class="row">
+  <div>
+    <h2>Client Checklist</h2>
+    <div class="muted small">{{ client.display_name() }}</div>
+  </div>
+  <div class="row-actions">
+    <a class="btn secondary" href="{{ url_for('clients.view_client', client_id=client.id) }}">Back</a>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Onboarding Tasks</h3>
+  <div class="muted small">These tasks keep cases disciplined. Mark items complete as evidence arrives.</div>
+  <div style="margin-top:10px;">
+    {% for t in tasks %}
+      <div class="mini" style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
+        <div>
+          <div><strong>{{ t.title }}</strong></div>
+          <div class="muted small">{{ "REQUIRED" if t.is_required else "OPTIONAL" }} • {{ "DONE" if t.is_completed else "OPEN" }}</div>
+        </div>
+        <div class="actions">
+          {% if not t.is_completed %}
+          <form method="post" action="{{ url_for('tasks.complete', task_id=t.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn tiny">Complete</button>
+          </form>
+          {% else %}
+          <form method="post" action="{{ url_for('tasks.reopen', task_id=t.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn tiny secondary">Reopen</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

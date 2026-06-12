@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Portal Password Help - {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<section class="bf-hero">
+  <div class="bf-hero-inner">
+    <div>
+      <div class="bf-kicker">Client Portal</div>
+      <h1 class="bf-title">Password help</h1>
+      <p class="bf-sub">Submit your email and we will help you reset your portal access.</p>
+    </div>
+    <div class="bf-badge">Private - Secure access</div>
+  </div>
+</section>
+
+<section class="bf-card" style="max-width:560px;">
+  <form method="post" action="{{ url_for('portal.portal_forgot_post') }}">
+    {% if csrf_token is defined %}
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% endif %}
+    <div class="bf-field">
+      <label>Email</label>
+      <input class="form-control" type="email" name="email" required>
+    </div>
+    <div class="bf-actions" style="margin-top:10px;">
+      <button class="btn btn-primary" type="submit">Request help</button>
+      <a class="btn btn-outline-primary" href="{{ url_for('portal.portal_home') }}">Back to login</a>
+    </div>
+  </form>
+  <div class="muted small" style="margin-top:10px;">
+    We will contact you at this email with next steps.
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "layout.html" %}
+{% block title %}Preview Letter - {{ client.display_name() }}{% endblock %}
+{% block content %}
+<section class="section" style="max-width: 1100px; margin: 0 auto;">
+  <div class="section-header">
+    <div>
+      <h2>Preview Draft</h2>
+      <p class="muted">{{ client.display_name() }} - {{ letter_name }}</p>
+    </div>
+    <div class="section-actions">
+      <a class="btn secondary" href="{{ url_for('letters.staff_letters', client_id=client.id) }}">Back</a>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <div class="panel-title">Draft Letter</div>
+        <div class="panel-sub">Edit the draft before saving.</div>
+      </div>
+    </div>
+    <div class="panel-body">
+      <form method="post" action="{{ url_for('letters.wizard_generate_letter', client_id=client.id) }}" class="stack-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="letter_name" value="{{ letter_name }}">
+        <input type="hidden" name="wizard_payload" value="{{ wizard_payload }}">
+
+        <label style="grid-column:1/-1;">
+          Letter body
+          <textarea name="letter_body" rows="18" style="width:100%; font-family:monospace; font-size:13px;">{{ body }}</textarea>
+        </label>
+
+        <label class="form-label" style="display:flex;gap:8px;align-items:center;">
+          <input type="checkbox" name="share_to_client" value="1" {% if share_to_client %}checked{% endif %}>
+          Share to client portal
+        </label>
+
+        <label class="form-label" style="display:flex;gap:8px;align-items:center;">
+          <input type="checkbox" name="ai_polish" value="1" {% if ai_polish %}checked{% endif %}>
+          Use AI to polish wording
+        </label>
+
+        <div style="grid-column:1/-1; display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="btn btn-primary" type="submit">Save Letter</button>
+          <a class="btn btn-outline-primary" href="{{ url_for('letters.staff_letters', client_id=client.id) }}">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}

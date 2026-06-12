@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Comments - Director{% endblock %}
+{% block content %}
+<div class="container-wide">
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <h2 style="margin-top:0;">Public Comments</h2>
+      <div class="muted" style="margin-bottom:12px;">Approve comments before they show on the homepage.</div>
+      {% if items %}
+        <form method="post" action="{{ url_for('director.comments_bulk_approve') }}">
+          <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+            <button class="btn btn-primary btn-sm" type="submit">Approve selected</button>
+            <button class="btn btn-outline-danger btn-sm" type="submit" formaction="{{ url_for('director.comments_bulk_reject') }}">Reject selected</button>
+          </div>
+          <div class="table">
+            <div class="thead" style="grid-template-columns: .2fr 1.4fr .6fr .6fr .6fr;">
+              <div></div>
+              <div>Comment</div>
+              <div>Name</div>
+              <div>Status</div>
+              <div>Actions</div>
+            </div>
+            {% for c in items %}
+              <div class="trow" style="grid-template-columns: .2fr 1.4fr .6fr .6fr .6fr;">
+                <div>
+                  <input type="checkbox" name="comment_ids" value="{{ c.id }}">
+                </div>
+                <div>
+                  <div style="font-weight:800;color:#0B1F3A;">{{ c.comment }}</div>
+                  {% if c.branch %}<div class="muted small">{{ c.branch }}</div>{% endif %}
+                </div>
+                <div>{{ c.name }}</div>
+                <div>
+                  {% if c.is_approved %}
+                    <span class="pill ready">Approved</span>
+                  {% elif c.is_rejected %}
+                    <span class="pill bad">Rejected</span>
+                  {% else %}
+                    <span class="pill warn">Pending</span>
+                  {% endif %}
+                </div>
+                <div class="row" style="gap:8px;flex-wrap:wrap;">
+                  {% if not c.is_approved %}
+                  <button class="btn btn-primary btn-sm" type="submit" formaction="{{ url_for('director.comments_approve', comment_id=c.id) }}">Approve</button>
+                  {% endif %}
+                  {% if not c.is_rejected %}
+                  <button class="btn btn-outline-danger btn-sm" type="submit" formaction="{{ url_for('director.comments_reject', comment_id=c.id) }}">Reject</button>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </form>
+      {% else %}
+        <div class="muted">No comments yet.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

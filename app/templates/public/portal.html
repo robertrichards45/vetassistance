@@ -1,0 +1,142 @@
+{% extends "layout.html" %}
+{% block title %}Client upload portal • {{ COMPANY_NAME }}{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:620px; margin:0 auto;">
+  <h2 style="margin-top:0;">Secure client upload portal</h2>
+
+  {% if stage == "start" %}
+    <p style="font-size:13px; color:var(--text-soft);">
+      If you are already a client, enter your claim number and the email you have on file.
+      We’ll email you a one‑time code to open the upload screen.
+    </p>
+    {% if error %}
+      <div class="flash flash-danger" style="margin-bottom:8px;">{{ error }}</div>
+    {% endif %}
+    <form method="post" class="stack-form">
+      <label>Claim number
+        <input type="text" name="claim_number" style="text-transform:uppercase;" required>
+      </label>
+      <label>Email on file
+        <input type="email" name="email" required>
+      </label>
+      <button type="submit" class="btn">Send me a code</button>
+    </form>
+
+  {% elif stage == "code" %}
+    <p style="font-size:13px; color:var(--text-soft);">
+      We emailed a code to {{ client.email }} for claim #{{ client.claim_number }}.
+      Enter it below to open the upload page. Codes expire after about 15 minutes.
+    </p>
+    {% if error %}
+      <div class="flash flash-danger" style="margin-bottom:8px;">{{ error }}</div>
+    {% endif %}
+    <form method="post" class="stack-form">
+      <label>One‑time code
+        <input type="text" name="code" style="text-transform:uppercase;" required>
+      </label>
+      <button type="submit" class="btn">Verify code</button>
+    </form>
+
+  {% elif stage == "upload" %}
+    <p style="font-size:13px; color:var(--text-soft);">
+      You’re uploading to claim #{{ client.claim_number }} ({{ client.display_name() }}).
+      You can add decision letters, medical records, C&amp;P exams, or statements.
+    </p>
+    <form method="post" enctype="multipart/form-data" class="stack-form" id="publicPortalUploadForm">
+      <label>Select files to upload
+        <input type="file" name="files" multiple id="publicPortalFiles">
+      </label>
+      <button type="submit" class="btn" id="publicPortalUploadBtn">Upload</button>
+      <div id="publicPortalUploadStatus" class="muted small" style="margin-top:8px; display:none;">Uploading...</div>
+      <div id="publicPortalUploadProgress" class="upload-progress" style="display:none;">
+        <div id="publicPortalUploadProgressBar" class="upload-progress-bar"></div>
+      </div>
+      <div id="publicPortalUploadProgressText" class="upload-progress-text" style="display:none;">0%</div>
+    </form>
+
+    <h3 style="margin-top:16px;">Recent files for this claim</h3>
+    {% if files %}
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Uploaded</th>
+            <th>File name</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for f in files %}
+          <tr>
+            <td>{{ f.uploaded_at.strftime("%Y-%m-%d") if f.uploaded_at else "—" }}</td>
+            <td>{{ f.original_name }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p style="margin:0;">No files shown yet for this claim.</p>
+    {% endif %}
+  {% endif %}
+</div>
+<script>
+(function(){
+  var form = document.getElementById('publicPortalUploadForm');
+  if(!form){ return; }
+  var uploadBtn = document.getElementById('publicPortalUploadBtn');
+  var statusEl = document.getElementById('publicPortalUploadStatus');
+  var progressWrap = document.getElementById('publicPortalUploadProgress');
+  var progressBar = document.getElementById('publicPortalUploadProgressBar');
+  var progressText = document.getElementById('publicPortalUploadProgressText');
+  if(!uploadBtn || !statusEl || !progressWrap || !progressBar || !progressText){ return; }
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    if(form.dataset.busy === '1'){ return; }
+    form.dataset.busy = '1';
+    uploadBtn.disabled = true;
+    uploadBtn.textContent = 'Uploading...';
+    statusEl.textContent = 'Uploading...';
+    statusEl.style.display = 'block';
+    progressWrap.style.display = 'block';
+    progressText.style.display = 'block';
+    progressBar.style.width = '0%';
+    progressText.textContent = '0%';
+
+    var xhr = new XMLHttpRequest();
+    xhr.open(form.method || 'POST', form.action);
+    xhr.upload.addEventListener('progress', function(evt){
+      if(!evt.lengthComputable) return;
+      var pct = Math.min(100, Math.max(1, Math.round((evt.loaded / evt.total) * 100)));
+      progressBar.style.width = pct + '%';
+      progressText.textContent = pct + '%';
+    });
+    xhr.onreadystatechange = function(){
+      if(xhr.readyState !== 4) return;
+      form.dataset.busy = '0';
+      if(xhr.status >= 200 && xhr.status < 400){
+        progressBar.style.width = '100%';
+        progressText.textContent = '100%';
+        var redirectUrl = xhr.responseURL;
+        if(redirectUrl){
+          window.location = redirectUrl;
+        } else {
+          window.location.reload();
+        }
+        return;
+      }
+      uploadBtn.disabled = false;
+      uploadBtn.textContent = 'Upload';
+      statusEl.textContent = 'Upload failed. Please try again.';
+    };
+    xhr.onerror = function(){
+      form.dataset.busy = '0';
+      uploadBtn.disabled = false;
+      uploadBtn.textContent = 'Upload';
+      statusEl.textContent = 'Upload failed. Please try again.';
+    };
+    var formData = new FormData(form);
+    xhr.send(formData);
+  });
+})();
+</script>
+{% endblock %}

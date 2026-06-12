@@ -1,0 +1,57 @@
+{% extends "layout.html" %}
+{% block title %}Scan Records • {{ client.display_name() }}{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="section-header">
+    <h2>Scan Records</h2>
+    <p>
+      Upload VA / military / civilian medical records (PDF/DOCX/TXT). We’ll extract text and generate
+      a list of potential conditions to review.
+    </p>
+  </div>
+
+  <div class="two-column">
+    <div class="card">
+      <h3 style="margin-top:0;">Client</h3>
+      <p style="margin:0; color:var(--text-soft);">
+        <strong>{{ client.display_name() }}</strong><br>
+        Claim #: <code>{{ client.claim_number }}</code>
+      </p>
+
+      <hr style="border:0; border-top:1px solid var(--border-subtle); margin: 14px 0;">
+
+      <h3 style="margin-top:0;">Upload & Scan</h3>
+      <form method="post" enctype="multipart/form-data" class="stack-form">
+        <label>Record File
+          <input type="file" name="record_file" required>
+        </label>
+        <button class="btn btn-primary" type="submit">Scan Now</button>
+        <a class="btn btn-outline" href="{{ url_for('client_detail', client_id=client.id) }}">Back to Client</a>
+      </form>
+
+      <p style="font-size:12px; color:var(--text-soft); margin-top:10px;">
+        Tip: If a PDF is a scanned image (not selectable text), extraction may be weak. Export “text-based PDF” when possible.
+      </p>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;">Recent Scans</h3>
+      <ul class="card-list">
+        {% for d in recent_docs %}
+          <li>
+            <a href="{{ url_for('client_scan_results', client_id=client.id, doc_id=d.id) }}">
+              {{ d.filename }}
+            </a>
+            <span style="color:var(--text-softer); font-size:12px;">
+              — {{ d.created_at.strftime("%Y-%m-%d %H:%M") }}
+            </span>
+          </li>
+        {% else %}
+          <li style="color:var(--text-soft);">No scans yet.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</section>
+{% endblock %}

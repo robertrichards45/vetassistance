@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}Director - Templates{% endblock %}
+{% block content %}
+
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Director</div>
+      <h1 class="page-title">Template Library</h1>
+      <p class="page-sub">Create and manage reusable templates for letters and documents.</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('director.dashboard') }}">Back</a>
+      <form method="post" action="{{ url_for('director.seed_templates') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-outline-light" type="submit">Seed Defaults</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<div class="admin-wrap">
+  <div class="admin-grid split-40">
+    <div class="card-shell sticky-card">
+      <div class="card-body-pad">
+        <div class="panel-title">Create Template</div>
+        <form method="post" action="{{ url_for('director.templates_create') }}" class="template-form mt-2">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <label class="form-label">Name</label>
+          <input class="form-control" name="name" required>
+
+          <label class="form-label">Category</label>
+          <input class="form-control" name="category" placeholder="General">
+
+          <label class="form-label full">Body</label>
+          <textarea class="form-control full" name="body" rows="8" placeholder="Template body supports variables like $client_name and $today." required></textarea>
+
+          <label class="form-label full" style="display:flex; gap:8px; align-items:center;">
+            <input type="checkbox" name="is_active" value="1" checked>
+            Active
+          </label>
+
+          <div class="d-flex gap-2 flex-wrap mt-3 full">
+            <button class="btn btn-primary" type="submit">Create Template</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="card-shell">
+      <div class="card-body-pad">
+        <div class="panel-title">Existing Templates</div>
+        <div class="template-search">
+          <div class="template-search-head">
+            <div class="template-search-label">Find a template</div>
+            <div class="template-count">{{ templates|length }} total</div>
+          </div>
+          <input id="templateFilter" class="template-filter" placeholder="Search by name, category, or keyword">
+          <div class="template-help">Examples: evidence, education, records</div>
+          <div class="template-search-actions">
+            <div class="template-chips">
+              <button class="template-chip active" type="button" data-filter="">All</button>
+              {% set ns = namespace(cats=[]) %}
+              {% for t in templates %}
+                {% if t.category not in ns.cats %}
+                  {% set ns.cats = ns.cats + [t.category] %}
+                {% endif %}
+              {% endfor %}
+              {% for cat in ns.cats %}
+                <button class="template-chip" type="button" data-filter="{{ cat }}">{{ cat }}</button>
+              {% endfor %}
+            </div>
+            <button class="template-clear" type="button" id="templateClear">Clear</button>
+          </div>
+        </div>
+        {% if templates %}
+          <div class="template-list" style="margin-top:10px;">
+            {% set ns = namespace(category="") %}
+            {% for t in templates %}
+              {% if t.category != ns.category %}
+                <div class="template-group">{{ t.category }}</div>
+                {% set ns.category = t.category %}
+              {% endif %}
+              <details class="template-item"
+                data-name="{{ t.name|e }}"
+                data-category="{{ t.category|e }}"
+                data-body="{{ (t.body or '')|replace('\n', ' ')|e }}"
+              >
+                <summary>
+                  <span>{{ t.name }}</span>
+                  <span class="template-meta">{{ t.category }} | {{ "Active" if t.is_active else "Inactive" }}</span>
+                </summary>
+                <div class="template-help" style="margin-top:8px;">Preview: {{ (t.body or '')|truncate(140, True, '...') }}</div>
+                <form method="post" action="{{ url_for('director.templates_update', template_id=t.id) }}" class="template-form mt-2">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                  <label class="form-label">Name</label>
+                  <input class="form-control" name="name" value="{{ t.name }}" required>
+
+                  <label class="form-label">Category</label>
+                  <input class="form-control" name="category" value="{{ t.category }}">
+
+                  <label class="form-label full">Body</label>
+                  <textarea class="form-control full" name="body" rows="8" required>{{ t.body }}</textarea>
+
+                  <label class="form-label full" style="display:flex; gap:8px; align-items:center;">
+                    <input type="checkbox" name="is_active" value="1" {{ "checked" if t.is_active else "" }}>
+                    Active
+                  </label>
+
+                  <div class="d-flex gap-2 flex-wrap mt-3 full">
+                    <button class="btn btn-primary" type="submit">Save</button>
+                  </div>
+                </form>
+                <form method="post" action="{{ url_for('director.templates_delete', template_id=t.id) }}" style="margin-top:10px;" onsubmit="return confirm('Delete this template?');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-outline-primary" type="submit">Delete</button>
+                </form>
+              </details>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="muted" style="margin-top:10px;">No templates yet. Create one or seed defaults.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const input = document.getElementById("templateFilter");
+  const clearBtn = document.getElementById("templateClear");
+  const chips = document.querySelectorAll(".template-chip");
+  const items = document.querySelectorAll(".template-item");
+  if (!input || !items.length) return;
+  function applyFilter(q){
+    const query = (q || "").trim().toLowerCase();
+    items.forEach(function(item){
+      const name = (item.dataset.name || "").toLowerCase();
+      const category = (item.dataset.category || "").toLowerCase();
+      const body = (item.dataset.body || "").toLowerCase();
+      const hit = !query || name.includes(query) || category.includes(query) || body.includes(query);
+      item.style.display = hit ? "" : "none";
+    });
+  }
+  input.addEventListener("input", function(){
+    applyFilter(input.value);
+  });
+  if (clearBtn){
+    clearBtn.addEventListener("click", function(){
+      input.value = "";
+      applyFilter("");
+      chips.forEach(function(ch){ ch.classList.remove("active"); });
+      const allChip = document.querySelector(".template-chip[data-filter='']");
+      if (allChip) allChip.classList.add("active");
+    });
+  }
+  chips.forEach(function(chip){
+    chip.addEventListener("click", function(){
+      chips.forEach(function(c){ c.classList.remove("active"); });
+      chip.classList.add("active");
+      input.value = chip.dataset.filter || "";
+      applyFilter(input.value);
+    });
+  });
+})();
+</script>
+
+{% endblock %}

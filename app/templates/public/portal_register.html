@@ -1,0 +1,96 @@
+﻿{% extends "base.html" %}
+{% block title %}Get Started With Your VA Claim - {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<section class="bf-hero">
+  <div class="bf-hero-inner">
+    <div>
+      <div class="bf-kicker">Client Portal</div>
+      <h1 class="bf-title">Get Started With Your VA Claim</h1>
+      <p class="bf-sub">Begin your intake, explore benefits, and see what you may qualify for.</p>
+    </div>
+    <div class="bf-badge">Private - Secure access</div>
+  </div>
+</section>
+
+<section class="bf-card" style="max-width:600px;">
+  <form method="post" action="{{ url_for('portal.portal_register_post') }}">
+    {% if csrf_token is defined %}
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% endif %}
+    <div class="bf-field">
+      <label>Display name</label>
+      <input class="form-control" type="text" name="full_name" placeholder="First and last name or alias" required>
+    </div>
+    <div class="bf-field">
+      <label>Email</label>
+      <input class="form-control" type="email" name="email" id="portalEmail" placeholder="you@example.com" required>
+    </div>
+    <div class="bf-field">
+      <label>Phone</label>
+      <input class="form-control" type="text" name="phone" placeholder="Optional">
+    </div>
+    <div class="bf-field">
+      <label>Date of birth</label>
+      <input class="form-control" type="text" name="dob" placeholder="YYYY-MM-DD">
+    </div>
+    <div class="bf-field">
+      <label>Service branch</label>
+      <input class="form-control" type="text" name="service_branch" placeholder="Army, Navy, Air Force, Marines, Coast Guard, Space Force">
+    </div>
+    <div class="bf-field">
+      <label>Service dates</label>
+      <input class="form-control" type="text" name="service_dates" placeholder="YYYY-YYYY or YYYY-MM-DD to YYYY-MM-DD">
+    </div>
+    <div class="bf-field">
+      <label>Referred by</label>
+      <input class="form-control" type="text" name="referred_by" placeholder="Friend, social media, search, VA office, etc.">
+    </div>
+    <div class="bf-field">
+      <label>Password</label>
+      <input class="form-control" type="password" name="password" minlength="8" required>
+    </div>
+    <div class="bf-field">
+      <label>Confirm password</label>
+      <input class="form-control" type="password" name="confirm_password" minlength="8" required>
+    </div>
+    <div class="bf-field">
+      <label class="muted small" style="display:flex;gap:10px;align-items:flex-start;">
+        <input type="checkbox" name="consent_ack" value="yes" required>
+        <span>I understand that this service provides assistance and guidance only and does not guarantee VA claim approval.</span>
+      </label>
+    </div>
+    <div class="bf-field">
+      <label class="muted small" style="display:flex;gap:10px;align-items:flex-start;">
+        <input type="checkbox" name="consent_review" value="yes" required>
+        <span>I authorize Veteran Benefits Assistance to review my information for the purpose of identifying potential VA benefits.</span>
+      </label>
+    </div>
+    <div class="bf-actions" style="margin-top:10px;">
+      <button class="btn btn-primary" type="submit">Create Account</button>
+      <a class="btn btn-outline-primary" href="{{ url_for('portal.portal_home') }}">Back to login</a>
+    </div>
+  </form>
+  <div class="muted small" style="margin-top:10px;">
+    We'll use your email to secure your portal and keep you updated on next steps.
+  </div>
+  <div class="card" style="margin-top:14px;">
+    <div style="font-weight:700;">Your privacy comes first.</div>
+    <ul class="muted small" style="margin-top:8px;">
+      <li>No spam</li>
+      <li>No obligation</li>
+      <li>No claims filed without your approval</li>
+      <li>You stay in control at every step</li>
+    </ul>
+    <div class="muted small" style="margin-top:8px;">We collect only the information needed to help identify potential VA benefits. No claims are submitted and no information is shared with the VA without your explicit consent.</div>
+    <div class="muted small" style="margin-top:6px;">We follow VA privacy standards and never submit anything on your behalf without consent.</div>
+  </div>
+  <div class="muted small" style="margin-top:10px;">
+    Having trouble? Contact support at {{ CONTACT_EMAIL }}.
+  </div>
+  <div class="muted small" style="margin-top:10px;">
+    Veteran Benefits Assistance is not affiliated with the Department of Veterans Affairs. Information provided is used to help identify potential benefits and does not guarantee outcomes.
+  </div>
+</section>
+{% endblock %}
+
+

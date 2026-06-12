@@ -1,0 +1,30 @@
+{% extends "layout.html" %}
+{% block title %}Welcome Packet Preview • {{ client.display_name() }}{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="section-header">
+    <h2>Welcome Packet Preview</h2>
+    <p>Client: <strong>{{ client.display_name() }}</strong> • Claim #: <code>{{ client.claim_number }}</code></p>
+  </div>
+
+  <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+    <a class="btn btn-outline" href="{{ url_for('welcome_packet', client_id=client.id) }}">Back to Options</a>
+    <a class="btn btn-primary" href="{{ url_for('client_detail', client_id=client.id) }}">Back to Client</a>
+  </div>
+
+  {% if include_welcome %}
+    <div class="card" style="margin-bottom:14px;">
+      <h3 style="margin-top:0;">Welcome Letter</h3>
+      <div class="panel panel-soft" style="white-space:pre-wrap; font-size:13px; color:var(--text-soft);">{{ welcome_text }}</div>
+    </div>
+  {% endif %}
+
+  {% if include_buddy %}
+    <div class="card">
+      <h3 style="margin-top:0;">Buddy Letter Template</h3>
+      <div class="panel panel-soft" style="white-space:pre-wrap; font-size:13px; color:var(--text-soft);">{{ buddy_text }}</div>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,427 @@
+
+{% extends "base.html" %}
+{% block head %}
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+{% endblock %}
+{% block content %}
+<section class="bf-hero">
+  <div class="bf-hero-inner">
+    <div>
+      <div class="bf-kicker">Veteran Resources</div>
+      <h1 class="bf-title">Benefits Finder</h1>
+      <p class="bf-sub">Find nearby VA resources by ZIP code or city. Fast, clean results with distance and contact details.</p>
+    </div>
+    <div class="bf-badge">Powered by VA data</div>
+  </div>
+</section>
+
+<section class="bf-card">
+  <form id="benefitsForm" class="bf-form">
+    <div class="bf-field">
+      <label>ZIP Code</label>
+      <input name="zip" inputmode="numeric" placeholder="31763">
+    </div>
+    <div class="bf-field">
+      <label>City</label>
+      <input name="city" placeholder="Leesburg">
+    </div>
+    <div class="bf-field">
+      <label>State</label>
+      <select name="state">
+        <option value="">Select</option>
+        <option value="AL">AL</option>
+        <option value="AK">AK</option>
+        <option value="AZ">AZ</option>
+        <option value="AR">AR</option>
+        <option value="CA">CA</option>
+        <option value="CO">CO</option>
+        <option value="CT">CT</option>
+        <option value="DE">DE</option>
+        <option value="DC">DC</option>
+        <option value="FL">FL</option>
+        <option value="GA" selected>GA</option>
+        <option value="HI">HI</option>
+        <option value="ID">ID</option>
+        <option value="IL">IL</option>
+        <option value="IN">IN</option>
+        <option value="IA">IA</option>
+        <option value="KS">KS</option>
+        <option value="KY">KY</option>
+        <option value="LA">LA</option>
+        <option value="ME">ME</option>
+        <option value="MD">MD</option>
+        <option value="MA">MA</option>
+        <option value="MI">MI</option>
+        <option value="MN">MN</option>
+        <option value="MS">MS</option>
+        <option value="MO">MO</option>
+        <option value="MT">MT</option>
+        <option value="NE">NE</option>
+        <option value="NV">NV</option>
+        <option value="NH">NH</option>
+        <option value="NJ">NJ</option>
+        <option value="NM">NM</option>
+        <option value="NY">NY</option>
+        <option value="NC">NC</option>
+        <option value="ND">ND</option>
+        <option value="OH">OH</option>
+        <option value="OK">OK</option>
+        <option value="OR">OR</option>
+        <option value="PA">PA</option>
+        <option value="RI">RI</option>
+        <option value="SC">SC</option>
+        <option value="SD">SD</option>
+        <option value="TN">TN</option>
+        <option value="TX">TX</option>
+        <option value="UT">UT</option>
+        <option value="VT">VT</option>
+        <option value="VA">VA</option>
+        <option value="WA">WA</option>
+        <option value="WV">WV</option>
+        <option value="WI">WI</option>
+        <option value="WY">WY</option>
+      </select>
+    </div>
+    <div class="bf-field">
+      <label>Radius (miles)</label>
+      <input name="radius" type="number" min="5" max="200" value="100">
+    </div>
+    <div class="bf-field">
+      <label>Category</label>
+      <select name="category">
+        <option value="">All</option>
+        <option value="benefits">Benefits</option>
+        <option value="health">Health</option>
+        <option value="mental_health">Mental Health</option>
+        <option value="food">Food Banks</option>
+        <option value="shelter">Homeless Shelters</option>
+        <option value="housing">Housing</option>
+        <option value="employment">Employment</option>
+        <option value="legal">Legal</option>
+        <option value="counseling">Counseling</option>
+        <option value="financial">Financial Assistance</option>
+        <option value="transportation">Transportation</option>
+        <option value="education">Education</option>
+        <option value="family">Family Support</option>
+        <option value="emergency">Emergency</option>
+        <option value="vet_center">Vet Center</option>
+        <option value="cemetery">Cemetery</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="bf-actions">
+      <button class="btn btn-primary" type="submit">Search</button>
+      <button class="btn btn-outline-primary" type="reset" id="bfReset">Clear</button>
+    </div>
+  </form>
+</section>
+
+<section class="bf-results">
+  <div class="bf-results-head">
+    <div class="bf-results-title">Results</div>
+    <div id="bfMeta" class="bf-results-meta">Enter a ZIP to begin.</div>
+  </div>
+  <div class="bf-results-body">
+    <div class="bf-map-card">
+      <div class="bf-map-head">
+        <div class="bf-map-title">Area View</div>
+        <div id="bfMapMeta" class="bf-map-meta">No points yet.</div>
+      </div>
+      <div id="bfMap" class="bf-map"></div>
+    </div>
+    <div id="bfGrid" class="bf-grid"></div>
+  </div>
+</section>
+
+<style>
+.bf-hero{
+  background:
+    radial-gradient(800px 300px at 12% 10%, rgba(255,255,255,.18), transparent 60%),
+    radial-gradient(520px 220px at 80% 0%, rgba(110,176,255,.16), transparent 60%),
+    linear-gradient(135deg, #10233f 0%, #1b3f6b 60%, #0d1728 100%);
+  color: #fff;
+  border-radius: 22px;
+  padding: 20px 22px;
+  border: 1px solid rgba(255,255,255,.15);
+  box-shadow: 0 18px 44px rgba(2,8,23,.22);
+  margin-bottom: 16px;
+}
+.bf-hero-inner{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap}
+.bf-kicker{display:inline-flex;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);font-weight:800}
+.bf-title{margin:8px 0 4px;font-size:1.9rem}
+.bf-sub{margin:0;opacity:.9;max-width:720px}
+.bf-badge{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.18);padding:8px 12px;border-radius:12px;font-weight:800}
+
+.bf-card{
+  background:#fff;border:1px solid rgba(15,23,42,.10);
+  border-radius:18px;box-shadow:0 18px 44px rgba(2,8,23,.10);
+  padding:16px;margin-bottom:16px;
+}
+.bf-form{display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr auto;gap:12px;align-items:end}
+.bf-field label{display:block;font-weight:900;color:#0B1F3A;margin-bottom:6px}
+.bf-field input,.bf-field select{
+  width:100%;border-radius:14px;border:1px solid rgba(15,23,42,.12);
+  padding:10px 12px;background:#fff;
+}
+.bf-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+.bf-results{
+  background:#fff;border:1px solid rgba(15,23,42,.10);
+  border-radius:18px;box-shadow:0 18px 44px rgba(2,8,23,.10);
+  padding:16px;
+}
+.bf-results-head{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+.bf-results-title{font-weight:900;color:#0B1F3A}
+.bf-results-meta{color:#4A5D73;font-weight:700}
+.bf-results-body{display:grid;grid-template-columns:360px 1fr;gap:12px;margin-top:12px}
+.bf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.bf-group-title{
+  grid-column: 1 / -1;
+  font-weight:900;
+  color:#0B1F3A;
+  background: rgba(15,23,42,.06);
+  border: 1px solid rgba(15,23,42,.08);
+  border-radius: 12px;
+  padding: 8px 12px;
+}
+.bf-card-item{
+  border:1px solid rgba(15,23,42,.10);border-radius:16px;padding:12px;background:linear-gradient(180deg,#f7f9fc,#ffffff);
+}
+.bf-card-title{font-weight:900;color:#0B1F3A;margin-bottom:4px}
+.bf-card-meta{color:#4A5D73;font-size:.9rem}
+.bf-pill{display:inline-flex;padding:4px 8px;border-radius:999px;background:#eaf2ff;color:#1b4b8a;font-weight:800;font-size:.75rem;margin-top:6px}
+.bf-empty{color:#4A5D73;font-weight:700;padding:10px}
+
+.bf-map-card{
+  border:1px solid rgba(15,23,42,.10);
+  border-radius:16px;
+  padding:12px;
+  background:linear-gradient(180deg,#f7f9fc,#ffffff);
+  min-height:420px;
+}
+.bf-map-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+.bf-map-title{font-weight:900;color:#0B1F3A}
+.bf-map-meta{color:#4A5D73;font-weight:700;font-size:.85rem}
+.bf-map{
+  width:100%;
+  height:360px;
+  border-radius:14px;
+  background:
+    radial-gradient(700px 260px at 20% 20%, rgba(43,119,196,.12), transparent 60%),
+    linear-gradient(180deg, #0b1220, #132643);
+  border:1px solid rgba(15,23,42,.12);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+.bf-map .leaflet-container{border-radius:14px}
+
+.bf-loading{
+  animation: bfPulse 1.4s ease-in-out infinite;
+  opacity:.8;
+}
+@keyframes bfPulse{
+  0%{opacity:.4}
+  50%{opacity:1}
+  100%{opacity:.4}
+}
+
+@media (max-width: 980px){
+  .bf-form{grid-template-columns:1fr 1fr; }
+  .bf-results-body{grid-template-columns:1fr}
+}
+@media (max-width: 640px){
+  .bf-form{grid-template-columns:1fr; }
+}
+@media (max-width: 720px){
+  .bf-results-body{grid-template-columns:1fr;}
+  .bf-grid{order:1;}
+  .bf-map-card{order:2; min-height:260px;}
+  .bf-map{height:240px;}
+  .bf-results-head{align-items:flex-start;}
+  .bf-actions{width:100%;}
+  .bf-actions .btn{flex:1 1 auto;}
+}
+</style>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+  crossorigin=""></script>
+<script>
+(function(){
+  const form = document.getElementById("benefitsForm");
+  const grid = document.getElementById("bfGrid");
+  const meta = document.getElementById("bfMeta");
+  const mapMeta = document.getElementById("bfMapMeta");
+  const resetBtn = document.getElementById("bfReset");
+  const mapEl = document.getElementById("bfMap");
+
+  function renderEmpty(msg){
+    grid.innerHTML = '<div class="bf-empty">' + msg + '</div>';
+    mapMeta.textContent = "No points yet.";
+    drawMap([]);
+  }
+
+  const categoryLabels = {
+    benefits: "Benefits",
+    health: "Health",
+    mental_health: "Mental Health",
+    food: "Food Banks",
+    shelter: "Homeless Shelters",
+    housing: "Housing",
+    employment: "Employment",
+    legal: "Legal",
+    counseling: "Counseling",
+    financial: "Financial Assistance",
+    transportation: "Transportation",
+    education: "Education",
+    family: "Family Support",
+    emergency: "Emergency",
+    vet_center: "Vet Center",
+    cemetery: "Cemetery",
+    other: "Other",
+    VA_FACILITY: "VA Facilities"
+  };
+
+  function renderResults(items, selectedCategory){
+    if(!items || !items.length){
+      renderEmpty("No results found.");
+      return;
+    }
+    function renderCard(it){
+      const name = it.name || "VA Facility";
+      const distance = (it.distance_miles != null) ? (it.distance_miles + " mi") : "";
+      const phone = it.phone ? ("Phone: " + it.phone) : "";
+      const address = it.address || "";
+      const pillText = it.exact_match ? "Local" : "Nearby";
+      const verification = it.verification ? ('<div class="bf-pill" style="margin-left:6px;">' + it.verification + '</div>') : '';
+      return [
+        '<div class="bf-card-item">',
+        '<div class="bf-card-title">' + name + '</div>',
+        '<div class="bf-card-meta">' + [distance, address, phone].filter(Boolean).join(" - ") + '</div>',
+        '<div class="bf-pill">' + pillText + '</div>' + verification,
+        '</div>'
+      ].join("");
+    }
+
+    if(selectedCategory){
+      grid.innerHTML = items.map(renderCard).join("");
+      return;
+    }
+
+    const grouped = {};
+    items.forEach(function(it){
+      const key = it.category || "other";
+      if(!grouped[key]) grouped[key] = [];
+      grouped[key].push(it);
+    });
+
+    const order = Object.keys(categoryLabels);
+    const sections = [];
+    order.forEach(function(key){
+      if(!grouped[key] || !grouped[key].length) return;
+      const label = categoryLabels[key] || key;
+      sections.push('<div class="bf-group-title">' + label + '</div>');
+      sections.push(grouped[key].map(renderCard).join(""));
+    });
+    grid.innerHTML = sections.join("") || '<div class="bf-empty">No results found.</div>';
+  }
+
+  let map = null;
+  let markersLayer = null;
+  let currentPoints = [];
+
+  function initMap(center){
+    if(map){ return; }
+    map = L.map(mapEl, { zoomControl: true }).setView(center || [33.0, -84.0], 8);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      attribution: "&copy; OpenStreetMap",
+    }).addTo(map);
+    markersLayer = L.layerGroup().addTo(map);
+    setTimeout(function(){ map.invalidateSize(); }, 0);
+  }
+
+  function drawMap(items, origin){
+    const points = items
+      .filter(it => typeof it.lat === "number" && typeof it.lon === "number")
+      .map(it => ({ lat: it.lat, lon: it.lon, name: it.name, address: it.address }));
+
+    const center = (origin && typeof origin.lat === "number") ? [origin.lat, origin.lon] : [33.0, -84.0];
+    initMap(center);
+    markersLayer.clearLayers();
+
+    if(!points.length){
+      mapMeta.textContent = "No geocoded points.";
+      map.setView(center, 8);
+      return;
+    }
+
+    currentPoints = points;
+    const bounds = [];
+    points.forEach(p => {
+      const marker = L.marker([p.lat, p.lon]).addTo(markersLayer);
+      if(p.name || p.address){
+        marker.bindPopup([p.name, p.address].filter(Boolean).join("<br>"));
+      }
+      bounds.push([p.lat, p.lon]);
+    });
+    if(bounds.length){
+      map.fitBounds(bounds, { padding: [20, 20] });
+    }
+    mapMeta.textContent = points.length + " locations plotted";
+  }
+
+  form.addEventListener("submit", function(e){
+    e.preventDefault();
+    const data = new FormData(form);
+    const zip = (data.get("zip") || "").toString().trim();
+    const city = (data.get("city") || "").toString().trim();
+    const state = (data.get("state") || "").toString().trim();
+    if(!zip && !city){
+      meta.textContent = "Enter a ZIP code or city.";
+      renderEmpty("Enter a ZIP code or city.");
+      return;
+    }
+    if(city && !state){
+      meta.textContent = "Select a state for city search.";
+      renderEmpty("Select a state for city search.");
+      return;
+    }
+    const params = new URLSearchParams(data);
+    const url = "{{ url_for('resources.benefits_finder_search') }}?" + params.toString();
+    meta.textContent = "Searching...";
+    mapMeta.textContent = "Loading...";
+    grid.classList.add("bf-loading");
+    fetch(url).then(r => r.json()).then(function(resp){
+      grid.classList.remove("bf-loading");
+      if(resp.error){
+        meta.textContent = resp.error;
+        renderEmpty("No results to show.");
+        return;
+      }
+      meta.textContent = (resp.count || 0) + " results";
+      renderResults(resp.results || [], (data.get("category") || "").toString().trim());
+      drawMap(resp.results || [], resp.origin || null);
+    }).catch(function(){
+      grid.classList.remove("bf-loading");
+      meta.textContent = "Service unavailable.";
+      renderEmpty("Try again in a moment.");
+    });
+  });
+
+  drawMap([], null);
+
+  resetBtn.addEventListener("click", function(){
+    meta.textContent = "Enter a ZIP to begin.";
+    renderEmpty("");
+  });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "layout.html" %}
+{% block title %}Letters • {{ client.display_name() }} • {{ COMPANY_NAME }}{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="section-header">
+    <h2>Letters for {{ client.display_name() }}</h2>
+    <p>Generate DOCX letters with your letterhead. Choose a tone and letter type.</p>
+  </div>
+
+  {% if not ai_enabled %}
+    <div class="flash flash-warning">
+      AI is not configured (OPENAI_API_KEY missing). Letters still generate using templates (no AI rewrite).
+    </div>
+  {% endif %}
+
+  <div class="card" style="max-width:900px;">
+    <form method="post" action="{{ url_for('client_letters_generate', client_id=client.id) }}" class="stack-form">
+      <label>
+        Letter Type
+        <select name="letter_type" required>
+          <option value="welcome">Welcome Letter</option>
+          <option value="records_request">Request for Records</option>
+          <option value="custom">Custom Letter</option>
+        </select>
+      </label>
+
+      <label>
+        Tone
+        <select name="tone" required>
+          <option value="formal">Formal</option>
+          <option value="casual">Casual</option>
+          <option value="technical">Technical</option>
+        </select>
+      </label>
+
+      <label>
+        Staff Instructions (optional)
+        <textarea name="custom_instructions" rows="6"
+          placeholder="Example: Tell Bob we still need his last 2 C&P exams and his decision letter dated 10/2024."></textarea>
+      </label>
+
+      <button type="submit" class="btn btn-primary">Generate DOCX Letter</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

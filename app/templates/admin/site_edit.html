@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Director • Site Settings{% endblock %}
+{% block content %}
+
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Director</div>
+      <h1 class="page-title">Site Settings</h1>
+      <p class="page-sub">Edit homepage copy without touching code.</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('director.dashboard') }}">Back</a>
+      <a class="btn btn-outline-light" href="{{ url_for('public_home') }}">Preview Home</a>
+    </div>
+  </div>
+</section>
+
+<div class="admin-wrap">
+  <div class="admin-grid">
+    <div class="card-shell">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Site Copy & Settings</div>
+          <div class="card-sub">These values update the homepage and marketing copy immediately.</div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+          <button class="btn btn-primary" type="submit" form="siteEditForm">Save</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <form method="post" class="stack-form single" id="siteEditForm">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          {% for k, label, value in values %}
+            <label class="form-label">
+              {{ label }}
+              <span class="muted small">({{ k }})</span>
+              {% if "BODY" in k or "SUBTITLE" in k %}
+                <textarea class="form-control" name="{{ k }}" rows="3">{{ value }}</textarea>
+              {% else %}
+                <input class="form-control" name="{{ k }}" value="{{ value }}">
+              {% endif %}
+            </label>
+          {% endfor %}
+          <div class="d-flex gap-2 flex-wrap mt-3">
+            <button class="btn btn-primary" type="submit">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="card-shell">
+      <div class="card-body-pad">
+        <div class="panel-title">Editing Tips</div>
+        <div class="muted small" style="margin-top:8px;">
+          Keep headlines short, use sentence case, and keep CTAs action-oriented.
+          Preview the homepage after saving to verify line breaks and spacing.
+        </div>
+        <div class="muted small" style="margin-top:10px;">
+          If a change looks off, restore the previous value and save again.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% block title %}Which Filing Is Right?{% endblock %}
+{% block content %}
+<style>
+  .guide-wrap{ max-width: 1100px; margin:0 auto; display:grid; gap:16px; }
+  .guide-hero{
+    background: linear-gradient(135deg, #0b1f3a, #1b3f6b);
+    color:#fff; border-radius:18px; padding:18px 20px;
+    box-shadow: 0 18px 44px rgba(2,8,23,.18);
+  }
+  .guide-hero h1{ margin:0; font-size:26px; }
+  .guide-hero p{ margin:6px 0 0; opacity:.88; font-weight:700; }
+  .guide-card{
+    background:#fff; border:1px solid rgba(15,23,42,.10);
+    border-radius:18px; box-shadow:0 18px 44px rgba(2,8,23,.08);
+    padding:16px;
+  }
+  .guide-question{ font-size:1.1rem; font-weight:900; color: var(--heading); margin:0 0 10px; }
+  .guide-actions{ display:flex; gap:10px; flex-wrap:wrap; }
+  .guide-btn{
+    border-radius:999px; padding:10px 16px; font-weight:900; border:1px solid rgba(15,23,42,.12);
+    background:#fff; cursor:pointer;
+  }
+  .guide-btn.primary{ background: linear-gradient(135deg, #2b77c4, #12335e); color:#fff; border:0; }
+  .guide-result{ display:none; }
+  .guide-result.active{ display:block; }
+  .result-pill{
+    display:inline-flex; padding:6px 12px; border-radius:999px; font-weight:900; font-size:.85rem;
+    border:1px solid rgba(15,23,42,.14);
+  }
+  .result-cue{ background: rgba(22,163,74,.12); border-color: rgba(22,163,74,.35); color:#166534; }
+  .result-increase{ background: rgba(37,99,235,.12); border-color: rgba(37,99,235,.35); color:#1e3a8a; }
+  .result-supp{ background: rgba(234,88,12,.12); border-color: rgba(234,88,12,.35); color:#9a3412; }
+  .result-new{ background: rgba(15,23,42,.06); border-color: rgba(15,23,42,.14); color:#0f172a; }
+  .guide-list{ margin:8px 0 0; padding-left:18px; }
+  .guide-grid{ display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:12px; }
+  @media (max-width: 980px){ .guide-grid{ grid-template-columns: 1fr; } }
+  .guide-mini{ border:1px solid rgba(15,23,42,.10); border-radius:14px; padding:12px; background:#fff; }
+  .guide-mini h4{ margin:0 0 6px; }
+  .override{ margin-top:12px; padding:10px 12px; border-radius:12px; background: rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.35); color:#92400e; font-weight:800; display:none; }
+  .override.show{ display:block; }
+</style>
+
+<div class="guide-wrap">
+  <section class="guide-hero">
+    <h1>Which VA Filing Is Right for Me?</h1>
+    <p>{{ client.display_name() }} | Use this to pick the right path before filing.</p>
+  </section>
+
+  <div class="guide-card" id="guideCard">
+    <div id="guideStep">
+      <div class="guide-question" id="guideQuestion">Are you challenging a VA decision that already happened?</div>
+      <div class="guide-actions">
+        <button class="guide-btn primary" data-answer="yes">Yes</button>
+        <button class="guide-btn" data-answer="no">No</button>
+      </div>
+    </div>
+    <div class="guide-result" id="guideResult">
+      <div id="guideResultTag"></div>
+      <div id="guideResultText" style="margin-top:8px;"></div>
+      <div class="guide-actions" style="margin-top:12px;">
+        <a class="btn btn-outline-primary" href="{{ url_for('cue.portal_builder') }}">Start CUE Motion Builder</a>
+        <a class="btn btn-outline-primary" href="{{ url_for('portal.messages') }}">Ask My Team</a>
+        <button class="btn btn-outline-secondary" id="guideReset" type="button">Start Over</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="guide-card">
+    <h3>Quick Examples</h3>
+    <ul class="guide-list">
+      <li>"My condition got worse." -> Increase</li>
+      <li>"Here is a new doctor opinion." -> Supplemental</li>
+      <li>"VA ignored evidence already in the file in 1996." -> CUE</li>
+    </ul>
+  </div>
+
+  <div class="guide-card">
+    <h3>Hard Stops (Do Not Route to CUE)</h3>
+    <ul class="guide-list">
+      <li>New medical exams</li>
+      <li>New nexus opinions</li>
+      <li>"VA should have believed me" without a clear legal/factual error</li>
+      <li>Condition worsened later</li>
+      <li>Duty to assist arguments</li>
+    </ul>
+  </div>
+
+  <div class="guide-grid">
+    <div class="guide-mini">
+      <h4>CUE (Clear and Unmistakable Error)</h4>
+      <div class="result-pill result-cue">CUE</div>
+      <p class="muted" style="margin-top:6px;">Used when VA made a clear legal or factual error in a final decision. No new evidence allowed. Can result in retroactive pay to the original claim date.</p>
+    </div>
+    <div class="guide-mini">
+      <h4>Increased Rating Claim</h4>
+      <div class="result-pill result-increase">Increase</div>
+      <p class="muted" style="margin-top:6px;">Used when a service-connected condition has worsened since the last VA decision.</p>
+    </div>
+    <div class="guide-mini">
+      <h4>Supplemental Claim</h4>
+      <div class="result-pill result-supp">Supplemental</div>
+      <p class="muted" style="margin-top:6px;">Used when you have new and relevant evidence VA did not previously consider.</p>
+    </div>
+  </div>
+
+  {% if is_staff %}
+  <div class="guide-card">
+    <label style="display:flex; gap:8px; align-items:center; font-weight:800;">
+      <input type="checkbox" id="overrideToggle">
+      Employee Override: Client answers suggest a different path, but CUE may still be viable based on file review.
+    </label>
+    <div class="override" id="overrideNote">
+      Note: Staff override active. Document your rationale in the client notes if you proceed against the guide recommendation.
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+(function(){
+  const steps = [
+    {
+      q: "Are you challenging a VA decision that already happened?",
+      yes: 1,
+      no: "new"
+    },
+    {
+      q: "Are you saying the VA made a mistake in a past final decision?",
+      yes: 2,
+      no: "increase"
+    },
+    {
+      q: "Is your argument based only on evidence and laws that existed at the time of that decision?",
+      yes: 3,
+      no: "supplemental"
+    },
+    {
+      q: "Is the error undebatable, and would fixing it require a different outcome?",
+      yes: "cue",
+      no: "highrisk"
+    }
+  ];
+
+  const questionEl = document.getElementById("guideQuestion");
+  const stepEl = document.getElementById("guideStep");
+  const resultEl = document.getElementById("guideResult");
+  const resultTag = document.getElementById("guideResultTag");
+  const resultText = document.getElementById("guideResultText");
+  const resetBtn = document.getElementById("guideReset");
+  let step = 0;
+
+  function showStep(idx){
+    step = idx;
+    const data = steps[idx];
+    questionEl.textContent = data.q;
+  }
+
+  function showResult(type){
+    stepEl.style.display = "none";
+    resultEl.classList.add("active");
+    if (type === "cue"){
+      resultTag.innerHTML = "<span class='result-pill result-cue'>Recommended Path: CUE</span>";
+      resultText.textContent = "Reason: Your answers indicate VA may have made a clear legal or factual error based on the record at the time.";
+    } else if (type === "increase"){
+      resultTag.innerHTML = "<span class='result-pill result-increase'>Recommended Path: Increase</span>";
+      resultText.textContent = "Reason: Your answers indicate a worsening condition or disagreement that should be handled as an increase claim.";
+    } else if (type === "supplemental"){
+      resultTag.innerHTML = "<span class='result-pill result-supp'>Recommended Path: Supplemental Claim</span>";
+      resultText.textContent = "Reason: Your answers indicate new and relevant evidence after the decision date.";
+    } else if (type === "new"){
+      resultTag.innerHTML = "<span class='result-pill result-new'>Recommended Path: New Claim</span>";
+      resultText.textContent = "Reason: There is no prior decision to challenge.";
+    } else {
+      resultTag.innerHTML = "<span class='result-pill result-increase'>Likely Increase or Supplemental</span>";
+      resultText.textContent = "Reason: The error may not be undebatable. Consider increase or supplemental with your team.";
+    }
+  }
+
+  document.querySelectorAll(".guide-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const ans = btn.getAttribute("data-answer");
+      const next = ans === "yes" ? steps[step].yes : steps[step].no;
+      if (typeof next === "number"){
+        showStep(next);
+      } else {
+        showResult(next);
+      }
+    });
+  });
+
+  if (resetBtn){
+    resetBtn.addEventListener("click", () => {
+      stepEl.style.display = "";
+      resultEl.classList.remove("active");
+      showStep(0);
+    });
+  }
+  showStep(0);
+
+  const overrideToggle = document.getElementById("overrideToggle");
+  const overrideNote = document.getElementById("overrideNote");
+  if (overrideToggle && overrideNote){
+    overrideToggle.addEventListener("change", () => {
+      overrideNote.classList.toggle("show", overrideToggle.checked);
+    });
+  }
+})();
+</script>
+{% endblock %}

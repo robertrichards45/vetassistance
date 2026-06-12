@@ -1,0 +1,345 @@
+﻿{% extends "base.html" %}
+{% block title %}Resources Admin - {{ COMPANY_NAME }}{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Director</div>
+      <h1 class="page-title">Resource Directory</h1>
+      <p class="page-sub">Add, filter, and manage resources shown in the Benefits Finder.</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('resources.benefits_finder') }}">View Finder</a>
+    </div>
+  </div>
+</section>
+
+<div class="row g-3 mb-3">
+  <div class="col-lg-6">
+    <div class="card-shell">
+      <div class="card-body-pad">
+        <div class="page-kicker">AI Assist</div>
+        <div class="page-title" style="font-size:1.2rem;">Find Resources</div>
+        <form method="post" class="row g-2">
+                    <div class="col-md-4">
+            <label class="form-label">ZIP</label>
+            <input class="form-control" name="zip" placeholder="31763" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Category</label>
+            <select class="form-control" name="category">
+              <option value="">All</option>
+              <option value="benefits">Benefits</option>
+              <option value="health">Health</option>
+              <option value="mental_health">Mental Health</option>
+              <option value="food">Food Banks</option>
+              <option value="shelter">Homeless Shelters</option>
+              <option value="housing">Housing</option>
+              <option value="employment">Employment</option>
+              <option value="legal">Legal</option>
+              <option value="counseling">Counseling</option>
+              <option value="financial">Financial Assistance</option>
+              <option value="transportation">Transportation</option>
+              <option value="education">Education</option>
+              <option value="family">Family Support</option>
+              <option value="emergency">Emergency</option>
+              <option value="vet_center">Vet Center</option>
+              <option value="cemetery">Cemetery</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Count</label>
+            <input class="form-control" name="count" type="number" min="1" max="20" value="8">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Focus</label>
+            <input class="form-control" name="query" placeholder="veteran resources near this ZIP">
+          </div>
+          <div class="col-12 d-flex gap-2 justify-content-end">
+            <button class="btn btn-primary" type="submit" name="action" value="ai_suggest">Find & Add</button>
+            <button class="btn btn-outline-primary" type="submit" name="action" value="ai_bulk_seed">Seed All</button>
+          </div>
+          <div class="col-12 small muted">
+            Uses AI to suggest local resources and auto-adds them to your directory.
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card-shell">
+      <div class="card-body-pad">
+        <div class="page-kicker">Import</div>
+        <div class="page-title" style="font-size:1.2rem;">Word/PDF Import</div>
+        <form method="post" enctype="multipart/form-data" class="row g-2">
+          <input type="hidden" name="action" value="import">
+          <div class="col-12">
+            <input class="form-control" type="file" name="file" accept=".docx,.pdf,.txt" required>
+          </div>
+          <div class="col-12 d-flex gap-2 justify-content-end">
+            <button class="btn btn-primary" type="submit">Import Resources</button>
+          </div>
+          <div class="col-12 small muted">
+            Format: Name | Category | Phone | Address | City | State | ZIP | Website | Description
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card-shell mb-3">
+  <div class="card-body-pad">
+    <form method="post" class="row g-3">
+      <input type="hidden" name="action" value="create">
+
+      <div class="col-md-6">
+        <label class="form-label">Name</label>
+        <input class="form-control" name="name" required>
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label">Category</label>
+        <select class="form-control" name="category" required>
+          <option value="">Select...</option>
+          <option value="benefits">Benefits</option>
+          <option value="health">Health</option>
+          <option value="mental_health">Mental Health</option>
+          <option value="food">Food Banks</option>
+          <option value="shelter">Homeless Shelters</option>
+          <option value="housing">Housing</option>
+          <option value="employment">Employment</option>
+          <option value="legal">Legal</option>
+          <option value="counseling">Counseling</option>
+          <option value="financial">Financial Assistance</option>
+          <option value="transportation">Transportation</option>
+          <option value="education">Education</option>
+          <option value="family">Family Support</option>
+          <option value="emergency">Emergency</option>
+          <option value="vet_center">Vet Center</option>
+          <option value="cemetery">Cemetery</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label">Phone</label>
+        <input class="form-control" name="phone">
+      </div>
+
+      <div class="col-12">
+        <label class="form-label">Description</label>
+        <textarea class="form-control" name="description" rows="2"></textarea>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Website</label>
+        <input class="form-control" name="website">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Address</label>
+        <input class="form-control" name="address1">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">City</label>
+        <input class="form-control" name="city">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">State</label>
+        <input class="form-control" name="state">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">County</label>
+        <input class="form-control" name="county">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">ZIP</label>
+        <input class="form-control" name="postal_code">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Lat</label>
+        <input class="form-control" name="latitude">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Lon</label>
+        <input class="form-control" name="longitude">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Verification</label>
+        <select class="form-control" name="verification_status">
+          <option value="Admin Verified">Admin Verified</option>
+          <option value="State-Verified">State-Verified</option>
+          <option value="Nonprofit-Verified">Nonprofit-Verified</option>
+          <option value="AI-Discovered / Pending Review" selected>AI-Discovered / Pending Review</option>
+        </select>
+      </div>
+
+      <div class="col-12 d-flex gap-2 flex-wrap justify-content-end">
+        <button class="btn btn-primary" type="submit">Add Resource</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card-shell mb-3">
+  <div class="card-body-pad">
+    <form method="get" class="row g-3">
+      <div class="col-md-5">
+        <label class="form-label">Search</label>
+        <input class="form-control" name="q" value="{{ q }}" placeholder="Name, city, or description">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Category</label>
+        <select class="form-control" name="category">
+          <option value="">All</option>
+          <option value="benefits" {% if category=='benefits' %}selected{% endif %}>Benefits</option>
+          <option value="health" {% if category=='health' %}selected{% endif %}>Health</option>
+          <option value="mental_health" {% if category=='mental_health' %}selected{% endif %}>Mental Health</option>
+          <option value="food" {% if category=='food' %}selected{% endif %}>Food Banks</option>
+          <option value="shelter" {% if category=='shelter' %}selected{% endif %}>Homeless Shelters</option>
+          <option value="housing" {% if category=='housing' %}selected{% endif %}>Housing</option>
+          <option value="employment" {% if category=='employment' %}selected{% endif %}>Employment</option>
+          <option value="legal" {% if category=='legal' %}selected{% endif %}>Legal</option>
+          <option value="counseling" {% if category=='counseling' %}selected{% endif %}>Counseling</option>
+          <option value="financial" {% if category=='financial' %}selected{% endif %}>Financial Assistance</option>
+          <option value="transportation" {% if category=='transportation' %}selected{% endif %}>Transportation</option>
+          <option value="education" {% if category=='education' %}selected{% endif %}>Education</option>
+          <option value="family" {% if category=='family' %}selected{% endif %}>Family Support</option>
+          <option value="emergency" {% if category=='emergency' %}selected{% endif %}>Emergency</option>
+          <option value="vet_center" {% if category=='vet_center' %}selected{% endif %}>Vet Center</option>
+          <option value="cemetery" {% if category=='cemetery' %}selected{% endif %}>Cemetery</option>
+          <option value="other" {% if category=='other' %}selected{% endif %}>Other</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Status</label>
+        <select class="form-control" name="status">
+          <option value="">All</option>
+          <option value="active" {% if status=='active' %}selected{% endif %}>Active</option>
+          <option value="hidden" {% if status=='hidden' %}selected{% endif %}>Hidden</option>
+        </select>
+      </div>
+      <div class="col-12 d-flex gap-2 justify-content-end">
+        <button class="btn btn-primary" type="submit">Apply Filters</button>
+        <a class="btn btn-outline-primary" href="{{ url_for('resources.resources_admin') }}">Reset</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card-shell">
+  <div class="card-body-pad">
+    {% if not items %}
+      <div class="empty">
+        <div class="empty-title">No resources yet</div>
+        <div class="empty-sub">Add your first resource to show up in the Benefits Finder.</div>
+      </div>
+    {% else %}
+      <div class="table-responsive">
+        <table class="table align-middle premium-table">
+          <thead>
+            <tr>
+              <th style="min-width:420px;">Resource</th>
+              <th>Category</th>
+              <th>Contact</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in items %}
+              <tr>
+                <td>
+                  <form id="resourceForm{{ r.id }}" method="post" class="row g-2">
+                    <input type="hidden" name="action" value="update">
+                    <input type="hidden" name="item_id" value="{{ r.id }}">
+                    <div class="col-12">
+                      <input class="form-control" name="name" value="{{ r.name }}">
+                    </div>
+                    <div class="col-12">
+                      <textarea class="form-control" name="description" rows="2">{{ r.description or "" }}</textarea>
+                    </div>
+                  <div class="col-12 d-flex gap-2 flex-wrap">
+                    <input class="form-control" name="address1" value="{{ r.address1 or '' }}" placeholder="Address">
+                    <input class="form-control" name="city" value="{{ r.city or '' }}" placeholder="City">
+                    <input class="form-control" name="state" value="{{ r.state or '' }}" placeholder="State">
+                    <input class="form-control" name="county" value="{{ r.county or '' }}" placeholder="County">
+                    <input class="form-control" name="postal_code" value="{{ r.postal_code or '' }}" placeholder="ZIP">
+                  </div>
+                    <div class="col-12 d-flex gap-2 flex-wrap">
+                      <input class="form-control" name="phone" value="{{ r.phone or '' }}" placeholder="Phone">
+                      <input class="form-control" name="website" value="{{ r.website or '' }}" placeholder="Website">
+                      <input class="form-control" name="latitude" value="{{ r.latitude or '' }}" placeholder="Lat">
+                      <input class="form-control" name="longitude" value="{{ r.longitude or '' }}" placeholder="Lon">
+                    </div>
+                    <div class="col-12">
+                      <select class="form-control" name="category">
+                        <option value="benefits" {% if r.category=='benefits' %}selected{% endif %}>Benefits</option>
+                        <option value="health" {% if r.category=='health' %}selected{% endif %}>Health</option>
+                        <option value="mental_health" {% if r.category=='mental_health' %}selected{% endif %}>Mental Health</option>
+                        <option value="food" {% if r.category=='food' %}selected{% endif %}>Food Banks</option>
+                        <option value="shelter" {% if r.category=='shelter' %}selected{% endif %}>Homeless Shelters</option>
+                        <option value="housing" {% if r.category=='housing' %}selected{% endif %}>Housing</option>
+                        <option value="employment" {% if r.category=='employment' %}selected{% endif %}>Employment</option>
+                        <option value="legal" {% if r.category=='legal' %}selected{% endif %}>Legal</option>
+                        <option value="counseling" {% if r.category=='counseling' %}selected{% endif %}>Counseling</option>
+                        <option value="financial" {% if r.category=='financial' %}selected{% endif %}>Financial Assistance</option>
+                        <option value="transportation" {% if r.category=='transportation' %}selected{% endif %}>Transportation</option>
+                        <option value="education" {% if r.category=='education' %}selected{% endif %}>Education</option>
+                        <option value="family" {% if r.category=='family' %}selected{% endif %}>Family Support</option>
+                        <option value="emergency" {% if r.category=='emergency' %}selected{% endif %}>Emergency</option>
+                        <option value="vet_center" {% if r.category=='vet_center' %}selected{% endif %}>Vet Center</option>
+                        <option value="cemetery" {% if r.category=='cemetery' %}selected{% endif %}>Cemetery</option>
+                        <option value="other" {% if r.category=='other' %}selected{% endif %}>Other</option>
+                      </select>
+                    </div>
+                    <div class="col-12">
+                      <select class="form-control" name="verification_status">
+                        {% set v = r.verification_status or "AI-Discovered / Pending Review" %}
+                        <option value="Admin Verified" {% if v=='Admin Verified' %}selected{% endif %}>Admin Verified</option>
+                        <option value="State-Verified" {% if v=='State-Verified' %}selected{% endif %}>State-Verified</option>
+                        <option value="Nonprofit-Verified" {% if v=='Nonprofit-Verified' %}selected{% endif %}>Nonprofit-Verified</option>
+                        <option value="AI-Discovered / Pending Review" {% if v=='AI-Discovered / Pending Review' %}selected{% endif %}>AI-Discovered / Pending Review</option>
+                      </select>
+                    </div>
+                  </form>
+                </td>
+                <td>
+                  <span class="pill">{{ r.category }}</span>
+                  {% if r.is_active %}
+                    <span class="pill pill-good">Active</span>
+                  {% else %}
+                    <span class="pill pill-bad">Hidden</span>
+                  {% endif %}
+                </td>
+                <td class="small text-muted">
+                  {{ r.phone or "" }}{% if r.phone and r.website %} - {% endif %}{{ r.website or "" }}
+                </td>
+                <td class="text-end">
+                  <div class="d-flex gap-2 justify-content-end flex-wrap">
+                    <button class="btn btn-sm btn-primary" type="submit" form="resourceForm{{ r.id }}">Save</button>
+                    <form method="post" class="d-inline">
+                      <input type="hidden" name="action" value="toggle">
+                      <input type="hidden" name="item_id" value="{{ r.id }}">
+                      <button class="btn btn-sm btn-outline-primary" type="submit">
+                        {% if r.is_active %}Hide{% else %}Show{% endif %}
+                      </button>
+                    </form>
+                    <form method="post" onsubmit="return confirm('Delete {{ r.name }}?');" class="d-inline">
+                      <input type="hidden" name="action" value="delete">
+                      <input type="hidden" name="item_id" value="{{ r.id }}">
+                      <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

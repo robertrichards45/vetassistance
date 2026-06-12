@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="hub-hero">
+  <div class="hub-hero-inner">
+    <div>
+      <div class="hub-kicker">Employee Hub</div>
+      <h1 class="hub-title">Data security and confidentiality</h1>
+      <p class="hub-sub">Protect client data and follow least-privilege practices.</p>
+    </div>
+    <div class="hub-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('employee.hub') }}">Back to Hub</a>
+      <a class="btn btn-primary" href="{{ url_for('employee.hub_onboarding') }}">Onboarding</a>
+    </div>
+  </div>
+</section>
+
+<section class="hub-card">
+  <div class="hub-card-title">Allowed</div>
+  <ul class="hub-list">
+    <li>Store files only in the portal or approved storage.</li>
+    <li>Use role-based access and minimum required permissions.</li>
+    <li>Document data sources and access times.</li>
+  </ul>
+</section>
+
+<section class="hub-card">
+  <div class="hub-card-title">Not allowed</div>
+  <ul class="hub-list">
+    <li>Sending client records via personal email or text.</li>
+    <li>Downloading records to unapproved devices.</li>
+    <li>Sharing client data outside the team.</li>
+  </ul>
+</section>
+
+<style>
+.hub-hero{
+  background:
+    radial-gradient(880px 320px at 10% 20%, rgba(255,255,255,.16), transparent 60%),
+    radial-gradient(660px 260px at 88% 12%, rgba(124,185,255,.14), transparent 55%),
+    linear-gradient(135deg, #10233f 0%, #1b3f6b 60%, #0d1728 100%);
+  color:#fff;border-radius:22px;padding:20px 22px;border:1px solid rgba(255,255,255,.15);
+  box-shadow:0 18px 44px rgba(2,8,23,.22);margin-bottom:16px;
+}
+.hub-hero-inner{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap}
+.hub-kicker{display:inline-flex;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);font-weight:800}
+.hub-title{margin:8px 0 4px;font-size:1.9rem}
+.hub-sub{margin:0;opacity:.92;max-width:760px}
+.hub-actions{display:flex;gap:10px;flex-wrap:wrap}
+.hub-card{
+  background:#fff;border:1px solid rgba(15,23,42,.10);
+  border-radius:18px;box-shadow:0 18px 44px rgba(2,8,23,.10);
+  padding:16px;margin-bottom:16px;
+}
+.hub-card-title{font-weight:900;color:#0B1F3A;margin-bottom:8px}
+.hub-list{margin:0;padding-left:18px;color:#4A5D73;font-weight:700;line-height:1.6}
+</style>
+
+{% endblock %}

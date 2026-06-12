@@ -1,0 +1,9 @@
+{% extends "layout.html" %}
+{% block title %}Thank You • {{ BRAND_NAME }}{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>Thank you</h2>
+  <p class="lead">We received your request. If you already have a portal account, you can log in now.</p>
+  <a class="btn" href="{{ url_for('auth.login') }}">Login</a>
+</div>
+{% endblock %}

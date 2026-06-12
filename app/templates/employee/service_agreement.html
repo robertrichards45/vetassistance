@@ -1,0 +1,117 @@
+{% extends "layout.html" %}
+{% block title %}Service Agreement • {{ client.display_name() }} • {{ COMPANY_NAME }}{% endblock %}
+
+{% block content %}
+<section class="section" style="max-width: 860px; margin: 0 auto;">
+  <div class="section-header">
+    <div>
+      <h2>Service Agreement Generator</h2>
+      <p class="small" style="color:var(--text-soft); margin-top:6px;">
+        Client: <strong>{{ client.display_name() }}</strong> • Claim #<strong>{{ client.claim_number }}</strong>
+      </p>
+    </div>
+    <div class="section-actions" style="display:flex; gap:10px; flex-wrap:wrap;">
+      <a class="btn btn-outline" href="{{ url_for('client_files', client_id=client.id) }}">Back to Client Files</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">Select services</h3>
+    <p class="small" style="color:var(--text-soft);">
+      These items come from your Pricing list (active services only). Check what the veteran selected.
+      Then click generate — you’ll receive <strong>two DOCX files</strong>: a Client copy and a VA copy (or a ZIP with both).
+    </p>
+
+    <form method="post" class="stack-form">
+      <label>
+        Effective date
+        <input type="date" name="effective_date" value="{{ today }}">
+      </label>
+
+      {# NEW: Percent-of-backpay payment method selector #}
+      <div class="card" style="background:#fafafa; border:1px solid #e5e7eb;">
+        <h4 style="margin:0 0 8px 0;">Percent-of-Backpay Payment Method</h4>
+        <p class="small" style="color:var(--text-soft); margin:0 0 10px 0;">
+          This only affects services priced as a percentage of backpay. Flat-fee items are still due upfront unless you
+          agree otherwise in writing.
+        </p>
+
+        <label style="display:block;">
+          <select name="percent_payment_mode" class="form-select" style="width:100%;">
+            <option value="veteran_72" selected>Veteran pays within 72 hours of receiving VA backpay</option>
+            <option value="va_direct">VA pays Provider directly (when applicable/authorized)</option>
+          </select>
+        </label>
+
+        <p class="small" style="color:var(--text-soft); margin:10px 0 0 0;">
+          If you select “VA pays Provider directly,” the documents will still include a fallback clause that the Veteran
+          pays within 72 hours if VA does not pay directly for any reason.
+        </p>
+      </div>
+
+      {% if pricing_items %}
+        <div class="card" style="background:#fafafa; border:1px solid #e5e7eb;">
+          <div style="display:grid; gap:10px;">
+            {% for p in pricing_items %}
+              <label style="display:flex; gap:10px; align-items:flex-start; padding:10px; border:1px solid #e5e7eb; border-radius:10px; background:#fff;">
+                <input type="checkbox" name="pricing_item_ids" value="{{ p.id }}" style="margin-top:3px;">
+                <div style="flex:1;">
+                  <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+                    <div style="font-weight:600;">{{ p.name }}</div>
+                    <div class="mono" style="font-size:13px;">
+                      {% if p.is_percent %}
+                        {{ "%.2f"|format(p.percent_of_backpay or 0) }}% of backpay
+                      {% else %}
+                        ${{ "%.2f"|format((p.price_cents or 0)/100) }}
+                      {% endif %}
+                    </div>
+                  </div>
+
+                  {% if p.description %}
+                    <div class="small" style="color:var(--text-soft); margin-top:4px;">
+                      {{ p.description }}
+                    </div>
+                  {% endif %}
+
+                  {% if p.is_percent %}
+                    <div class="small" style="margin-top:6px; color:#6b7280;">
+                      <strong>Percent-based item:</strong> payment timing/handling will follow the selected method above.
+                    </div>
+                  {% endif %}
+                </div>
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+      {% else %}
+        <div class="flash flash-warning">
+          No active pricing items found. Go to Director → Pricing and add services first.
+        </div>
+      {% endif %}
+
+      <label>
+        Additional notes (optional)
+        <textarea name="notes" rows="5" placeholder="Any special terms, deadlines, or scope notes for this client..."></textarea>
+      </label>
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button type="submit" name="generate" value="client" class="btn btn-primary" {% if not pricing_items %}disabled{% endif %}>
+          Generate Client Copy (DOCX)
+        </button>
+
+        <button type="submit" name="generate" value="va" class="btn btn-outline" {% if not pricing_items %}disabled{% endif %}>
+          Generate VA Copy (DOCX)
+        </button>
+
+        <button type="submit" name="generate" value="both" class="btn btn-outline" {% if not pricing_items %}disabled{% endif %}>
+          Generate BOTH (ZIP)
+        </button>
+      </div>
+
+      <p class="small" style="color:var(--text-soft); margin-top:6px;">
+        “BOTH” downloads a single ZIP containing both documents.
+      </p>
+    </form>
+  </div>
+</section>
+{% endblock %}

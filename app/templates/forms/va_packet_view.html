@@ -1,0 +1,62 @@
+{% extends "layout.html" %}
+{% block title %}VA Forms Packet - {{ artifact.title }}{% endblock %}
+{% block content %}
+<div class="row">
+  <div>
+    <h2>VA Forms Packet</h2>
+    <div class="muted small">{{ artifact.title }}</div>
+  </div>
+  <div class="row-actions">
+    <a class="btn secondary" href="{{ url_for('clients.view_client', client_id=artifact.client_id) }}">Back</a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="muted small">Official VA forms are linked below. Use Print from your browser if needed.</div>
+  <div class="muted small">Prefilled PDFs are XFA-based. Use Adobe Acrobat Reader to view filled fields.</div>
+  <div style="margin-top:10px;">
+    <button class="btn btn-outline-primary" type="button" id="openAllForms">Open All Forms</button>
+  </div>
+  <div class="table" style="margin-top:12px;">
+    <div class="thead" style="grid-template-columns: 1fr 1fr 140px;">
+      <div>Form</div>
+      <div>Purpose</div>
+      <div>Link</div>
+    </div>
+    {% for f in forms %}
+    <div class="trow" style="grid-template-columns: 1fr 1fr 140px;">
+      <div>
+        <strong>{{ f.title }}</strong>
+        <div class="muted small">Category: {{ f.category }}</div>
+      </div>
+      <div class="muted small">{{ f.use }}</div>
+      <div>
+        <a class="btn btn-sm btn-outline-primary" href="{{ f.url }}" target="_blank" rel="noopener">Open PDF</a>
+        {% if f.template %}
+        <div style="margin-top:6px;">
+          <a class="btn btn-sm btn-outline-primary" href="{{ url_for('forms.va_prefill_single', client_id=artifact.client_id, form_key=f.key) }}">Prefilled PDF</a>
+        </div>
+        {% else %}
+        <div class="muted small" style="margin-top:6px;">Prefill not configured</div>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+      <div class="muted" style="padding:12px;">No forms selected.</div>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+(function(){
+  const btn = document.getElementById("openAllForms");
+  if(!btn) return;
+  btn.addEventListener("click", function(){
+    const urls = {{ forms|tojson }};
+    urls.forEach(function(f){
+      if(f.url){ window.open(f.url, "_blank"); }
+    });
+  });
+})();
+</script>
+{% endblock %}

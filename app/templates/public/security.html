@@ -1,0 +1,34 @@
+{% extends "layout.html" %}
+{% block title %}Security • {{ BRAND_NAME }}{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>Security & Privacy</h2>
+  <p class="muted">
+    {{ BRAND_NAME }} is built around least-privilege access, secure authentication,
+    and a portal-first workflow to reduce email-based exposure.
+  </p>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>Access Controls</h3>
+      <ul class="bullets">
+        <li>Role-based permissions (Director / Employee / Client)</li>
+        <li>Forced password resets when needed</li>
+        <li>Account disablement for offboarding</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Operational Accountability</h3>
+      <ul class="bullets">
+        <li>Audit trail for sensitive actions</li>
+        <li>Client portal keeps documents in one place</li>
+        <li>Uploads tied to the case record</li>
+      </ul>
+    </div>
+  </div>
+
+  <p class="muted small">
+    Note: Production deployments should use HTTPS, hardened server configuration, and a secure backup strategy.
+  </p>
+</div>
+{% endblock %}

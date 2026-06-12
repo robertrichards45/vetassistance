@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .login-wrap{
+    min-height: calc(100vh - 120px);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 32px 12px;
+    background:
+      radial-gradient(1200px 600px at 10% 10%, rgba(43,119,196,.22), transparent 55%),
+      radial-gradient(900px 500px at 90% 20%, rgba(18,51,94,.28), transparent 55%),
+      linear-gradient(180deg, #0b1220 0%, #0f1b33 55%, #0b1220 100%);
+    border-radius: 22px;
+  }
+  .login-card{
+    width: 100%;
+    max-width: 460px;
+    border-radius: 18px;
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.12);
+    box-shadow: 0 20px 60px rgba(0,0,0,.45);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    overflow:hidden;
+  }
+  .login-head{
+    padding: 22px 22px 14px 22px;
+    background: linear-gradient(135deg, rgba(43,119,196,.35), rgba(18,51,94,.35));
+    border-bottom: 1px solid rgba(255,255,255,.12);
+  }
+  .brand{
+    display:flex; gap:12px; align-items:center;
+    color:#fff;
+  }
+  .brand-badge{
+    width:44px; height:44px; border-radius:14px;
+    display:flex; align-items:center; justify-content:center;
+    background: rgba(255,255,255,.14);
+    border: 1px solid rgba(255,255,255,.18);
+    font-weight:700;
+    letter-spacing:.5px;
+  }
+  .brand h1{ margin:0; font-size: 1.15rem; line-height:1.2; }
+  .brand p{ margin:3px 0 0 0; opacity:.85; font-size:.92rem; }
+  .login-body{ padding: 20px 22px 22px 22px; color: rgba(255,255,255,.92); }
+  .login-body label{ font-weight:600; margin-bottom:6px; }
+  .login-body .form-control{
+    border-radius: 12px;
+    background: rgba(255,255,255,.10);
+    border: 1px solid rgba(255,255,255,.18);
+    color: #fff;
+    padding: 12px 12px;
+  }
+  .login-body .form-control:focus{
+    background: rgba(255,255,255,.12);
+    border-color: rgba(43,119,196,.65);
+    box-shadow: 0 0 0 4px rgba(43,119,196,.18);
+    color:#fff;
+  }
+  .login-actions{ display:flex; gap:10px; align-items:center; margin-top: 14px; }
+  .btn-premium{
+    border-radius: 12px;
+    padding: 11px 14px;
+    font-weight:700;
+    width: 100%;
+    background: linear-gradient(135deg, #2b77c4, #12335e);
+    border: 1px solid rgba(255,255,255,.16);
+    box-shadow: 0 12px 30px rgba(43,119,196,.25);
+  }
+  .btn-premium:hover{ filter: brightness(1.05); }
+  .login-foot{
+    padding: 14px 22px 18px 22px;
+    border-top: 1px solid rgba(255,255,255,.10);
+    color: rgba(255,255,255,.75);
+    font-size: .92rem;
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .login-foot a{ color: rgba(255,255,255,.85); text-decoration: none; }
+  .login-foot a:hover{ text-decoration: underline; }
+</style>
+
+<div class="login-wrap">
+  <div class="login-card">
+    <div class="login-head">
+      <div class="brand">
+        <div class="brand-badge">VCA</div>
+        <div>
+          <h1>{{ COMPANY_NAME }}</h1>
+          <p>Secure Staff Portal</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="login-body">
+      <form method="post" action="{{ url_for('auth.login_post') }}">
+        {% if csrf_token is defined %}
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% endif %}
+        <div class="mb-3">
+          <label for="email">Email or username</label>
+          <input class="form-control" id="email" name="email" autocomplete="username" required>
+        </div>
+        <div class="mb-2">
+          <label for="password">Password</label>
+          <input class="form-control" id="password" name="password" type="password" autocomplete="current-password" required>
+        </div>
+
+        <div class="login-actions">
+          <button class="btn btn-primary btn-premium" type="submit">Sign in</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="login-foot">
+      <span>Veterans Helping Veterans</span>
+      <span>{{ CONTACT_EMAIL }} • {{ CONTACT_PHONE }}</span>
+    </div>
+  </div>
+</div>
+{% endblock %}

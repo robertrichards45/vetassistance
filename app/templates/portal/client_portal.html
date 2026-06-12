@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="portal-hero">
+  <div class="portal-hero-inner">
+    <div>
+      <div class="portal-kicker">Secure Portal</div>
+      <h1 class="portal-title">Secure Client Upload Portal</h1>
+      <p class="portal-sub">
+        Use this page only if you are an existing client and already have a claim number from {{ COMPANY_NAME }}.
+      </p>
+    </div>
+    <div class="portal-badges">
+      <span class="badge">Verification</span>
+      <span class="badge">Encrypted Upload</span>
+      <span class="badge">Audit Logged</span>
+    </div>
+  </div>
+</section>
+
+<div class="portal-shell">
+
+  {% if error %}
+    <div class="alertx alertx-danger">
+      <div class="alertx-title">Action needed</div>
+      <div class="alertx-body">{{ error }}</div>
+    </div>
+  {% endif %}
+
+  {% if stage == "start" %}
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Verify your claim number</div>
+          <div class="panel-sub">Enter the claim number we gave you and the email address on your file.</div>
+        </div>
+        <div class="panel-step">Step 1 of 3</div>
+      </div>
+
+      <form method="post" class="formgrid">
+        <input type="hidden" name="step" value="start">
+
+        <div class="field">
+          <label>Claim number</label>
+          <input name="claim_number" placeholder="Example: 4A9C21F0B3" required>
+        </div>
+
+        <div class="field">
+          <label>Email on file</label>
+          <input name="email" type="email" placeholder="you@example.com" required>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary" type="submit">Send security code</button>
+          <a class="btn btn-secondary" href="{{ url_for('public_contact') }}">Need help?</a>
+        </div>
+
+        <div class="hint">
+          If you don’t know your claim number or you used a different email address, use the Contact page and we’ll help you.
+        </div>
+      </form>
+    </div>
+  {% endif %}
+
+  {% if stage == "verify" %}
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Enter your security code</div>
+          <div class="panel-sub">We sent a 6-digit code to the email address on file.</div>
+        </div>
+        <div class="panel-step">Step 2 of 3</div>
+      </div>
+
+      <form method="post" class="formgrid">
+        <input type="hidden" name="step" value="verify">
+
+        <div class="field field-wide">
+          <label>6-digit code</label>
+          <input name="code" inputmode="numeric" maxlength="6" placeholder="123456" required>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary" type="submit">Verify</button>
+          <a class="btn btn-secondary" href="{{ url_for('client_portal') }}">Start over</a>
+        </div>
+
+        <div class="hint">
+          Tip: If you don’t see the email, check junk/spam folders. Codes expire when you restart the session.
+        </div>
+      </form>
+    </div>
+  {% endif %}
+
+  {% if stage == "upload" %}
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Upload your documents</div>
+          <div class="panel-sub">Add decision letters, C&P exams, private records, STRs, and supporting statements.</div>
+        </div>
+        <div class="panel-step">Step 3 of 3</div>
+      </div>
+
+      <form method="post" enctype="multipart/form-data" class="uploadbox" id="portalClientUploadForm">
+        <input type="hidden" name="step" value="upload">
+
+        <div class="drop">
+          <div class="drop-title">Choose files to upload</div>
+          <div class="drop-sub">PDFs are best. You can select multiple files at once.</div>
+          <input type="file" name="files" multiple required>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary" type="submit" id="portalClientUploadBtn">Upload documents</button>
+          <a class="btn btn-secondary" href="{{ url_for('public_contact') }}">Questions?</a>
+        </div>
+
+        <div class="hint">
+          Uploads are logged for accountability. If you have large files, we can provide a secure upload option.
+        </div>
+        <div id="portalClientUploadStatus" class="muted small" style="margin-top:8px; display:none;">Uploading...</div>
+        <div id="portalClientUploadProgress" class="upload-progress" style="display:none;">
+          <div id="portalClientUploadProgressBar" class="upload-progress-bar"></div>
+        </div>
+        <div id="portalClientUploadProgressText" class="upload-progress-text" style="display:none;">0%</div>
+      </form>
+    </div>
+  {% endif %}
+
+  {% if stage == "done" %}
+    <div class="panel">
+      <div class="success">
+        <div class="success-title">Upload received</div>
+        <div class="success-sub">
+          Thanks — your documents were submitted successfully. We’ll review them and follow up with next steps.
+        </div>
+        <div class="actions">
+          <a class="btn btn-primary" href="{{ url_for('public_home') }}">Return to Home</a>
+          <a class="btn btn-secondary" href="{{ url_for('public_contact') }}">Contact Us</a>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+</div>
+
+<script>
+(function(){
+  var form = document.getElementById('portalClientUploadForm');
+  if(!form){ return; }
+  var uploadBtn = document.getElementById('portalClientUploadBtn');
+  var statusEl = document.getElementById('portalClientUploadStatus');
+  var progressWrap = document.getElementById('portalClientUploadProgress');
+  var progressBar = document.getElementById('portalClientUploadProgressBar');
+  var progressText = document.getElementById('portalClientUploadProgressText');
+  if(!uploadBtn || !statusEl || !progressWrap || !progressBar || !progressText){ return; }
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    if(form.dataset.busy === '1'){ return; }
+    form.dataset.busy = '1';
+    uploadBtn.disabled = true;
+    uploadBtn.textContent = 'Uploading...';
+    statusEl.textContent = 'Uploading...';
+    statusEl.style.display = 'block';
+    progressWrap.style.display = 'block';
+    progressText.style.display = 'block';
+    progressBar.style.width = '0%';
+    progressText.textContent = '0%';
+
+    var xhr = new XMLHttpRequest();
+    xhr.open(form.method || 'POST', form.action);
+    xhr.upload.addEventListener('progress', function(evt){
+      if(!evt.lengthComputable) return;
+      var pct = Math.min(100, Math.max(1, Math.round((evt.loaded / evt.total) * 100)));
+      progressBar.style.width = pct + '%';
+      progressText.textContent = pct + '%';
+    });
+    xhr.onreadystatechange = function(){
+      if(xhr.readyState !== 4) return;
+      form.dataset.busy = '0';
+      if(xhr.status >= 200 && xhr.status < 400){
+        progressBar.style.width = '100%';
+        progressText.textContent = '100%';
+        var redirectUrl = xhr.responseURL;
+        if(redirectUrl){
+          window.location = redirectUrl;
+        } else {
+          window.location.reload();
+        }
+        return;
+      }
+      uploadBtn.disabled = false;
+      uploadBtn.textContent = 'Upload documents';
+      statusEl.textContent = 'Upload failed. Please try again.';
+    };
+    xhr.onerror = function(){
+      form.dataset.busy = '0';
+      uploadBtn.disabled = false;
+      uploadBtn.textContent = 'Upload documents';
+      statusEl.textContent = 'Upload failed. Please try again.';
+    };
+    var formData = new FormData(form);
+    xhr.send(formData);
+  });
+})();
+</script>
+
+<style>
+/* Premium portal styling — self-contained */
+.portal-hero{
+  border-radius: 20px;
+  padding: 20px;
+  color: #fff;
+  background:
+    radial-gradient(900px 360px at 18% 12%, rgba(255,255,255,.14), transparent 60%),
+    radial-gradient(680px 260px at 72% 22%, rgba(169,199,234,.16), transparent 55%),
+    linear-gradient(135deg, #1f4b7a 0%, #122242 55%, #0c1221 100%);
+  border: 1px solid rgba(255,255,255,.14);
+  box-shadow: 0 18px 44px rgba(2,8,23,.22);
+  margin-bottom: 16px;
+}
+.portal-hero-inner{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:center}
+.portal-kicker{display:inline-flex;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);font-weight:800}
+.portal-title{margin:8px 0 4px;font-size:1.8rem}
+.portal-sub{margin:0;opacity:.92;max-width:720px}
+.portal-badges{display:flex;gap:10px;flex-wrap:wrap}
+.badge{display:inline-flex;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);font-weight:800;font-size:.85rem}
+
+.portal-shell{max-width: 980px; margin: 0 auto}
+.panel{
+  background:#fff;border:1px solid rgba(15,23,42,.10);
+  border-radius:18px;box-shadow:0 18px 44px rgba(2,8,23,.10);overflow:hidden;
+}
+.panel-head{
+  padding:14px 16px;border-bottom:1px solid rgba(15,23,42,.06);
+  display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:end;
+}
+.panel-title{font-weight:900;font-size:1.1rem;color:#0B1F3A}
+.panel-sub{color:#4A5D73;margin-top:4px}
+.panel-step{color:#4A5D73;font-weight:900}
+
+.formgrid{padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field{display:flex;flex-direction:column;gap:7px}
+.field-wide{grid-column:1/-1}
+label{font-weight:900;color:#0B1F3A}
+input[type="text"], input[type="email"], input[type="file"], input:not([type]){
+  border:1px solid rgba(15,23,42,.14);
+  border-radius:14px;
+  padding:11px 12px;
+  background:#fff;
+}
+.actions{grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:2px}
+.hint{grid-column:1/-1;color:#4A5D73;line-height:1.55;margin-top:2px}
+
+.uploadbox{padding:16px}
+.drop{
+  border:1px dashed rgba(15,23,42,.22);
+  border-radius:18px;
+  padding:16px;
+  background:linear-gradient(180deg,#f4f7fb,#fff);
+}
+.drop-title{font-weight:900;color:#0B1F3A}
+.drop-sub{color:#4A5D73;margin:6px 0 12px}
+.success{padding:18px}
+.success-title{font-weight:900;font-size:1.2rem;color:#0B1F3A}
+.success-sub{color:#4A5D73;margin:6px 0 14px;line-height:1.55}
+
+.alertx{border-radius:18px;padding:14px 16px;margin-bottom:12px;border:1px solid rgba(185,28,28,.25);background:rgba(248,113,113,.10)}
+.alertx-title{font-weight:900;color:#7f1d1d}
+.alertx-body{color:#7f1d1d;margin-top:4px}
+
+@media (max-width: 860px){
+  .formgrid{grid-template-columns:1fr}
+}
+</style>
+
+{% endblock %}

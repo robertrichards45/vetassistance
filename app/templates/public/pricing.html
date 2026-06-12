@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Pricing - {{ COMPANY_NAME }}{% endblock %}
+
+{% block content %}
+<section class="pricing-page">
+  <div class="pricing-head">
+    <div class="pricing-kicker">Transparent Pricing</div>
+    <h1 class="pricing-title">Clear options. No pressure.</h1>
+    <p class="pricing-sub">Select the service that fits your situation. Everything is explained in plain language.</p>
+  </div>
+
+  {% if pricing_items %}
+    <div class="pricing-grid">
+      {% for item in pricing_items %}
+        <div class="pricing-tile">
+          <div class="tile-top">
+            <div class="tile-title">{{ item.name }}</div>
+            {% if item.is_percent %}
+              <div class="tile-price">{{ item.percent_of_backpay }}% of backpay</div>
+            {% else %}
+              <div class="tile-price">${{ "%.2f"|format((item.price_cents or 0) / 100) }}</div>
+            {% endif %}
+          </div>
+          {% if item.description %}
+            <div class="tile-desc">{{ item.description }}</div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="pricing-empty">Pricing is being finalized. Please check back soon.</div>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block head %}
+<style>
+.pricing-page{max-width:1240px;margin:0 auto;padding:30px 0 40px;display:flex;flex-direction:column;gap:24px;}
+.pricing-head{display:flex;flex-direction:column;gap:10px;}
+.pricing-kicker{display:inline-flex;padding:6px 12px;border-radius:999px;background:rgba(15,23,42,.08);border:1px solid rgba(15,23,42,.12);font-weight:800;color:#0B1F3A;text-transform:uppercase;letter-spacing:.08em;font-size:.72rem;width:max-content;}
+.pricing-title{margin:0;color:#0B1F3A;font-size:2.2rem;}
+.pricing-sub{margin:0;color:#4A5D73;font-size:1.05rem;}
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;}
+.pricing-tile{background:#fff;border:1px solid rgba(15,23,42,.12);border-radius:18px;padding:18px;box-shadow:0 10px 24px rgba(2,8,23,.06);display:flex;flex-direction:column;gap:10px;}
+.tile-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+.tile-title{font-weight:900;color:#0B1F3A;}
+.tile-price{font-weight:900;color:#1f4b7a;}
+.tile-desc{color:#4A5D73;font-weight:600;}
+.pricing-empty{padding:18px;border-radius:16px;background:#fff;border:1px solid rgba(15,23,42,.12);color:#4A5D73;font-weight:700;}
+@media (max-width: 640px){
+  .pricing-title{font-size:1.9rem;}
+}
+</style>
+{% endblock %}

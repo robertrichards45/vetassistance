@@ -1,0 +1,13 @@
+{% extends "layout.html" %}
+{% block title %}Reset Password • {{ BRAND_NAME }}{% endblock %}
+{% block content %}
+<div class="card narrow">
+  <h2>Password reset required</h2>
+  <p class="muted small">For security, you must set a new password before continuing.</p>
+  <form method="post" action="{{ url_for('auth.reset_required_post') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>New password</label><input name="password" type="password" minlength="10" required>
+    <button class="btn" type="submit">Update</button>
+  </form>
+</div>
+{% endblock %}

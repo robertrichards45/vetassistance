@@ -1,0 +1,340 @@
+{% extends "layout.html" %}
+{% block title %}Client Portal - {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<div class="row">
+  <div>
+    <h2>Client Portal</h2>
+    <div class="muted small">{{ client.display_name() }}</div>
+  </div>
+  <div class="row-actions">
+    <a class="btn secondary" href="{{ url_for('portalx.profile') }}">Profile</a>
+    <a class="btn secondary" href="{{ url_for('portalx.claim_tracker') }}">Claim Tracker</a>
+    <a class="btn secondary" href="{{ url_for('portalx.evidence_checklist') }}">Checklist</a>
+    <a class="btn secondary" href="{{ url_for('portalx.doc_scan') }}">Doc Scan</a>
+    <a class="btn secondary" href="{{ url_for('portalx.reminders') }}">Reminders</a>
+    <a class="btn secondary" href="{{ url_for('portal.va_calls') }}">Call Log</a>
+    <a class="btn secondary" href="{{ url_for('portalx.notes') }}">Notes</a>
+    <a class="btn secondary" href="{{ url_for('portal.crsc_dashboard') }}">CRSC Dashboard</a>
+    <a class="btn secondary" href="{{ url_for('cue.portal_filing_guide') }}">Which Filing Is Right?</a>
+    {% if not is_guest %}
+      <a class="btn secondary" href="{{ url_for('billing.overview') }}">Pay Now</a>
+      <a class="btn secondary" href="{{ url_for('portal.messages') }}">Messages</a>
+      <a class="btn secondary" href="{{ url_for('agreements.portal_list') }}">Agreements</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid2" style="margin-top:12px;">
+  <div class="card">
+    <h3>Case status</h3>
+    <div class="muted small">Current status and reference details.</div>
+    <div style="margin-top:10px;">
+      {% if is_guest %}
+        <div class="muted">Status updates unlock after you add and verify an email address.</div>
+      {% else %}
+        <div><strong>Status:</strong> {{ client.status or "Intake in progress" }}</div>
+        {% if client.claim_number %}
+          <div><strong>Claim #:</strong> {{ client.claim_number }}</div>
+        {% endif %}
+        <div class="muted small" style="margin-top:6px;">We will update this as your case moves forward.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Tasks</h3>
+    <div class="muted small">{{ tasks_done }} of {{ tasks_total }} completed</div>
+    {% set progress = (tasks_done / tasks_total * 100) if tasks_total else 0 %}
+    <div class="progress" style="margin-top:8px;">
+      <div class="progress-bar" style="width: {{ progress }}%;"></div>
+    </div>
+    <div style="margin-top:10px;">
+      {% if tasks %}
+        {% for t in tasks %}
+          <div class="mini" style="margin-bottom:8px;">
+            <div><strong>{{ t.title }}</strong>{% if t.is_completed %} <span class="pill ready">Done</span>{% endif %}</div>
+            {% if t.instructions %}
+              <div class="muted small">{{ t.instructions }}</div>
+            {% endif %}
+            {% if t.due_date %}
+              <div class="muted small">Due: {{ t.due_date.strftime('%Y-%m-%d') }}</div>
+            {% endif %}
+            {% if not t.is_completed %}
+              <div style="margin-top:6px;">
+                <form method="post" action="{{ url_for('portal.complete_task', task_id=t.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-outline-primary btn-sm" type="submit">Mark Complete</button>
+                </form>
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="muted">No tasks yet.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+
+<div class="grid2" style="margin-top:14px;">
+  {% if not is_guest %}
+  <div class="card">
+    <h3>Upload documents</h3>
+    <p class="muted small">Upload decision letters, exams, treatment records, DBQs, statements, and anything relevant.</p>
+    <div class="muted small" style="margin-bottom:8px;">
+      Accepted: PDF, JPG, PNG, DOCX, MP3, WAV, M4A, MP4, MOV, WEBM, OGG. Max file size depends on your phone. Do not upload your SSN card unless we request it.
+    </div>
+    <form id="clientUploadForm" method="post" action="{{ url_for('portal.upload') }}" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="dropzone" id="clientDropzone">
+        <div class="dz-title">Drop files here</div>
+        <div class="muted small">or tap to browse - multiple files allowed</div>
+        <label for="clientFiles" class="btn btn-outline-primary btn-sm" id="clientPickBtn" style="margin-top:10px;">Select files</label>
+        <input id="clientFiles" class="file-input-overlay" type="file" name="file" multiple accept=".pdf,.png,.jpg,.jpeg,.docx,.mp3,.wav,.m4a,.mp4,.mov,.webm,.ogg">
+      </div>
+      <div id="clientQueue" class="queue"></div>
+      <button class="btn" id="clientUploadBtn" style="margin-top:10px;">Upload</button>
+      <div id="clientUploadStatus" class="muted small" style="margin-top:8px; display:none;">Uploading...</div>
+      <div id="clientUploadProgress" class="upload-progress" style="display:none;">
+        <div id="clientUploadProgressBar" class="upload-progress-bar"></div>
+      </div>
+      <div id="clientUploadProgressText" class="upload-progress-text" style="display:none;">0%</div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3>Recent messages</h3>
+    <div class="muted small">Your last few messages:</div>
+    <div style="margin-top:10px;">
+      {% for m in messages %}
+        <div class="mini">
+          <div class="muted small">{{ m.sender_role }} - {{ m.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+          <div>{{ m.body }}</div>
+        </div>
+      {% else %}
+        <div class="muted">No messages yet.</div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<div class="grid2" style="margin-top:14px;">
+  {% if not is_guest %}
+  <div class="card">
+    <h3>Documents you uploaded</h3>
+    {% if docs_uploaded %}
+      <div class="table">
+        <div class="thead" style="grid-template-columns: 2fr 1fr 1fr;"><div>File</div><div>Status</div><div>Uploaded</div></div>
+        {% for d in docs_uploaded %}
+          <div class="trow" style="grid-template-columns: 2fr 1fr 1fr;">
+            <div><strong>{{ d.filename }}</strong></div>
+            <div class="pill ready">{{ d.status or 'Received' }}</div>
+            <div class="muted small">{{ d.created_at|format_et }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="muted">No uploads yet.</div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h3>Documents we shared</h3>
+    {% if docs_shared %}
+      <div class="table">
+        <div class="thead" style="grid-template-columns: 2fr 1fr 1fr;"><div>File</div><div>Type</div><div>Download</div></div>
+        {% for d in docs_shared %}
+          <div class="trow" style="grid-template-columns: 2fr 1fr 1fr;">
+            <div><strong>{{ d.filename }}</strong></div>
+            <div class="muted small">{{ d.category or 'Document' }}</div>
+            <div><a class="btn secondary" href="{{ url_for('portal.download_shared', doc_id=d.id) }}">Download</a></div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="muted">No shared documents yet.</div>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+{% if not is_guest %}
+<div class="card" style="margin-top:14px;">
+  <h3>Recent letters</h3>
+  <div class="muted small">Updates posted by your team.</div>
+  <div style="margin-top:10px;">
+    {% for l in letters %}
+      <div class="mini">
+        <div><strong>{{ l.title }}</strong></div>
+        <div class="muted small">{{ l.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+      </div>
+    {% else %}
+      <div class="muted">No letters yet.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<script>
+(function(){
+  const dz = document.getElementById('clientDropzone');
+  const input = document.getElementById('clientFiles');
+  const queue = document.getElementById('clientQueue');
+  const uploadForm = document.getElementById('clientUploadForm');
+  const uploadBtn = document.getElementById('clientUploadBtn');
+  const uploadStatus = document.getElementById('clientUploadStatus');
+  const progressWrap = document.getElementById('clientUploadProgress');
+  const progressBar = document.getElementById('clientUploadProgressBar');
+  const progressText = document.getElementById('clientUploadProgressText');
+  const overlay = document.getElementById('portalDropOverlay');
+  if(!dz || !input || !queue || !uploadForm || !uploadBtn || !uploadStatus){ return; }
+
+  function renderQueue(files){
+    queue.innerHTML = '';
+    if(!files || files.length === 0) return;
+    const ul = document.createElement('ul');
+    ul.className = 'bullets';
+    for(const f of files){
+      const li = document.createElement('li');
+      li.textContent = f.name + ' (' + Math.round(f.size/1024) + ' KB)';
+      ul.appendChild(li);
+    }
+    queue.appendChild(ul);
+  }
+
+  const pickBtn = document.getElementById('clientPickBtn');
+
+  dz.addEventListener('click', function(e){
+    if (e.target === input) return;
+    input.click();
+  });
+  input.addEventListener('change', function(){ renderQueue(input.files); });
+
+  ['dragenter','dragover'].forEach(function(ev){
+    dz.addEventListener(ev, function(e){ e.preventDefault(); dz.classList.add('drag'); e.dataTransfer.dropEffect = 'copy'; });
+  });
+  ['dragleave','drop'].forEach(function(ev){
+    dz.addEventListener(ev, function(e){ e.preventDefault(); dz.classList.remove('drag'); });
+  });
+  dz.addEventListener('drop', function(e){
+    input.files = e.dataTransfer.files;
+    renderQueue(input.files);
+  });
+
+  uploadForm.addEventListener('submit', function(e){
+    if(!progressWrap || !progressBar || !progressText){
+      uploadBtn.disabled = true;
+      uploadBtn.textContent = 'Uploading...';
+      uploadStatus.style.display = 'block';
+      return;
+    }
+    e.preventDefault();
+    if(uploadForm.dataset.busy === '1'){ return; }
+    uploadForm.dataset.busy = '1';
+    uploadBtn.disabled = true;
+    uploadBtn.textContent = 'Uploading...';
+    uploadStatus.textContent = 'Uploading...';
+    uploadStatus.style.display = 'block';
+    progressWrap.style.display = 'block';
+    progressText.style.display = 'block';
+    progressBar.style.width = '0%';
+    progressText.textContent = '0%';
+
+    const xhr = new XMLHttpRequest();
+    xhr.open(uploadForm.method || 'POST', uploadForm.action);
+    xhr.upload.addEventListener('progress', function(evt){
+      if(!evt.lengthComputable) return;
+      const pct = Math.min(100, Math.max(1, Math.round((evt.loaded / evt.total) * 100)));
+      progressBar.style.width = pct + '%';
+      progressText.textContent = pct + '%';
+    });
+    xhr.onreadystatechange = function(){
+      if(xhr.readyState !== 4) return;
+      uploadForm.dataset.busy = '0';
+      if(xhr.status >= 200 && xhr.status < 400){
+        progressBar.style.width = '100%';
+        progressText.textContent = '100%';
+        const redirectUrl = xhr.responseURL;
+        if(redirectUrl){
+          window.location = redirectUrl;
+        } else {
+          window.location.reload();
+        }
+        return;
+      }
+      uploadBtn.disabled = false;
+      uploadBtn.textContent = 'Upload';
+      uploadStatus.textContent = 'Upload failed. Please try again.';
+    };
+    xhr.onerror = function(){
+      uploadForm.dataset.busy = '0';
+      uploadBtn.disabled = false;
+      uploadBtn.textContent = 'Upload';
+      uploadStatus.textContent = 'Upload failed. Please try again.';
+    };
+    const formData = new FormData(uploadForm);
+    xhr.send(formData);
+  });
+})();
+</script>
+<script>
+(function(){
+  const overlay = document.getElementById('portalDropOverlay');
+  if(!overlay) return;
+  let dragDepth = 0;
+  window.addEventListener('dragenter', function(){
+    dragDepth += 1;
+    overlay.classList.add('show');
+  });
+  window.addEventListener('dragleave', function(){
+    dragDepth -= 1;
+    if(dragDepth <= 0){
+      overlay.classList.remove('show');
+      dragDepth = 0;
+    }
+  });
+  window.addEventListener('drop', function(){
+    overlay.classList.remove('show');
+    dragDepth = 0;
+  });
+  window.addEventListener('dragover', function(e){
+    e.preventDefault();
+  });
+})();
+</script>
+<div class="drop-overlay" id="portalDropOverlay">
+  <div class="drop-overlay-box">Drop files to upload</div>
+</div>
+<style>
+@media (max-width: 720px){
+  .dropzone{padding:14px;}
+  #clientPickBtn{width:100%;}
+  .row-actions{display:flex;gap:8px;flex-wrap:wrap;}
+}
+.progress{height:10px;border-radius:999px;background:rgba(15,23,42,.08);overflow:hidden}
+.progress-bar{height:100%;background:linear-gradient(135deg,#2b77c4,#0f3058);border-radius:999px}
+.drop-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(15,23,42,.55);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .18s ease;
+  z-index: 9999;
+}
+.drop-overlay.show{ opacity:1; }
+.drop-overlay-box{
+  background:#fff;
+  color:#0B1F3A;
+  padding:18px 26px;
+  border-radius:14px;
+  font-weight:800;
+  box-shadow:0 20px 50px rgba(2,8,23,.3);
+}
+</style>
+{% endblock %}

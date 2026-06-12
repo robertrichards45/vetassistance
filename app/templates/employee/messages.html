@@ -1,0 +1,43 @@
+{% extends "layout.html" %}
+{% block title %}Messages • Staff{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="section-header">
+    <h2>Client Messages</h2>
+    <p class="muted">All portal messages from clients.</p>
+  </div>
+
+  <div class="card">
+    {% if threads %}
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Client</th>
+            <th>Last message</th>
+            <th>Subject</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in threads %}
+            <tr>
+              <td>
+                <b>{{ t.client.display_name() }}</b><br>
+                <span class="muted small">{{ t.client.claim_number }}</span>
+              </td>
+              <td>{{ t.last.created_at.strftime("%Y-%m-%d %H:%M") if t.last.created_at else "" }}</td>
+              <td>{{ t.last.subject }}</td>
+              <td style="text-align:right;">
+                <a class="btn btn-sm" href="{{ url_for('staff_message_thread', client_id=t.client.id) }}">Open</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="muted">No messages yet.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

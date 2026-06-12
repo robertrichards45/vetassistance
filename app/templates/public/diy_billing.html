@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}DIY Billing{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Do It Yourself</div>
+      <h1 class="page-title">Billing & Subscription</h1>
+      <p class="page-sub">Manage cancellation and refunds.</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('diy.tools') }}">Back to tools</a>
+    </div>
+  </div>
+</section>
+
+<div class="admin-wrap">
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <div class="panel-title">Subscription Status</div>
+      {% if subscription %}
+        <div class="muted">Plan: <strong>{{ subscription.plan }}</strong></div>
+        <div class="muted">Status: <strong>{{ subscription.status }}</strong></div>
+        <form method="post" action="{{ url_for('diy.portal') }}" style="margin-top:10px;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-outline-primary" type="submit">Open Stripe Customer Portal</button>
+        </form>
+      {% else %}
+        <div class="muted">No subscription found.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <div class="panel-title">Cancel Options</div>
+      <p class="muted">Cancel now with refund (if eligible) or keep access to end of billing period.</p>
+      <div class="row" style="gap:10px;flex-wrap:wrap;">
+        <form method="post" action="{{ url_for('diy.cancel_refund') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-primary" type="submit">Cancel & Refund</button>
+        </form>
+        <form method="post" action="{{ url_for('diy.cancel_end') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-outline-primary" type="submit">Cancel End of Period</button>
+        </form>
+      </div>
+      <div class="muted small" style="margin-top:8px;">
+        Refunds: cancel within 72 hours = 100% refund with no uploads, 50% refund with uploads.
+      </div>
+      <div class="muted small">Cancel & Refund deletes uploaded documents.</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "layout.html" %}
+{% block title %}Intake - {{ BRAND_NAME }}{% endblock %}
+{% block content %}
+<div class="row">
+  <div>
+    <h2>Intake</h2>
+    <div class="muted small">{{ client.display_name() }}</div>
+  </div>
+  <div class="row-actions">
+    <a class="btn secondary" href="{{ url_for('portal.dashboard') }}">Back</a>
+  </div>
+</div>
+
+{% if is_guest %}
+<div class="card" style="margin-top:12px;">
+  <div class="muted small">You're doing great. If you'd like us to securely save documents or communicate updates, you can add an email anytime.</div>
+  <div style="margin-top:8px;">
+    <a class="btn btn-outline-primary btn-sm" href="{{ url_for('portal.dashboard') }}">Add Email When Ready</a>
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <form method="post" action="{{ url_for('portalx.intake_save') }}" class="grid">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div style="grid-column:1/-1;"><label>Full legal name</label><input name="full_legal_name" value="{{ data.full_legal_name or '' }}"></div>
+    <div><label>DOB</label><input name="dob" placeholder="YYYY-MM-DD" value="{{ data.dob or '' }}"></div>
+    <div><label>Branch</label><input name="branch" value="{{ data.branch or '' }}"></div>
+    <div><label>Service dates</label><input name="service_dates" placeholder="YYYY-YYYY" value="{{ data.service_dates or '' }}"></div>
+    <div><label>Phone</label><input name="phone" value="{{ data.phone or '' }}"></div>
+    <div style="grid-column:1/-1;"><label>Mailing address</label><input name="mailing_address1" placeholder="Street address" value="{{ data.mailing_address1 or '' }}"></div>
+    <div style="grid-column:1/-1;"><input name="mailing_address2" placeholder="Apt / Unit (optional)" value="{{ data.mailing_address2 or '' }}"></div>
+    <div><label>City</label><input name="mailing_city" value="{{ data.mailing_city or '' }}"></div>
+    <div><label>State</label><input name="mailing_state" value="{{ data.mailing_state or '' }}"></div>
+    <div><label>ZIP</label><input name="mailing_zip" value="{{ data.mailing_zip or '' }}"></div>
+    <div style="grid-column:1/-1;"><label>SSN (optional)</label><input name="ssn_full" type="password" autocomplete="off" placeholder="Stored encrypted"></div>
+    <div style="grid-column:1/-1;"><label>Issues / conditions / goals</label><textarea name="issues" rows="4">{{ data.issues or '' }}</textarea></div>
+    <div style="grid-column:1/-1;"><label>Deadlines</label><textarea name="deadlines" rows="2">{{ data.deadlines or '' }}</textarea></div>
+    <div style="grid-column:1/-1;"><label>Notes</label><textarea name="notes" rows="4">{{ data.notes or '' }}</textarea></div>
+    <div style="grid-column:1/-1;"><button class="btn" type="submit">Save</button></div>
+  </form>
+</div>
+{% endblock %}

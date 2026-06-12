@@ -1,0 +1,29 @@
+{% extends "layout.html" %}
+{% block title %}Checklist • {{ BRAND_NAME }}{% endblock %}
+{% block content %}
+<div class="row">
+  <div>
+    <h2>Checklist</h2>
+    <div class="muted small">{{ client.display_name() }}</div>
+  </div>
+  <div class="row-actions">
+    <a class="btn secondary" href="{{ url_for('portal.dashboard') }}">Back</a>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Next Steps</h3>
+  <div class="muted small">This checklist keeps your case moving. Upload what you have and message us with deadlines.</div>
+  <div style="margin-top:10px;">
+    {% for t in tasks %}
+      <div class="mini" style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
+        <div>
+          <div><strong>{{ t.title }}</strong></div>
+          <div class="muted small">{{ "COMPLETE" if t.is_completed else "PENDING" }}</div>
+        </div>
+        <div class="pill {{ 'ready' if t.is_completed else 'warn' }}">{{ 'DONE' if t.is_completed else 'OPEN' }}</div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

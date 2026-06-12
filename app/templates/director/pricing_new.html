@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}New Pricing Item • {{ COMPANY_NAME }}{% endblock %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Director</div>
+      <h1 class="page-title">Add Pricing Item</h1>
+      <p class="page-sub">Publish a new service option to the homepage pricing selector.</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('pricing.list_pricing') }}">Back</a>
+    </div>
+  </div>
+</section>
+
+<div class="card-shell" style="max-width:720px;">
+  <div class="card-body-pad">
+    <form method="post" class="stack-form">
+      <label class="form-label">
+        Service name
+        <input class="form-control" type="text" name="name" required>
+      </label>
+      <label class="form-label">
+        Description (optional)
+        <textarea class="form-control" name="description" rows="3"></textarea>
+      </label>
+
+      <label class="form-label">
+        Pricing type
+        <select class="form-control" name="price_type" id="price_type">
+          <option value="flat">Flat fee (dollars)</option>
+          <option value="percent">% of backpay</option>
+        </select>
+      </label>
+
+      <label class="form-label">
+        Base amount (USD)
+        <input class="form-control" type="number" step="0.01" name="price" value="0.00">
+      </label>
+
+      <label class="form-label">
+        Percent of backpay (if applicable)
+        <input class="form-control" type="number" step="0.1" name="percent_value" placeholder="e.g. 15 for 15%">
+      </label>
+
+      <label class="form-label">
+        Sort order
+        <input class="form-control" type="number" name="sort_order" value="0">
+      </label>
+
+      <div class="d-flex gap-2 flex-wrap mt-2">
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,358 @@
+{% extends "base.html" %}
+{% block title %}CRSC & Combat Pay - {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">CRSC & Combat Pay</div>
+      <h1 class="page-title">Combat-Related Pay You Earned - And Were Never Told About</h1>
+      <p class="page-sub">Combat-Related Special Compensation (CRSC) is a Department of Defense benefit - not VA disability - that restores tax-free retired pay for combat-related injuries. Many qualified veterans were denied, misinformed, or never told they could apply. We identify eligibility, correct denials, and build CRSC-ready packets in plain English.</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-primary" href="#eligibility">Check CRSC Eligibility</a>
+      <a class="btn btn-outline-light" href="#denials">Why Veterans Are Denied CRSC</a>
+    </div>
+  </div>
+</section>
+
+<div class="admin-wrap">
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <div class="panel-title">Key Points</div>
+      <ul class="muted small" style="margin-top:8px;">
+        <li>CRSC is tax-free DoD compensation for military retirees.</li>
+        <li>It is separate from VA disability and often misunderstood.</li>
+        <li>Combat nexus proof is required - not just a VA rating.</li>
+        <li>Denials are frequently fixable with proper evidence framing.</li>
+        <li>Applies to regular and medical retirees.</li>
+      </ul>
+      <div class="muted small" style="margin-top:8px;">No login required to explore eligibility.</div>
+    </div>
+  </div>
+
+  <div class="card-shell" id="eligibility">
+    <div class="card-body-pad">
+      <div class="panel-title">CRSC Eligibility Analyzer</div>
+      <div class="muted small">Estimate eligibility based on retirement status, VA ratings, deployment history, and combat nexus factors.</div>
+      <form id="crscForm" class="grid2" style="gap:12px;margin-top:10px;">
+        <div>
+          <label class="form-label">Branch</label>
+          <select class="form-control" name="branch">
+            <option value="">Select</option>
+            <option>Army</option>
+            <option>Navy</option>
+            <option>Marine Corps</option>
+            <option>Air Force</option>
+            <option>Space Force</option>
+            <option>Coast Guard</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Retirement type</label>
+          <select class="form-control" name="retirement">
+            <option value="">Select</option>
+            <option value="regular">Regular retirement (20+ years)</option>
+            <option value="medical">Medical retirement</option>
+            <option value="tdrl">TDRL / PDRL</option>
+            <option value="reserve">Reserve retirement</option>
+            <option value="none">Not retired</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">VA rating %</label>
+          <input class="form-control" name="va_rating" placeholder="e.g., 50">
+        </div>
+        <div>
+          <label class="form-label">Combat nexus category</label>
+          <select class="form-control" name="combat_indicator">
+            <option value="">Select</option>
+            <option value="armed_conflict">Armed conflict</option>
+            <option value="hazardous_service">Hazardous service</option>
+            <option value="simulated_war">Simulated war (training)</option>
+            <option value="instrumentality">Instrumentality of war</option>
+            <option value="none">None documented</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Awards / decorations</label>
+          <select class="form-control" name="awards">
+            <option value="">Select</option>
+            <option>Combat Action Ribbon / Badge</option>
+            <option>Purple Heart</option>
+            <option>Combat Infantryman Badge</option>
+            <option>Combat Action Badge</option>
+            <option>None</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Deployment history</label>
+          <select class="form-control" name="deployment">
+            <option value="">Select</option>
+            <option>Combat deployment</option>
+            <option>Non-combat deployment</option>
+            <option>None</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Injury origin summary</label>
+          <input class="form-control" name="injury_origin" placeholder="Event or incident description">
+        </div>
+        <div>
+          <label class="form-label">Do you receive DoD retired pay?</label>
+          <select class="form-control" name="retired_pay">
+            <option value="">Select</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Do you receive VA compensation?</label>
+          <select class="form-control" name="va_comp">
+            <option value="">Select</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Currently receiving CRDP?</label>
+          <select class="form-control" name="crdp">
+            <option value="">Select</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+            <option value="unsure">Not sure</option>
+          </select>
+        </div>
+      </form>
+      <div id="crscResult" class="pill" style="margin-top:12px;display:none;"></div>
+      <div id="crscExplain" class="muted small" style="margin-top:6px;"></div>
+      <div id="crscMissing" class="muted small" style="margin-top:8px;"></div>
+      <div id="crscRisks" class="muted small" style="margin-top:6px;"></div>
+      <div id="crscPay" class="muted small" style="margin-top:6px;"></div>
+    </div>
+  </div>
+
+  <div class="card-shell" id="denials">
+    <div class="card-body-pad">
+      <div class="panel-title">Why You Qualify / Why You Were Denied</div>
+      <div class="grid2" style="margin-top:10px;">
+        <div class="mini">
+          <strong>Common approval factors</strong>
+          <ul class="muted small">
+            <li>Combat-related event or exposure documented</li>
+            <li>VA rating for the specific combat-related condition</li>
+            <li>Retirement pay being waived due to VA compensation</li>
+          </ul>
+        </div>
+        <div class="mini">
+          <strong>Common denial reasons</strong>
+          <ul class="muted small">
+            <li>No combat nexus documentation</li>
+            <li>Condition not clearly tied to a qualifying combat category</li>
+            <li>Missing or inconsistent service records</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <div class="panel-title">Commonly Missed CRSC Factors</div>
+      <div id="crscMissedFactors" class="grid2" style="margin-top:10px;"></div>
+    </div>
+  </div>
+
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <div class="panel-title">CRSC Backpay Impact Estimator</div>
+      <div class="muted small">CRSC may restore some or all retired pay waived due to VA compensation. It is tax-free. CRSC does not affect VA compensation.</div>
+      <div class="grid2" style="margin-top:10px;">
+        <div>
+          <label class="form-label">Combat-related VA compensation amount</label>
+          <input class="form-control" id="crscComp" placeholder="$">
+        </div>
+        <div>
+          <label class="form-label">Retired pay waived amount</label>
+          <input class="form-control" id="crscWaived" placeholder="$">
+        </div>
+      </div>
+      <div id="crscBackpay" class="pill" style="margin-top:10px;">Estimated CRSC restore: $0</div>
+      <div class="muted small" style="margin-top:6px;">Estimate is the lower of the two amounts. Actual amounts depend on the service board decision.</div>
+    </div>
+  </div>
+
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <div class="panel-title">CRSC vs CRDP (Quick Comparison)</div>
+      <div class="table" style="margin-top:10px;">
+        <div class="thead" style="grid-template-columns: 1.2fr 1fr 1fr;">
+          <div>Factor</div><div>CRSC</div><div>CRDP</div>
+        </div>
+        <div class="trow" style="grid-template-columns: 1.2fr 1fr 1fr;">
+          <div>Program type</div><div class="pill ready">DoD</div><div class="pill">DoD</div>
+        </div>
+        <div class="trow" style="grid-template-columns: 1.2fr 1fr 1fr;">
+          <div>Requires combat nexus</div><div class="pill ready">Yes</div><div class="pill warn">No</div>
+        </div>
+        <div class="trow" style="grid-template-columns: 1.2fr 1fr 1fr;">
+          <div>Tax status</div><div class="pill ready">Tax-free</div><div class="pill warn">Taxable</div>
+        </div>
+        <div class="trow" style="grid-template-columns: 1.2fr 1fr 1fr;">
+          <div>Eligibility</div><div class="muted small">Combat-related VA rating</div><div class="muted small">20+ years & VA rating</div>
+        </div>
+        <div class="trow" style="grid-template-columns: 1.2fr 1fr 1fr;">
+          <div>Interaction with VA comp</div><div class="muted small">Restores waived retired pay</div><div class="muted small">Restores waived retired pay</div>
+        </div>
+      </div>
+      <div class="muted small" style="margin-top:8px;">CRSC and CRDP cannot be paid at the same time. The service selects the better option based on your records.</div>
+    </div>
+  </div>
+
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <div class="panel-title">CRSC FAQs</div>
+      <div class="grid2" style="margin-top:10px;">
+        <div class="mini">
+          <strong>Is CRSC a VA benefit?</strong>
+          <div class="muted small">No. CRSC is a DoD program for military retirees. It is separate from VA disability.</div>
+        </div>
+        <div class="mini">
+          <strong>Do I need a VA rating?</strong>
+          <div class="muted small">Yes. CRSC requires a VA-rated combat-related condition (10% or higher).</div>
+        </div>
+        <div class="mini">
+          <strong>What evidence matters most?</strong>
+          <div class="muted small">Combat nexus proof: incident reports, awards, deployment records, and medical evidence.</div>
+        </div>
+        <div class="mini">
+          <strong>Can I receive CRSC and CRDP?</strong>
+          <div class="muted small">No. Only one is paid at a time based on which is more favorable.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <div class="panel-title">CRSC Packet Checklist</div>
+      <div class="muted small">Packet generation is available inside the secure work hub.</div>
+      <ul class="muted small" style="margin-top:8px;">
+        <li>Service-specific CRSC application</li>
+        <li>VA rating decision(s)</li>
+        <li>Medical evidence and nexus statements</li>
+        <li>Line-of-duty and incident reports</li>
+        <li>Combat awards or deployment records</li>
+      </ul>
+      <div class="row" style="gap:10px;flex-wrap:wrap;margin-top:8px;">
+        <a class="btn btn-primary" href="{{ url_for('portal.portal_register') }}">Secure Work Hub</a>
+        <a class="btn btn-outline-primary" href="{{ url_for('public.contact') }}">Talk to us</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const form = document.getElementById("crscForm");
+  const result = document.getElementById("crscResult");
+  const explain = document.getElementById("crscExplain");
+  const missingOut = document.getElementById("crscMissing");
+  const risksOut = document.getElementById("crscRisks");
+  const payOut = document.getElementById("crscPay");
+  const missed = document.getElementById("crscMissedFactors");
+  if(form && result){
+    form.addEventListener("change", function(){
+      const data = new FormData(form);
+      const branch = (data.get("branch") || "").toString();
+      const retirement = (data.get("retirement") || "").toString();
+      const rating = Number((data.get("va_rating") || "").toString());
+      const indicator = (data.get("combat_indicator") || "").toString();
+      const awards = (data.get("awards") || "").toString();
+      const deployment = (data.get("deployment") || "").toString();
+      const injuryOrigin = (data.get("injury_origin") || "").toString();
+      const retiredPay = (data.get("retired_pay") || "").toString();
+      const vaComp = (data.get("va_comp") || "").toString();
+      const crdp = (data.get("crdp") || "").toString();
+      let msg = "Complete the fields to estimate eligibility.";
+      let explainMsg = "";
+      let missing = [];
+      let risks = [];
+      let payMsg = "";
+      let show = true;
+      if (!retirement || !indicator || !retiredPay || !vaComp || !Number.isFinite(rating)){
+        msg = "Complete the fields to estimate eligibility.";
+      } else if (retirement === "none"){
+        msg = "Unlikely Eligible";
+        explainMsg = "CRSC requires military retirement status.";
+        missing.push("Retirement status documentation");
+        risks.push("Not a military retiree");
+      } else if (rating < 10){
+        msg = "Unlikely Eligible";
+        explainMsg = "CRSC requires a VA-rated combat-related condition (10% or higher).";
+        missing.push("VA rating decision");
+        risks.push("Rating too low for CRSC eligibility");
+      } else if (indicator === "none"){
+        msg = "Possibly Eligible";
+        explainMsg = "Combat nexus is not documented yet.";
+        missing.push("Combat nexus evidence (category)");
+        risks.push("Combat injury categorized as non-combat");
+      } else if (retiredPay === "no" || vaComp === "no"){
+        msg = "Possibly Eligible";
+        explainMsg = "CRSC typically restores retired pay waived due to VA compensation.";
+        missing.push("Retired pay / VA compensation confirmation");
+        risks.push("Retired pay or VA comp not established");
+      } else {
+        msg = "Likely Eligible";
+        explainMsg = "You appear likely eligible. Verify combat nexus evidence and retired pay details.";
+        if (awards === "None" || !awards) missing.push("Combat awards or deployment records");
+        if (!branch) missing.push("Service branch confirmation");
+        if (!deployment) missing.push("Deployment history");
+        if (!injuryOrigin) missing.push("Injury origin summary");
+        risks.push("Nexus not tied to qualifying combat category");
+      }
+      if (retiredPay === "yes" && vaComp === "yes") {
+        payMsg = "Pay interaction: CRSC may restore some or all waived retired pay. CRSC is tax-free and does not reduce VA compensation.";
+      } else if (retiredPay === "no" && vaComp === "yes") {
+        payMsg = "Pay interaction: Retired pay is not currently established, which can affect CRSC amounts.";
+      } else if (vaComp === "no") {
+        payMsg = "Pay interaction: VA compensation is required for CRSC payment calculations.";
+      }
+      if (crdp === "yes") {
+        payMsg += " CRSC and CRDP cannot be paid at the same time; the better option is elected by the service.";
+      }
+      result.textContent = msg;
+      if (explain) explain.textContent = explainMsg;
+      if (missingOut) missingOut.textContent = missing.length ? ("Missing evidence: " + missing.join(", ")) : "";
+      if (risksOut) risksOut.textContent = risks.length ? ("Denial risks: " + risks.join(", ")) : "";
+      if (payOut) payOut.textContent = payMsg;
+      result.style.display = show ? "inline-flex" : "none";
+      if (missed){
+        const factors = [];
+        if (indicator === "simulated_war") factors.push("Training accidents simulating combat");
+        if (indicator === "hazardous_service") factors.push("Hazardous duty documentation gaps");
+        if (indicator === "instrumentality") factors.push("Aircraft / weapons systems incidents");
+        if (deployment === "Combat deployment") factors.push("IED / indirect fire exposure");
+        if (!factors.length) {
+          factors.push("IED / indirect fire exposure", "Training accidents simulating combat", "Aircraft / weapons systems incidents", "Toxic exposure during combat operations");
+        }
+        missed.innerHTML = factors.map(f => `<div class="mini">${f}</div>`).join("");
+      }
+    });
+  }
+  const comp = document.getElementById("crscComp");
+  const waived = document.getElementById("crscWaived");
+  const out = document.getElementById("crscBackpay");
+  function parseMoney(v){
+    return Number(String(v || "").replace(/[^0-9.]/g, "")) || 0;
+  }
+  function update(){
+    const a = parseMoney(comp && comp.value);
+    const b = parseMoney(waived && waived.value);
+    const est = Math.min(a, b);
+    if(out) out.textContent = "Estimated CRSC restore: $" + est.toFixed(2);
+  }
+  if(comp) comp.addEventListener("input", update);
+  if(waived) waived.addEventListener("input", update);
+})();
+</script>
+{% endblock %}

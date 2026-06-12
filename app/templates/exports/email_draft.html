@@ -1,0 +1,49 @@
+{% extends "layout.html" %}
+{% block title %}Email Draft • {{ artifact.title }}{% endblock %}
+{% block content %}
+<div class="row">
+  <div>
+    <h2>Email Draft</h2>
+    <div class="muted small">{{ client.display_name() if client else "" }}</div>
+  </div>
+  <div class="row-actions">
+    <a class="btn secondary" href="{{ url_for('clients.view_client', client_id=artifact.client_id) }}">Back to Client</a>
+    <a class="btn tiny" href="{{ url_for('exports.download_artifact', artifact_id=artifact.id) }}">Download DOCX</a>
+  </div>
+</div>
+
+<div class="grid2">
+  <div class="card">
+    <h3>Subject</h3>
+    <pre class="pre" id="subj">{{ subject }}</pre>
+    <button class="btn tiny secondary" type="button" onclick="copyId('subj')">Copy Subject</button>
+
+    <h3 style="margin-top:14px;">Body</h3>
+    <pre class="pre" id="body">{{ body }}</pre>
+    <button class="btn tiny secondary" type="button" onclick="copyId('body')">Copy Body</button>
+
+    {% if to_email %}
+      <div style="margin-top:14px;">
+        <a class="btn" href="mailto:{{ to_email }}?subject={{ subject|urlencode }}">Open Email Client</a>
+        <div class="muted small" style="margin-top:8px;">This opens your email app with the recipient + subject. Paste the body from above.</div>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h3>Notes</h3>
+    <ul class="bullets">
+      <li>This system can’t send email automatically; it generates a ready-to-send draft.</li>
+      <li>Use “Download DOCX” to attach the Word document.</li>
+      <li>Use “Copy Body” for a web copy/paste version.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+function copyId(id){
+  const txt = document.getElementById(id).innerText;
+  navigator.clipboard.writeText(txt).then(()=> alert("Copied."), ()=> alert("Copy failed."));
+}
+</script>
+{% endblock %}

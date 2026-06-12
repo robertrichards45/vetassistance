@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}Pricing • Director{% endblock %}
+
+{% block content %}
+
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Director</div>
+      <div class="page-title">Pricing</div>
+      <p class="page-sub">Manage public pricing options shown on the homepage.</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('director.dashboard') }}">Back</a>
+      <button class="btn btn-outline-light" type="button" data-bs-toggle="collapse" data-bs-target="#addPricing">
+        + Add pricing item
+      </button>
+      <form method="post" style="display:inline;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="seed_non_va">
+        <button class="btn btn-outline-light" type="submit">Seed Non-VA Services</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<div class="collapse" id="addPricing">
+  <div class="card-shell mb-3">
+    <div class="card-body-pad">
+      <form method="post" class="row g-3">
+        <input type="hidden" name="action" value="create">
+
+        <div class="col-md-5">
+          <label class="form-label">Service name</label>
+          <input class="form-control" name="name" required>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Sort order</label>
+          <input class="form-control" name="sort_order" type="number" value="0">
+        </div>
+
+        <div class="col-md-3 d-flex align-items-end">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="is_percent" id="isPercent">
+            <label class="form-check-label" for="isPercent" style="font-weight:900;">Percent of backpay</label>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Flat price (USD)</label>
+          <input class="form-control" name="price_dollars" placeholder="e.g. 250">
+          <div class="form-text">Used when Percent is not checked.</div>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Percent</label>
+          <input class="form-control" name="percent_of_backpay" placeholder="e.g. 20">
+          <div class="form-text">Used only when Percent is checked.</div>
+        </div>
+
+        <div class="col-12">
+          <label class="form-label">Description</label>
+          <textarea class="form-control" name="description" rows="3"></textarea>
+        </div>
+
+        <div class="col-12 d-flex gap-2 flex-wrap">
+          <button class="btn btn-primary" type="submit">Save</button>
+          <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#addPricing">Close</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="card-shell">
+  <div class="card-body-pad">
+
+    {% if not items %}
+      <div class="empty">
+        <div class="empty-title">No pricing items yet</div>
+        <div class="empty-sub">Add your first service to show it on the homepage pricing selector.</div>
+      </div>
+    {% else %}
+      <div class="table-responsive">
+        <table class="table align-middle premium-table">
+          <thead>
+            <tr>
+              <th style="min-width:280px;">Service</th>
+              <th>Type</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th class="text-end" style="min-width:240px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in items %}
+              <tr>
+                <td>
+                  <div style="font-weight:950; color:var(--heading);">{{ p.name }}</div>
+                  {% if p.description %}
+                    <div class="small text-muted" style="max-width:620px;">{{ p.description }}</div>
+                  {% endif %}
+                </td>
+
+                <td>
+                  {% if p.is_percent %}
+                    <span class="pill">Percent</span>
+                  {% else %}
+                    <span class="pill pill-claim">Flat</span>
+                  {% endif %}
+                </td>
+
+                <td style="font-weight:900;">
+                  {% if p.is_percent %}
+                    {{ (p.percent_of_backpay or 0) }}% <span class="small text-muted">of backpay</span>
+                  {% else %}
+                    ${{ '%.2f'|format((p.price_cents or 0) / 100) }} <span class="small text-muted">flat fee</span>
+                  {% endif %}
+                </td>
+
+                <td>
+                  {% if p.active %}
+                    <span class="pill pill-good">Active</span>
+                  {% else %}
+                    <span class="pill pill-bad">Hidden</span>
+                  {% endif %}
+                </td>
+
+                <td class="text-end">
+                  <div class="d-flex gap-2 justify-content-end flex-wrap">
+                    <form method="post" class="d-inline">
+                      <input type="hidden" name="action" value="toggle">
+                      <input type="hidden" name="item_id" value="{{ p.id }}">
+                      <button class="btn btn-sm btn-outline-primary" type="submit">
+                        {% if p.active %}Hide{% else %}Show{% endif %}
+                      </button>
+                    </form>
+
+                    <form method="post" class="d-inline" onsubmit="return confirm('Delete {{ p.name }}?');">
+                      <input type="hidden" name="action" value="delete">
+                      <input type="hidden" name="item_id" value="{{ p.id }}">
+                      <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+
+{% endblock %}

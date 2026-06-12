@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Evidence Tagging – {{ client.email }}</h1>
+
+<h2>Apply Tag</h2>
+<form method="post" action="{{ url_for('tags.apply') }}">
+  <input type="hidden" name="client_id" value="{{ client.id }}">
+  <label>Document</label>
+  <select name="document_id">
+    {% for d in docs %}
+      <option value="{{ d.id }}">{{ d.filename }}</option>
+    {% endfor %}
+  </select>
+  <br><br>
+  <label>Category</label>
+  <select name="category">
+    <option value="Condition">Condition</option>
+    <option value="EvidenceType">EvidenceType</option>
+  </select>
+  <br><br>
+  <label>Tag (choose or type)</label><br>
+  <input name="tag" placeholder="e.g., PTSD or Nexus Letter" style="min-width:320px;">
+  <br><br>
+  <div style="display:flex; gap:10px; flex-wrap:wrap;">
+    {% for c in conditions %}
+      <button type="button" onclick="document.querySelector('input[name=tag]').value='{{ c }}'">{{ c }}</button>
+    {% endfor %}
+  </div>
+  <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+    {% for e in etypes %}
+      <button type="button" onclick="document.querySelector('input[name=tag]').value='{{ e }}'">{{ e }}</button>
+    {% endfor %}
+  </div>
+  <br>
+  <button type="submit">Apply</button>
+</form>
+
+<hr>
+<h2>Existing Tags</h2>
+<table border="1" cellpadding="6" cellspacing="0">
+  <thead><tr><th>When</th><th>Document</th><th>Category</th><th>Tag</th></tr></thead>
+  <tbody>
+  {% for t in tags %}
+    <tr>
+      <td>{{ t.created_at }}</td>
+      <td>{{ t.document_id }}</td>
+      <td>{{ t.category }}</td>
+      <td>{{ t.tag }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

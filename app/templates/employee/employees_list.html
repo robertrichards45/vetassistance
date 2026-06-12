@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Workspace</div>
+      <h1 class="page-title">Clients</h1>
+      <p class="page-sub">
+        Review client records, open files, run AI scans, and manage status updates.
+      </p>
+    </div>
+
+    <div class="page-actions">
+      <a class="btn btn-primary" href="{{ url_for('client_new') }}">+ New Client</a>
+      <a class="btn btn-secondary" href="{{ url_for('employee_dashboard') }}">Dashboard</a>
+    </div>
+  </div>
+
+  <div class="page-tools">
+    <form method="get" class="searchbar" action="{{ url_for('clients_list') }}">
+      <input
+        type="text"
+        name="q"
+        value="{{ request.args.get('q','') }}"
+        placeholder="Search by name, claim #, email, phone, status…"
+        aria-label="Search clients"
+      >
+      <button class="btn btn-outline-dark" type="submit">Search</button>
+      {% if request.args.get('q') %}
+        <a class="btn btn-secondary" href="{{ url_for('clients_list') }}">Clear</a>
+      {% endif %}
+    </form>
+
+    <div class="hint">
+      Tip: Click <strong>Files &amp; AI</strong> to upload documents, generate letters, or run a case scan.
+    </div>
+  </div>
+</section>
+
+<div class="card-shell">
+  <div class="card-head">
+    <div class="card-title">Client Directory</div>
+    <div class="card-sub">
+      {{ (clients|length) if clients is not none else 0 }} total
+    </div>
+  </div>
+
+  {% if clients and clients|length %}
+    <div class="table-wrap">
+      <div class="table-grid table-grid-head">
+        <div>Claim #</div>
+        <div>Veteran</div>
+        <div>Email</div>
+        <div>Phone</div>
+        <div>Status</div>
+        <div class="right">Actions</div>
+      </div>
+
+      {% for c in clients %}
+        {# filter search client-side if q exists (works even without server filtering) #}
+        {% set q = (request.args.get('q','') or '').lower() %}
+        {% set searchable = (c.claim_number ~ ' ' ~ c.first_name ~ ' ' ~ c.last_name ~ ' ' ~ (c.email or '') ~ ' ' ~ (c.phone or '') ~ ' ' ~ (c.status or '')).lower() %}
+
+        {% if not q or (q and (q in searchable)) %}
+          <div class="table-grid table-grid-row">
+            <div class="mono">
+              <span class="pill pill-claim">{{ c.claim_number }}</span>
+            </div>
+
+            <div>
+              <div class="name">{{ c.last_name }}, {{ c.first_name }}</div>
+              {% if c.assigned_to_name %}
+                <div class="meta">Assigned: {{ c.assigned_to_name }}</div>
+              {% endif %}
+            </div>
+
+            <div class="truncate">
+              {% if c.email %}
+                <a href="mailto:{{ c.email }}">{{ c.email }}</a>
+              {% else %}
+                <span class="muted">—</span>
+              {% endif %}
+            </div>
+
+            <div>
+              {% if c.phone %}
+                <span class="mono">{{ c.phone }}</span>
+              {% else %}
+                <span class="muted">—</span>
+              {% endif %}
+            </div>
+
+            <div>
+              {% set st = (c.status or 'Active') %}
+              {% if st|lower in ['active','open'] %}
+                <span class="pill pill-good">{{ st }}</span>
+              {% elif st|lower in ['closed','inactive'] %}
+                <span class="pill pill-bad">{{ st }}</span>
+              {% else %}
+                <span class="pill">{{ st }}</span>
+              {% endif %}
+            </div>
+
+            <div class="right actions">
+              <a class="btn btn-sm btn-primary" href="{{ url_for('client_files', client_id=c.id) }}">Files &amp; AI</a>
+              <a class="btn btn-sm btn-secondary" href="{{ url_for('client_edit', client_id=c.id) }}">Edit</a>
+
+              {% if current_user.is_director %}
+                <form method="post" action="{{ url_for('client_delete', client_id=c.id) }}" style="display:inline"
+                      onsubmit="return confirm('Delete this client and all associated files? This cannot be undone.')">
+                  <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+                </form>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty">
+      <div class="empty-title">No clients yet</div>
+      <div class="empty-sub">Create your first client to start uploading evidence and generating documents.</div>
+      <a class="btn btn-primary" href="{{ url_for('client_new') }}">+ Create Client</a>
+    </div>
+  {% endif %}
+</div>
+
+<style>
+/* Premium page styling (self-contained) */
+.page-hero{
+  border-radius: 20px;
+  padding: 18px;
+  color: #fff;
+  background:
+    radial-gradient(900px 360px at 18% 12%, rgba(255,255,255,.14), transparent 60%),
+    radial-gradient(680px 260px at 72% 22%, rgba(169,199,234,.16), transparent 55%),
+    linear-gradient(135deg, #1f4b7a 0%, #122242 55%, #0c1221 100%);
+  border: 1px solid rgba(255,255,255,.14);
+  box-shadow: 0 18px 44px rgba(2,8,23,.22);
+  margin-bottom: 16px;
+}
+.page-hero-inner{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:center}
+.page-kicker{display:inline-flex;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);font-weight:800}
+.page-title{margin:8px 0 4px;font-size:1.8rem}
+.page-sub{margin:0;opacity:.92;max-width:760px}
+.page-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+.page-tools{margin-top:12px;display:grid;gap:10px}
+.searchbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.searchbar input{
+  flex:1; min-width: 280px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.20);
+  background: rgba(255,255,255,.10);
+  color: #fff;
+  padding: 10px 12px;
+}
+.searchbar input::placeholder{color: rgba(255,255,255,.82)}
+.hint{opacity:.92;line-height:1.55}
+
+.card-shell{
+  background:#fff;border:1px solid rgba(15,23,42,.10);
+  border-radius:18px;box-shadow:0 18px 44px rgba(2,8,23,.10);overflow:hidden;
+}
+.card-head{padding:14px 16px;border-bottom:1px solid rgba(15,23,42,.06);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.card-title{font-weight:900;color:#0B1F3A}
+.card-sub{color:#4A5D73;font-weight:800}
+
+.table-wrap{padding: 6px 10px 14px}
+.table-grid{
+  display:grid;
+  grid-template-columns: .9fr 1.1fr 1.4fr .9fr .8fr 1.3fr;
+  gap: 10px;
+  align-items:center;
+  padding: 12px 10px;
+}
+.table-grid-head{
+  color:#4A5D73;font-weight:900;font-size:.9rem;
+  border-bottom: 1px solid rgba(15,23,42,.10);
+}
+.table-grid-row{
+  border-top: 1px solid rgba(15,23,42,.06);
+  background: linear-gradient(180deg,#f4f7fb, #fff);
+  border-radius: 14px;
+  margin-top: 10px;
+}
+.table-grid-row:hover{
+  box-shadow: 0 16px 40px rgba(2,8,23,.10);
+  transform: translateY(-1px);
+  transition: .15s ease;
+}
+
+.name{font-weight:900;color:#0B1F3A}
+.meta{color:#4A5D73;font-size:.88rem;margin-top:3px}
+.muted{color:#4A5D73}
+.mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.right{text-align:right}
+.actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+
+.pill{
+  display:inline-flex;padding:6px 10px;border-radius:999px;
+  background: rgba(43,119,196,.10);
+  border: 1px solid rgba(43,119,196,.18);
+  font-weight:900;color:#0B1F3A;font-size:.85rem
+}
+.pill-claim{background:rgba(15,23,42,.08);border-color:rgba(15,23,42,.14)}
+.pill-good{background:rgba(22,163,74,.10);border-color:rgba(22,163,74,.22)}
+.pill-bad{background:rgba(185,28,28,.10);border-color:rgba(185,28,28,.22)}
+
+.btn-danger{background:#b91c1c;color:#fff;border-color:#b91c1c}
+.btn-danger:hover{filter:brightness(.95)}
+
+.empty{padding:18px}
+.empty-title{font-weight:900;color:#0B1F3A;font-size:1.2rem}
+.empty-sub{color:#4A5D73;margin:6px 0 14px;line-height:1.55}
+
+@media (max-width: 1000px){
+  .table-grid{grid-template-columns: 1fr 1.2fr 1.4fr 1fr 1fr; }
+  .table-grid > div:nth-child(4){display:none;} /* hide phone on small */
+}
+@media (max-width: 760px){
+  .table-grid{grid-template-columns: 1fr 1.2fr 1fr; }
+  .table-grid > div:nth-child(3), .table-grid > div:nth-child(4), .table-grid > div:nth-child(5){display:none;}
+}
+</style>
+
+{% endblock %}

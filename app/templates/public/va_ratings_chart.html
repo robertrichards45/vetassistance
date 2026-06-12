@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block title %}VA Rating Chart{% endblock %}
+{% block content %}
+<style>
+  @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,700&display=swap");
+  .chart-shell{
+    max-width: 1400px; margin: 0 auto; padding: 24px;
+    background: radial-gradient(900px 340px at 18% -6%, rgba(225,209,172,.35), transparent),
+      radial-gradient(800px 260px at 100% 0%, rgba(95,164,195,.28), transparent),
+      linear-gradient(180deg, #f7f4ef 0%, #f2f6f9 100%);
+    border-radius: 28px; border: 1px solid rgba(15,23,42,.08);
+    box-shadow: 0 26px 60px rgba(15,23,42,.08);
+    font-family: "Space Grotesk", "Segoe UI", sans-serif;
+    color: #0b1324;
+  }
+  .chart-hero{
+    background:
+      linear-gradient(135deg, rgba(10,30,52,.96), rgba(8,60,76,.9)),
+      repeating-linear-gradient(45deg, rgba(255,255,255,.08) 0 10px, transparent 10px 20px);
+    color:#f8fbff; border-radius:22px; padding:20px 22px; position:relative; overflow:hidden;
+    box-shadow: 0 22px 50px rgba(2,8,23,.18);
+  }
+  .chart-hero h1{ margin:0; font-size:30px; font-family:"Fraunces","Georgia",serif; letter-spacing:.2px; }
+  .chart-hero p{ margin:6px 0 0; opacity:.9; font-weight:600; }
+  .chart-meta{ margin-top:8px; font-size:.9rem; opacity:.85; }
+  .chart-toolbar{
+    display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between;
+    margin-top:14px;
+  }
+  .chart-input, .chart-select{
+    border-radius:16px; border:1px solid rgba(15,23,42,.14); padding:12px 14px; font-weight:600;
+    background: linear-gradient(180deg, rgba(252,252,253,.98), rgba(245,247,250,.98));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.7);
+  }
+  .chart-count{ font-weight:700; color:#1b2c4a; }
+  .toc{
+    display:grid; grid-template-columns: repeat(4, minmax(0,1fr));
+    gap:10px; margin-top:14px;
+  }
+  @media (max-width: 1100px){ .toc{ grid-template-columns: repeat(3, minmax(0,1fr)); } }
+  @media (max-width: 820px){ .toc{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
+  @media (max-width: 520px){ .toc{ grid-template-columns: 1fr; } }
+  .toc a{
+    display:block; padding:10px 12px; border-radius:14px; background:#fff;
+    border:1px solid rgba(15,23,42,.12); text-decoration:none; color:#0b1324; font-weight:700;
+    box-shadow:0 8px 18px rgba(2,8,23,.06);
+  }
+  .toc a:hover{ border-color: rgba(26,76,122,.35); }
+  .category{
+    margin-top:18px; border-radius:18px; background:#fff;
+    border:1px solid rgba(15,23,42,.10); box-shadow:0 14px 34px rgba(2,8,23,.08);
+    padding:14px 16px;
+  }
+  .category h2{ margin:0 0 10px; font-size:1.25rem; }
+  .cond-list{ display:grid; gap:10px; }
+  .cond-item{
+    border:1px solid rgba(15,23,42,.12); border-radius:14px; background:#fff;
+    padding:10px 12px;
+  }
+  .cond-summary{
+    display:flex; gap:8px; align-items:center; justify-content:space-between; cursor:pointer;
+  }
+  .cond-name{ font-weight:700; }
+  .cond-meta{ font-weight:600; color: var(--muted); font-size:.9rem; }
+  .cond-pill{
+    display:inline-flex; padding:4px 10px; border-radius:999px;
+    border:1px solid rgba(15,23,42,.15); background: rgba(15,23,42,.04); font-weight:700; font-size:.8rem;
+  }
+  .rating-block{ margin-top:10px; padding:10px 12px; border-radius:14px; border:1px dashed rgba(15,23,42,.12); background: rgba(248,249,251,.9); }
+  .rating-percent{
+    margin-top:6px; font-weight:700; display:inline-block;
+    padding:4px 8px; border-radius:8px; background: rgba(24,58,85,.1);
+  }
+  .rating-list{ margin:8px 0 0; padding-left:18px; }
+  .empty-state{
+    margin-top:14px; padding:14px; border-radius:16px; border:1px solid rgba(15,23,42,.12);
+    background:#fff; font-weight:600;
+  }
+</style>
+
+<div class="chart-shell">
+  <section class="chart-hero">
+    <h1>VA Rating Chart</h1>
+    <p>Condition-by-condition rating criteria pulled from CFR Part 4.</p>
+    <div class="chart-meta">
+      {% if has_data %}
+        Source: {{ source_pdf or "CFR PDF" }} · Updated: {{ generated_at or "unknown" }}
+      {% else %}
+        Data not generated yet.
+      {% endif %}
+    </div>
+  </section>
+
+  <div class="chart-toolbar">
+    <input class="chart-input" id="chartSearch" placeholder="Search condition, diagnostic code, or CFR section...">
+    <select class="chart-select" id="percentFilter">
+      <option value="any">Any percent</option>
+    </select>
+    <div class="chart-count" id="chartCount">{{ count }} conditions</div>
+  </div>
+
+  {% if not has_data %}
+    <div class="empty-state">
+      Run `python scripts/build_va_ratings_chart.py` to generate the chart data.
+    </div>
+  {% endif %}
+
+  {% if has_data %}
+  <div class="toc" id="chartToc">
+    {% for cat in categories %}
+      <a href="#cat-{{ cat | replace(' ', '-') }}">{{ cat }}</a>
+    {% endfor %}
+  </div>
+
+  <div id="chartGrid">
+    {% for group in grouped %}
+      <section class="category" id="cat-{{ group.category | replace(' ', '-') }}">
+        <h2>{{ group.category }}</h2>
+        <div class="cond-list">
+          {% for c in group.items_list %}
+          <details class="cond-item" data-name="{{ c.condition | lower }}" data-code="{{ c.diagnostic_code }}" data-section="{{ c.cfr_section or '' }}" data-percents="{{ c.criteria | map(attribute='percent') | list | join(',') }}">
+            <summary class="cond-summary">
+              <div>
+                <div class="cond-name">{{ c.condition }}</div>
+                <div class="cond-meta">Diagnostic Code: {{ c.diagnostic_code }} · CFR § {{ c.cfr_section or 'n/a' }}</div>
+              </div>
+              <div class="cond-pill">DC {{ c.diagnostic_code }}</div>
+            </summary>
+            <div class="rating-block">
+              <strong>Rating percentages</strong>
+              {% if c.criteria %}
+                {% for r in c.criteria|sort(attribute='percent', reverse=true) %}
+                  <div class="rating-percent">{{ r.percent }}%</div>
+                  <ul class="rating-list"><li>{{ r.text }}</li></ul>
+                {% endfor %}
+              {% else %}
+                <div class="chart-meta-row">No percentage criteria detected for this code.</div>
+              {% endif %}
+            </div>
+          </details>
+          {% endfor %}
+        </div>
+      </section>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<script>
+(function(){
+  const search = document.getElementById("chartSearch");
+  const count = document.getElementById("chartCount");
+  const percentFilter = document.getElementById("percentFilter");
+  const items = Array.from(document.querySelectorAll(".cond-item"));
+
+  function populatePercents(){
+    const values = new Set();
+    items.forEach(item => {
+      const p = (item.dataset.percents || "").split(",").filter(Boolean);
+      p.forEach(v => values.add(v));
+    });
+    const sorted = Array.from(values).sort((a,b) => Number(a) - Number(b));
+    sorted.forEach(v => {
+      const opt = document.createElement("option");
+      opt.value = v;
+      opt.textContent = `${v}%`;
+      percentFilter.appendChild(opt);
+    });
+  }
+
+  function render(){
+    const q = (search.value || "").toLowerCase().trim();
+    const pct = percentFilter.value;
+    let shown = 0;
+    items.forEach(item => {
+      const hay = [item.dataset.name || "", item.dataset.code || "", item.dataset.section || ""].join(" ").toLowerCase();
+      let ok = true;
+      if (q && !hay.includes(q)) ok = false;
+      if (pct !== "any"){
+        const ps = (item.dataset.percents || "").split(",").filter(Boolean);
+        if (!ps.includes(pct)) ok = false;
+      }
+      item.style.display = ok ? "" : "none";
+      if (ok) shown += 1;
+    });
+    count.textContent = `${shown} conditions`;
+  }
+
+  if (items.length){
+    populatePercents();
+    render();
+  }
+  if (search) search.addEventListener("input", render);
+  if (percentFilter) percentFilter.addEventListener("change", render);
+})();
+</script>
+{% endblock %}

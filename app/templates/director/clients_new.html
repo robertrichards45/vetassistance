@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}New Client • Director{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Director</div>
+      <h1 class="page-title">New Client</h1>
+      <p class="page-sub">Create a client record.</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('director_clients_list') }}">Back</a>
+    </div>
+  </div>
+</section>
+
+<div class="card-shell" style="max-width:720px;">
+  <div class="card-body-pad">
+    <form action="{{ url_for('director_clients_new') }}" method="post" class="stack-form">
+      <label class="form-label">First Name
+        <input class="form-control" type="text" name="first_name" required>
+      </label>
+      <label class="form-label">Last Name
+        <input class="form-control" type="text" name="last_name" required>
+      </label>
+      <div class="d-flex gap-2 flex-wrap mt-2">
+        <button class="btn btn-primary" type="submit">Create</button>
+        <a class="btn btn-outline-primary" href="{{ url_for('director_clients_list') }}">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,75 @@
+﻿{% extends "base.html" %}
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Intakes</div>
+      <h1 class="page-title">Intake Queue</h1>
+      <p class="page-sub">Review new submissions, convert to clients, and track status.</p>
+    </div>
+    <div class="page-actions">
+      <span class="pill">{{ status }}</span>
+    </div>
+  </div>
+</section>
+
+<div class="card-shell mb-3">
+  <div class="card-body-pad">
+    <div class="d-flex gap-2 flex-wrap mb-3">
+      <a class="btn btn-outline-primary" href="{{ url_for('intakes.queue', status='NEW') }}">New</a>
+      <a class="btn btn-outline-primary" href="{{ url_for('intakes.queue', status='REVIEWED') }}">Reviewed</a>
+      <a class="btn btn-outline-primary" href="{{ url_for('intakes.queue', status='CONVERTED') }}">Converted</a>
+    </div>
+
+    <form method="get" class="d-flex gap-2 flex-wrap">
+      <input type="hidden" name="status" value="{{ status }}">
+      <input class="form-control" name="q" placeholder="Search email or filename" value="{{ request.args.get('q','') }}" style="min-width:280px;">
+      <button class="btn btn-primary" type="submit">Search</button>
+    </form>
+  </div>
+</div>
+
+<div class="card-shell">
+  <div class="card-body-pad">
+    <div class="table-responsive">
+      <table class="table align-middle premium-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Email</th>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>File</th>
+            <th>Created</th>
+            <th>Status</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for r in rows %}
+          <tr>
+            <td>{{ r.id }}</td>
+            <td style="font-weight:900;color:var(--heading);">{{ r.email }}</td>
+            <td>{{ (meta_map.get(r.id).full_name if meta_map.get(r.id) else '') }}</td>
+            <td>{{ (meta_map.get(r.id).phone if meta_map.get(r.id) else '') }}</td>
+            <td>{{ r.filename }}</td>
+            <td>{{ r.created_at }}</td>
+            <td><span class="pill">{{ r.status.value }}</span></td>
+            <td class="text-end">
+              <div class="d-flex gap-2 justify-content-end flex-wrap">
+                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('intakes.view', intake_id=r.id) }}">Open</a>
+                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('intakes.convert_preview', intake_id=r.id) }}">Convert</a>
+                <form method="post" action="{{ url_for('intakes.resend_invite', intake_id=r.id) }}">
+                  <button class="btn btn-sm btn-outline-primary" type="submit">Resend Invite</button>
+                </form>
+                <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('intakes.download_file', intake_id=r.id) }}">Download</a>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

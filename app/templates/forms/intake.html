@@ -1,0 +1,39 @@
+{% extends "layout.html" %}
+{% block title %}Intake Form • {{ client.display_name() }}{% endblock %}
+{% block content %}
+<div class="row">
+  <div>
+    <h2>Client Intake Form</h2>
+    <div class="muted small">{{ client.display_name() }}</div>
+  </div>
+  <div class="row-actions">
+    <a class="btn secondary" href="{{ url_for('clients.view_client', client_id=client.id) }}">Back</a>
+  </div>
+</div>
+
+<div class="card">
+  <form method="post" action="{{ url_for('forms.intake_save', client_id=client.id) }}" class="grid">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div style="grid-column:1/-1;"><label>Full legal name</label><input name="full_legal_name" value="{{ data.full_legal_name or '' }}"></div>
+    <div><label>DOB</label><input name="dob" placeholder="YYYY-MM-DD" value="{{ data.dob or '' }}"></div>
+    <div><label>SSN (full)</label><input name="ssn_full" type="password" autocomplete="off" placeholder="Enter full SSN to store securely"></div>
+    <div><label>SSN last 4</label><input name="ssn_last4" maxlength="4" value="{{ data.ssn_last4 or '' }}"></div>
+    <div><label>Phone</label><input name="phone" value="{{ data.phone or '' }}"></div>
+    <div><label>Branch</label><input name="branch" value="{{ data.branch or '' }}"></div>
+    <div><label>Service entry date</label><input name="service_entry_date" placeholder="YYYY-MM-DD" value="{{ data.service_entry_date or '' }}"></div>
+    <div><label>Service discharge date</label><input name="service_discharge_date" placeholder="YYYY-MM-DD" value="{{ data.service_discharge_date or '' }}"></div>
+    <div><label>Service dates</label><input name="service_dates" placeholder="YYYY-YYYY" value="{{ data.service_dates or '' }}"></div>
+    <div style="grid-column:1/-1;"><label>Mailing address</label><input name="mailing_address1" placeholder="Street address" value="{{ data.mailing_address1 or '' }}"></div>
+    <div style="grid-column:1/-1;"><label>Mailing address (line 2)</label><input name="mailing_address2" placeholder="Apt / Unit (optional)" value="{{ data.mailing_address2 or '' }}"></div>
+    <div><label>Mailing city</label><input name="mailing_city" value="{{ data.mailing_city or '' }}"></div>
+    <div><label>Mailing state</label><input name="mailing_state" value="{{ data.mailing_state or '' }}"></div>
+    <div><label>Mailing ZIP</label><input name="mailing_zip" value="{{ data.mailing_zip or '' }}"></div>
+    <div><label>Current VA rating</label><input name="current_rating" placeholder="e.g., 70%" value="{{ data.current_rating or '' }}"></div>
+    <div style="grid-column:1/-1;"><label>Issues / conditions / goals</label><textarea name="issues" rows="4">{{ data.issues or '' }}</textarea></div>
+    <div style="grid-column:1/-1;"><label>Deadlines</label><textarea name="deadlines" rows="2">{{ data.deadlines or '' }}</textarea></div>
+    <div style="grid-column:1/-1;"><label>Notes</label><textarea name="notes" rows="4">{{ data.notes or '' }}</textarea></div>
+    <div style="grid-column:1/-1;"><button class="btn" type="submit">Save</button></div>
+  </form>
+  <p class="muted small">This structured intake data can be used to auto-fill letters and drafts.</p>
+</div>
+{% endblock %}

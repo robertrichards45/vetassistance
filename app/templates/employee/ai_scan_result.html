@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-wide">
+
+  <div class="section-header d-flex justify-content-between align-items-end flex-wrap">
+    <div>
+      <h2 class="mb-1">AI Scan Results</h2>
+      <p class="mb-0">
+        Client: <strong>{{ client.display_name() }}</strong>
+        {% if client.claim_number %} | Claim # <span class="pill pill-claim">{{ client.claim_number }}</span>{% endif %}
+      </p>
+    </div>
+    <div class="section-actions">
+      <a class="btn btn-outline-primary" href="{{ url_for('client_files', client_id=client.id) }}">Back to Files</a>
+      <a class="btn btn-primary" href="{{ url_for('export_ai_scan_word', client_id=client.id) }}">Download Word Report</a>
+    </div>
+  </div>
+
+  <div class="card-shell mt-3 word-like">
+    <div class="card-body-pad">
+
+      <h1 style="margin:0 0 10px 0; font-size:22pt; font-weight:800;">AI Findings Report</h1>
+
+      <div style="border:1px solid rgba(15,23,42,.10); border-radius:12px; padding:10px 12px; background:#fafcff; margin-bottom:14px;">
+        <div><strong>Veteran:</strong> {{ client.display_name() }}</div>
+        {% if client.claim_number %}<div><strong>Claim Number:</strong> {{ client.claim_number }}</div>{% endif %}
+      </div>
+
+      <h2 style="font-size:14pt; margin: 0 0 8px 0;">Executive Summary</h2>
+      {% for p in (scan.narrative_client or []) %}
+        <p>{{ p }}</p>
+      {% endfor %}
+
+      {% if scan.recommended_claim_strategy %}
+        <h2 style="font-size:14pt; margin: 14px 0 8px 0;">Recommended Claim Strategy</h2>
+        <p>{{ scan.recommended_claim_strategy }}</p>
+      {% endif %}
+
+      <hr style="border:0; border-top:1px solid rgba(15,23,42,.10); margin: 14px 0;">
+
+      <h2 style="font-size:14pt; margin: 0 0 10px 0;">Findings</h2>
+
+      {% if not scan.claims %}
+        <div class="empty">
+          <div class="empty-title">No findings were returned.</div>
+          <div class="empty-sub">
+            If you expected results, confirm PDFs are uploaded and AI is configured.
+          </div>
+        </div>
+      {% endif %}
+
+      {% for c in (scan.claims or []) %}
+        <div style="padding: 10px 0; border-bottom:1px solid rgba(15,23,42,.08);">
+          <div style="display:flex; gap:10px; justify-content:space-between; flex-wrap:wrap; align-items:flex-start;">
+            <div>
+              <div style="font-size:13.5pt; font-weight:800;">{{ c.condition }}</div>
+              {% if c.body_system %}
+                <div style="color:rgba(15,23,42,.72); margin-top:2px;">Body system: {{ c.body_system }}</div>
+              {% endif %}
+            </div>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <span class="pill {% if c.is_low_conf %}pill-bad{% else %}pill-good{% endif %}">
+                Confidence {{ c.confidence }} / 100
+              </span>
+            </div>
+          </div>
+
+          {% for p in (c.client_paragraphs or []) %}
+            <p>{{ p }}</p>
+          {% endfor %}
+
+          {% if c.rating_examples %}
+            <div style="margin-top:8px; padding:10px 12px; border:1px solid rgba(15,23,42,.10); border-radius:12px; background:rgba(244,247,251,.60);">
+              <div style="font-weight:800; margin-bottom:6px;">VA rating examples (for understanding only)</div>
+              <ul style="margin:0; padding-left: 18px;">
+                {% for ex in c.rating_examples[:4] %}
+                  <li style="margin:0 0 6px 0;">{{ ex }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
+
+          {% if c.cfr_refs %}
+            <div style="margin-top:8px; color:rgba(15,23,42,.72);">
+              <strong>CFR references:</strong> {{ c.cfr_refs | join(", ") }}
+            </div>
+          {% endif %}
+
+          {% if scan.staff_view and c.staff_notes %}
+            <div class="raw-ai">
+              <details>
+                <summary style="cursor:pointer; font-weight:800; margin-top:10px;">Staff-only notes</summary>
+                <div style="white-space:pre-wrap; margin-top:8px;">{{ c.staff_notes }}</div>
+              </details>
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+
+      {% if scan.next_actions %}
+        <h2 style="font-size:14pt; margin: 14px 0 8px 0;">Recommended Next Steps</h2>
+        <ul style="margin:0; padding-left:18px;">
+          {% for a in scan.next_actions[:12] %}
+            <li style="margin:0 0 6px 0;">{{ a }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
+      {% if scan.staff_view and scan.raw_ai %}
+        <div class="raw-ai" style="margin-top:14px;">
+          <details>
+            <summary style="cursor:pointer; font-weight:800;">Show raw AI output (staff only)</summary>
+            <pre style="white-space:pre-wrap; font-size:11pt; margin-top:10px;">{{ scan.raw_ai }}</pre>
+          </details>
+        </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "layout.html" %}
+{% block title %}Welcome • {{ BRAND_NAME }}{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>Portal Created</h2>
+  <p class="lead">Your secure portal is ready. Use the credentials below to log in, then you’ll be required to set a new password.</p>
+
+  <div class="grid2" style="margin-top:10px;">
+    <div class="mini">
+      <div class="muted small">Email</div>
+      <pre class="pre" id="em">{{ email }}</pre>
+      <button class="btn tiny secondary" type="button" onclick="copyId('em')">Copy Email</button>
+    </div>
+    <div class="mini">
+      <div class="muted small">Temporary Password (one-time)</div>
+      <pre class="pre" id="pw">{{ temp_pw }}</pre>
+      <button class="btn tiny secondary" type="button" onclick="copyId('pw')">Copy Password</button>
+    </div>
+  </div>
+
+  <div style="margin-top:14px;">
+    <a class="btn" href="{{ url_for('auth.login') }}">Go to Login</a>
+  </div>
+
+  <p class="muted small" style="margin-top:12px;">For your security, save this temporary password now. It will not be shown again.</p>
+</div>
+
+<script>
+function copyId(id){
+  const txt = document.getElementById(id).innerText;
+  navigator.clipboard.writeText(txt).then(()=> alert("Copied."), ()=> alert("Copy failed."));
+}
+</script>
+{% endblock %}

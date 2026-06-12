@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Onboarding Items - {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Director</div>
+      <h1 class="page-title">Onboarding Items</h1>
+      <p class="page-sub">Manage employee training tasks, links, and required status.</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('director.dashboard') }}">Back</a>
+    </div>
+  </div>
+</section>
+
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card-shell">
+      <div class="card-body-pad">
+        <div class="panel-title">Add item</div>
+        <form method="post" action="{{ url_for('director.onboarding_items_create') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label class="form-label">Title</label>
+          <input class="form-control" name="title" required>
+          <label class="form-label">Description</label>
+          <textarea class="form-control" name="description" rows="4"></textarea>
+          <label class="form-label">Task URL</label>
+          <input class="form-control" name="task_url" required placeholder="/employee/hub/standards">
+          <label class="form-label">Sort order</label>
+          <input class="form-control" name="sort_order" type="number" value="0">
+          <div class="d-flex gap-2 mt-2">
+            <label class="form-check">
+              <input class="form-check-input" type="checkbox" name="is_active" value="1" checked>
+              <span class="form-check-label">Active</span>
+            </label>
+            <label class="form-check">
+              <input class="form-check-input" type="checkbox" name="is_required" value="1" checked>
+              <span class="form-check-label">Required</span>
+            </label>
+          </div>
+          <div class="mt-3">
+            <button class="btn btn-primary" type="submit">Create</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="card-shell">
+      <div class="card-body-pad">
+        <div class="panel-title">Current items</div>
+        <div class="table">
+          <div class="thead" style="grid-template-columns: 2fr 2fr 120px 120px;">
+            <div>Item</div><div>Task URL</div><div>Status</div><div>Actions</div>
+          </div>
+          {% for item in items %}
+            <div class="trow" style="grid-template-columns: 2fr 2fr 120px 120px;">
+              <div>
+                <strong>{{ item.title }}</strong>
+                <div class="muted small">{{ item.description }}</div>
+              </div>
+              <div class="mono">{{ item.task_url }}</div>
+              <div>
+                <span class="pill {{ 'ready' if item.is_active else 'warn' }}">{{ 'Active' if item.is_active else 'Inactive' }}</span>
+              </div>
+              <div>
+                <button class="btn tiny secondary" type="button" onclick="toggleEdit('{{ item.id }}')">Edit</button>
+              </div>
+            </div>
+            <div id="edit-{{ item.id }}" class="card" style="display:none;margin-top:8px;padding:12px;">
+              <form method="post" action="{{ url_for('director.onboarding_items_update', item_id=item.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label class="form-label">Title</label>
+                <input class="form-control" name="title" value="{{ item.title }}">
+                <label class="form-label">Description</label>
+                <textarea class="form-control" name="description" rows="3">{{ item.description }}</textarea>
+                <label class="form-label">Task URL</label>
+                <input class="form-control" name="task_url" value="{{ item.task_url }}">
+                <label class="form-label">Sort order</label>
+                <input class="form-control" name="sort_order" type="number" value="{{ item.sort_order }}">
+                <div class="d-flex gap-2 mt-2">
+                  <label class="form-check">
+                    <input class="form-check-input" type="checkbox" name="is_active" value="1" {% if item.is_active %}checked{% endif %}>
+                    <span class="form-check-label">Active</span>
+                  </label>
+                  <label class="form-check">
+                    <input class="form-check-input" type="checkbox" name="is_required" value="1" {% if item.is_required %}checked{% endif %}>
+                    <span class="form-check-label">Required</span>
+                  </label>
+                </div>
+                <div class="d-flex gap-2 mt-3 flex-wrap">
+                  <button class="btn btn-primary" type="submit">Save</button>
+                </div>
+              </form>
+              <form method="post" action="{{ url_for('director.onboarding_items_delete', item_id=item.id) }}" style="margin-top:8px;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-outline-primary" type="submit">Delete</button>
+              </form>
+            </div>
+          {% else %}
+            <div class="muted" style="padding:16px;">No items yet.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleEdit(id){
+  const el = document.getElementById("edit-" + id);
+  if(!el) return;
+  el.style.display = (el.style.display === "none" || !el.style.display) ? "block" : "none";
+}
+</script>
+
+{% endblock %}

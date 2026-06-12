@@ -1,0 +1,62 @@
+{% extends "layout.html" %}
+{% block title %}Edit Client • {{ COMPANY_NAME }}{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="section-header">
+    <div>
+      <h2>Edit Client</h2>
+      <p>{{ client.display_name() }} • <span class="mono">{{ client.claim_number }}</span></p>
+    </div>
+    <div class="section-actions">
+      <a href="{{ url_for('clients_list') }}" class="btn btn-outline">Back to Clients</a>
+      <a href="{{ url_for('client_files', client_id=client.id) }}" class="btn btn-outline">Files &amp; AI</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <form method="post" class="stack-form">
+      <label>First name
+        <input type="text" name="first_name" value="{{ client.first_name }}" required>
+      </label>
+
+      <label>Last name
+        <input type="text" name="last_name" value="{{ client.last_name }}" required>
+      </label>
+
+      <label>Claim #
+        <input type="text" name="claim_number" value="{{ client.claim_number }}">
+      </label>
+
+      <label>Status
+        <select name="status">
+          {% set s = (client.status or "Active") %}
+          <option value="Active" {{ "selected" if s=="Active" else "" }}>Active</option>
+          <option value="Pending" {{ "selected" if s=="Pending" else "" }}>Pending</option>
+          <option value="Closed" {{ "selected" if s=="Closed" else "" }}>Closed</option>
+        </select>
+      </label>
+
+      <label>Email
+        <input type="email" name="email" value="{{ client.email or '' }}">
+      </label>
+
+      <label>Phone
+        <input type="text" name="phone" value="{{ client.phone or '' }}">
+      </label>
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:6px;">
+        <a class="btn btn-outline" href="{{ url_for('clients_list') }}">Cancel</a>
+        <button class="btn btn-primary" type="submit">Save Changes</button>
+
+        <form method="post"
+              action="{{ url_for('client_delete', client_id=client.id) }}"
+              class="inline"
+              onsubmit="return confirm('Delete this client and all related data?');">
+          <button class="btn btn-danger" type="submit">Delete Client</button>
+        </form>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

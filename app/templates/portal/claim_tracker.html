@@ -1,0 +1,52 @@
+{% extends "layout.html" %}
+{% block title %}Claim Tracker{% endblock %}
+{% block content %}
+<div class="row">
+  <div>
+    <h2>Claim Tracker</h2>
+    <div class="muted small">{{ client.display_name() }}</div>
+  </div>
+  <div class="row-actions">
+    <a class="btn secondary" href="{{ url_for('portal.dashboard') }}">Back</a>
+  </div>
+</div>
+
+<div class="grid2" style="margin-top:12px;">
+  <div class="card">
+    <h3>Current status</h3>
+    {% if is_guest %}
+      <div class="muted">Verify your email to unlock updates.</div>
+    {% else %}
+      <div><strong>Status:</strong> {{ client.status or "Intake in progress" }}</div>
+      {% if client.claim_number %}
+        <div><strong>Claim #:</strong> {{ client.claim_number }}</div>
+      {% endif %}
+    {% endif %}
+  </div>
+  <div class="card">
+    <h3>Submit an update</h3>
+    {% if is_guest %}
+      <div class="muted">Verify your email to submit updates.</div>
+    {% else %}
+      <form method="post" action="{{ url_for('portalx.claim_tracker_post') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <textarea name="note" rows="4" placeholder="Add a short status update or question."></textarea>
+        <button class="btn" style="margin-top:10px;">Send update</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card" style="margin-top:14px;">
+  <h3>Timeline</h3>
+  {% for u in updates %}
+    <div class="mini">
+      <div class="muted small">{{ u.created_at|format_et }} · {{ u.source_role }}</div>
+      <div><strong>{{ u.status_label or u.status_key or "Update" }}</strong></div>
+      {% if u.note %}<div>{{ u.note }}</div>{% endif %}
+    </div>
+  {% else %}
+    <div class="muted">No updates yet.</div>
+  {% endfor %}
+</div>
+{% endblock %}

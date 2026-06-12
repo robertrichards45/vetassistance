@@ -1,0 +1,468 @@
+﻿{% extends "base.html" %}
+{% block title %}Client | {{ client.display_name() }}{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Client</div>
+      <h1 class="page-title">{{ client.display_name() }}</h1>
+      <p class="page-sub">
+        Email: {{ client.email or "—" }} | Phone: {{ client.phone or "—" }}
+        {% if portal_user and portal_user.last_login_at %}
+          | Last login: {{ portal_user.last_login_at.strftime('%Y-%m-%d %H:%M') }}
+        {% else %}
+          | Last login: —
+        {% endif %}
+      </p>
+      {% if (client.account_type and client.account_type.lower() == "guest") or (not client.email) or (client.email_verified is false) %}
+        <div class="pill pill-bad" style="margin-top:8px;">Guest Account - Email Not On File</div>
+        <div class="muted small" style="margin-top:6px;">Intake and AI screening allowed. Claims and document uploads require verification.</div>
+      {% endif %}
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('messages.staff_thread', client_id=client.id) }}">Messages</a>
+      <a class="btn btn-outline-light" href="{{ url_for('clients.client_notes', client_id=client.id) }}">Notes</a>
+      <a class="btn btn-outline-light" href="{{ url_for('documents.client_documents', client_id=client.id) }}">Documents</a>
+      <a class="btn btn-outline-light" href="{{ url_for('tasks.staff_tasks', client_id=client.id) }}">Checklist</a>
+      <a class="btn btn-outline-light" href="{{ url_for('letters.staff_letters', client_id=client.id) }}">Letters</a>
+      <a class="btn btn-outline-light" href="{{ url_for('artifacts.for_client', client_id=client.id) }}">Generated Docs</a>
+      <a class="btn btn-outline-light" href="{{ url_for('portal.portal_home', next=url_for('billing.overview')) }}">Pay Bill</a>
+      <a class="btn btn-outline-light" href="{{ url_for('forms.intake', client_id=client.id) }}">Intake Form</a>
+      <a class="btn btn-outline-light" href="{{ url_for('forms.va_packet', client_id=client.id) }}">VA Forms Packet</a>
+      <a class="btn btn-outline-light" href="{{ url_for('nexus.builder', client_id=client.id) }}">Nexus Builder</a>
+      <a class="btn btn-outline-light" href="{{ url_for('cue.staff_builder', client_id=client.id) }}">CUE Motion Builder</a>
+      <a class="btn btn-outline-light" href="{{ url_for('cue.staff_filing_guide', client_id=client.id) }}">Which Filing Is Right?</a>
+      <a class="btn btn-outline-light" href="{{ url_for('agreements.for_client', client_id=client.id) }}">Agreements</a>
+      <a class="btn btn-outline-light" href="{{ url_for('templates.for_client', client_id=client.id) }}">Templates</a>
+      <a class="btn btn-outline-light" href="#staff-notes">Notes</a>
+      <a class="btn btn-primary" href="{{ url_for('ai.client_ai', client_id=client.id) }}">AI Guidance</a>
+    </div>
+  </div>
+</section>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card-shell">
+      <div class="card-body-pad">
+        <h3>Assigned Representative</h3>
+        <div class="muted small">Route portal messaging and letter context to a specific employee.</div>
+        <form method="post" action="{{ url_for('clients.assign_rep', client_id=client.id) }}" style="margin-top:10px;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <select name="assigned_user_id" class="form-control">
+            <option value="">? Unassigned ?</option>
+            {% for u in employees %}
+              <option value="{{ u.id }}" {{ "selected" if client.assigned_user_id == u.id else "" }}>{{ u.full_name or u.email }} ({{ u.role.value }})</option>
+            {% endfor %}
+          </select>
+          <button class="btn btn-outline-primary" style="margin-top:10px;">Save</button>
+        </form>
+
+        <div style="margin-top:12px;">
+          {% if not client.is_archived %}
+            <form method="post" action="{{ url_for('clients.archive_client', client_id=client.id) }}" onsubmit="return confirm('Archive this client?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-outline-secondary">Archive Client</button>
+            </form>
+          {% else %}
+            <div class="pill pill-bad">ARCHIVED</div>
+            <form method="post" action="{{ url_for('clients.restore_client', client_id=client.id) }}" style="margin-top:10px;">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-outline-primary">Restore Client</button>
+            </form>
+          {% endif %}
+          {% if current_user.is_director %}
+            <form method="post" action="{{ url_for('clients.delete_client', client_id=client.id) }}" style="margin-top:10px;" onsubmit="return confirm('Permanently delete this client and all related data?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-outline-primary">Delete Client</button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card-shell" style="margin-top:12px;">
+      <div class="card-body-pad">
+        <h3>Client Details (Prefill)</h3>
+        <div class="muted small">Used to prefill VA forms and packets.</div>
+        <form method="post" action="{{ url_for('clients.update_details', client_id=client.id) }}" class="row g-3" style="margin-top:6px;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="col-12">
+            <label class="form-label">Full legal name</label>
+            <input class="form-control" name="full_legal_name" value="{{ client.full_legal_name or '' }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">SSN (full)</label>
+            <input class="form-control" name="ssn_full" type="password" autocomplete="off" placeholder="Enter full SSN to update">
+            <div class="muted small" style="margin-top:4px;">Stored encrypted. Leave blank to keep current.</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">SSN (last 4)</label>
+            <input class="form-control" value="{{ client.ssn_last4 or '' }}" readonly>
+          </div>
+          {% if current_user.is_director %}
+          <div class="col-12">
+            <label class="form-label">Reveal SSN (Director only)</label>
+            <div class="d-flex gap-2 flex-wrap align-items-center">
+              <input class="form-control" id="ssnRevealField" readonly placeholder="Hidden">
+              <button class="btn btn-outline-secondary" type="button" id="ssnRevealBtn" data-csrf="{{ csrf_token() }}">Reveal</button>
+            </div>
+            <div class="muted small" style="margin-top:4px;">Requires confirmation and is logged server-side.</div>
+          </div>
+          {% endif %}
+          <div class="col-md-6">
+            <label class="form-label">DOB</label>
+            <input class="form-control" name="dob" placeholder="YYYY-MM-DD" value="{{ client.dob or '' }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Phone</label>
+            <input class="form-control" name="phone" value="{{ client.phone or '' }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Service branch</label>
+            <input class="form-control" name="service_branch" value="{{ client.service_branch or '' }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Retirement status</label>
+            <select class="form-control" name="retirement_status">
+              <option value="">Select</option>
+              <option {{ "selected" if (client.retirement_status == "Regular retirement") else "" }}>Regular retirement</option>
+              <option {{ "selected" if (client.retirement_status == "Medical retirement") else "" }}>Medical retirement</option>
+              <option {{ "selected" if (client.retirement_status == "TDRL/PDRL") else "" }}>TDRL/PDRL</option>
+              <option {{ "selected" if (client.retirement_status == "Not retired") else "" }}>Not retired</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">VA rating %</label>
+            <input class="form-control" name="va_rating_percent" value="{{ client.va_rating_percent or '' }}" placeholder="0-100">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Service entry date</label>
+            <input class="form-control" name="service_entry_date" placeholder="YYYY-MM-DD" value="{{ client.service_entry_date or '' }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Service discharge date</label>
+            <input class="form-control" name="service_discharge_date" placeholder="YYYY-MM-DD" value="{{ client.service_discharge_date or '' }}">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Mailing address</label>
+            <input class="form-control" name="mailing_address1" placeholder="Street address" value="{{ client.mailing_address1 or '' }}">
+          </div>
+          <div class="col-12">
+            <input class="form-control" name="mailing_address2" placeholder="Apt / Unit (optional)" value="{{ client.mailing_address2 or '' }}">
+          </div>
+          <div class="col-md-5">
+            <label class="form-label">City</label>
+            <input class="form-control" name="mailing_city" value="{{ client.mailing_city or '' }}">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">State</label>
+            <input class="form-control" name="mailing_state" value="{{ client.mailing_state or '' }}">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">ZIP</label>
+            <input class="form-control" name="mailing_zip" value="{{ client.mailing_zip or '' }}">
+          </div>
+          <div class="col-12 d-flex gap-2 justify-content-end">
+            <button class="btn btn-outline-primary" type="submit">Save Details</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card-shell">
+      <div class="card-body-pad">
+        <h3>Portal Access</h3>
+        <div class="muted small">Clients can upload documents and message you through their portal.</div>
+        {% if (client.account_type and client.account_type.lower() == "guest") or (not client.email) or (client.email_verified is false) %}
+          <div class="pill" style="margin-top:10px;">Restricted - Email required to proceed</div>
+          <div class="muted small" style="margin-top:6px;">Do not request sensitive documents until verification is complete.</div>
+        {% endif %}
+        <div style="margin-top:10px;" class="d-flex gap-2 flex-wrap">
+          <form method="post" action="{{ url_for('clients.create_portal', client_id=client.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-primary">{{ "Enable Portal" if not client.portal_user_id else "Re-Enable Portal" }}</button>
+          </form>
+          <div class="pill {{ 'pill-good' if client.portal_enabled else 'pill-bad' }}">{{ 'ENABLED' if client.portal_enabled else 'OFF' }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-shell" id="staff-notes" style="margin-top:12px;">
+      <div class="card-body-pad">
+        <h3>Staff Notes</h3>
+        <form method="post" action="{{ url_for('clients.update_notes', client_id=client.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <textarea class="form-control" name="notes" rows="6" placeholder="Add notes for this client...">{{ client.notes or "" }}</textarea>
+          <div class="d-flex gap-2 justify-content-end" style="margin-top:10px;">
+            <button class="btn btn-outline-primary" type="submit">Save Notes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="card-shell" id="va-calls" style="margin-top:12px;">
+      <div class="card-body-pad">
+        <h3>VA call log</h3>
+        <div class="muted small">Track calls with the VA for this client.</div>
+        <form method="post" action="{{ url_for('clients.add_va_call_log', client_id=client.id) }}" style="margin-top:10px;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Call date</label>
+              <input class="form-control" type="date" name="call_date">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Call time (optional)</label>
+              <input class="form-control" type="time" name="call_time">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Call type</label>
+              <select class="form-control" name="call_type">
+                <option value="">Select</option>
+                <option>VA</option>
+                <option>Doctor</option>
+                <option>Hospital / Clinic</option>
+                <option>VSO / Representative</option>
+                <option>C&amp;P Contractor</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Topic</label>
+              <select class="form-control" name="topic">
+                <option value="">Select</option>
+                <option>Claim status</option>
+                <option>Evidence submission</option>
+                <option>C&amp;P exam</option>
+                <option>Records request</option>
+                <option>Payments</option>
+                <option>Appeal / Supplemental</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">VA phone number (optional)</label>
+              <input class="form-control" name="phone" placeholder="800-827-1000">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">VA agent name (optional)</label>
+              <input class="form-control" name="agent_name" placeholder="First or agent ID">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Reference # (optional)</label>
+              <input class="form-control" name="reference_id" placeholder="Call or case reference">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Outcome (optional)</label>
+              <input class="form-control" name="outcome" placeholder="Pending / Follow-up / Completed">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Summary</label>
+              <textarea class="form-control" name="summary" rows="3" required placeholder="What was discussed and what the VA said."></textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Next steps (optional)</label>
+              <textarea class="form-control" name="next_steps" rows="2" placeholder="What you need to do next."></textarea>
+            </div>
+          </div>
+          <div class="d-flex gap-2 justify-content-end" style="margin-top:10px;">
+            <button class="btn btn-outline-primary" type="submit">Save Call Log</button>
+          </div>
+        </form>
+
+        <div style="margin-top:14px;">
+          <h4 style="margin-bottom:8px;">Recent call logs</h4>
+          {% if call_logs %}
+            <div class="table" style="margin-top:8px;">
+              <div class="thead" style="grid-template-columns: 1.2fr 1fr 1.4fr;">
+                <div>Date / Time</div><div>Outcome</div><div>Summary</div>
+              </div>
+            {% for log in call_logs %}
+              <div class="trow" style="grid-template-columns: 1.2fr 1fr 1.4fr;">
+                <div>
+                  <div><strong>{{ log.call_date or log.created_at.strftime('%Y-%m-%d') }}</strong></div>
+                  <div class="muted small">
+                    {{ log.call_time or '' }}
+                    {% if log.call_type %} · {{ log.call_type }}{% endif %}
+                    {% if log.topic %} · {{ log.topic }}{% endif %}
+                    {% if log.phone %} · {{ log.phone }}{% endif %}
+                    {% if log.agent_name %} · {{ log.agent_name }}{% endif %}
+                    {% if log.reference_id %} · Ref {{ log.reference_id }}{% endif %}
+                  </div>
+                </div>
+                <div class="muted small">{{ log.outcome or "—" }}</div>
+                <div>
+                  <div class="muted small">{{ log.summary }}</div>
+                  {% if log.next_steps %}<div class="muted small"><strong>Next:</strong> {{ log.next_steps }}</div>{% endif %}
+                  <details style="margin-top:8px;">
+                    <summary class="start-link">Edit / Delete</summary>
+                    <form method="post" action="{{ url_for('clients.edit_va_call_log', client_id=client.id, log_id=log.id) }}" style="margin-top:8px;">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <div class="row g-2">
+                        <div class="col-md-6">
+                          <label class="form-label">Call date</label>
+                          <input class="form-control" type="date" name="call_date" value="{{ log.call_date }}">
+                        </div>
+                        <div class="col-md-6">
+                      <label class="form-label">Call time</label>
+                      <input class="form-control" type="time" name="call_time" value="{{ log.call_time }}">
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Call type</label>
+                      <select class="form-control" name="call_type">
+                        <option value="">Select</option>
+                        <option {% if log.call_type == 'VA' %}selected{% endif %}>VA</option>
+                        <option {% if log.call_type == 'Doctor' %}selected{% endif %}>Doctor</option>
+                        <option {% if log.call_type == 'Hospital / Clinic' %}selected{% endif %}>Hospital / Clinic</option>
+                        <option {% if log.call_type == 'VSO / Representative' %}selected{% endif %}>VSO / Representative</option>
+                        <option {% if log.call_type == 'C&P Contractor' %}selected{% endif %}>C&amp;P Contractor</option>
+                        <option {% if log.call_type == 'Other' %}selected{% endif %}>Other</option>
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Topic</label>
+                      <select class="form-control" name="topic">
+                        <option value="">Select</option>
+                        <option {% if log.topic == 'Claim status' %}selected{% endif %}>Claim status</option>
+                        <option {% if log.topic == 'Evidence submission' %}selected{% endif %}>Evidence submission</option>
+                        <option {% if log.topic == 'C&P exam' %}selected{% endif %}>C&amp;P exam</option>
+                        <option {% if log.topic == 'Records request' %}selected{% endif %}>Records request</option>
+                        <option {% if log.topic == 'Payments' %}selected{% endif %}>Payments</option>
+                        <option {% if log.topic == 'Appeal / Supplemental' %}selected{% endif %}>Appeal / Supplemental</option>
+                        <option {% if log.topic == 'Other' %}selected{% endif %}>Other</option>
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Phone</label>
+                      <input class="form-control" name="phone" value="{{ log.phone }}">
+                    </div>
+                        <div class="col-md-6">
+                          <label class="form-label">Agent</label>
+                          <input class="form-control" name="agent_name" value="{{ log.agent_name }}">
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">Reference #</label>
+                          <input class="form-control" name="reference_id" value="{{ log.reference_id }}">
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">Outcome</label>
+                          <input class="form-control" name="outcome" value="{{ log.outcome }}">
+                        </div>
+                        <div class="col-12">
+                          <label class="form-label">Summary</label>
+                          <textarea class="form-control" name="summary" rows="2" required>{{ log.summary }}</textarea>
+                        </div>
+                        <div class="col-12">
+                          <label class="form-label">Next steps</label>
+                          <textarea class="form-control" name="next_steps" rows="2">{{ log.next_steps }}</textarea>
+                        </div>
+                      </div>
+                      <div class="d-flex gap-2 justify-content-end" style="margin-top:8px;">
+                        <button class="btn btn-outline-primary btn-sm" type="submit">Save</button>
+                      </div>
+                    </form>
+                    <form method="post" action="{{ url_for('clients.delete_va_call_log', client_id=client.id, log_id=log.id) }}" onsubmit="return confirm('Delete this call log?');" style="margin-top:8px;">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button class="btn btn-outline-secondary btn-sm" type="submit">Delete</button>
+                    </form>
+                  </details>
+                </div>
+              </div>
+            {% endfor %}
+            </div>
+          {% else %}
+            <div class="muted">No call logs yet.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card-shell" style="margin-top:12px;">
+      <div class="card-body-pad">
+        <h3>Payments</h3>
+        <div class="muted small">Recent client payments.</div>
+        <form method="post" action="{{ url_for('billing.client_pay_link', client_id=client.id) }}" style="margin-top:10px;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="d-flex gap-2 flex-wrap align-items-center">
+            <input class="form-control" name="amount" placeholder="Amount (USD)" style="max-width:180px;">
+            <button class="btn btn-outline-primary" type="submit">Generate Payment Link</button>
+          </div>
+        </form>
+        <form method="post" action="{{ url_for('billing.client_invoice', client_id=client.id) }}" style="margin-top:8px;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="d-flex gap-2 flex-wrap align-items-center">
+            <input class="form-control" name="amount" placeholder="Amount (USD)" style="max-width:180px;">
+            <button class="btn btn-outline-primary" type="submit">Send Invoice</button>
+          </div>
+        </form>
+        {% if payments %}
+          <div class="table" style="margin-top:10px;">
+            <div class="thead" style="grid-template-columns: 1fr 1fr 1fr 1fr;">
+              <div>Amount</div><div>Status</div><div>Date</div><div>Receipt</div>
+            </div>
+            {% for p in payments %}
+              <div class="trow" style="grid-template-columns: 1fr 1fr 1fr 1fr;">
+                <div><strong>${{ '%.2f'|format((p.amount_cents or 0)/100) }}</strong></div>
+                <div class="pill ready">{{ p.status or 'paid' }}</div>
+                <div class="muted small">{{ p.created_at.strftime('%Y-%m-%d') }}</div>
+                <div>
+                  {% if p.receipt_url %}
+                    <a class="btn btn-outline-primary btn-sm" href="{{ p.receipt_url }}" target="_blank" rel="noopener">View</a>
+                  {% elif p.invoice_url %}
+                    <a class="btn btn-outline-primary btn-sm" href="{{ p.invoice_url }}" target="_blank" rel="noopener">Invoice</a>
+                  {% else %}
+                    <span class="muted small">--</span>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="muted" style="margin-top:8px;">No payments yet.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card-shell" style="margin-top:12px;">
+      <div class="card-body-pad">
+        <h3>AI Tools</h3>
+        <div class="muted small">Run document analysis or get next-step guidance.</div>
+        <div class="d-flex gap-2 flex-wrap" style="margin-top:10px;">
+          <a class="btn btn-outline-primary" href="{{ url_for('ai.client_ai', client_id=client.id) }}">AI Scan Documents</a>
+          <a class="btn btn-primary" href="{{ url_for('ai.client_ai', client_id=client.id) }}">AI Guidance</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if current_user.is_director %}
+<script>
+(function(){
+  const btn = document.getElementById("ssnRevealBtn");
+  const field = document.getElementById("ssnRevealField");
+  if(!btn || !field) return;
+  const csrf = btn.getAttribute("data-csrf") || "";
+  btn.addEventListener("click", function(){
+    if(!confirm("Reveal full SSN for this client?")) return;
+    fetch("{{ url_for('clients.reveal_ssn', client_id=client.id) }}", {
+      method: "POST",
+      headers: {"Content-Type": "application/json", "X-CSRFToken": csrf},
+      body: JSON.stringify({}),
+      credentials: "same-origin",
+    }).then(r => r.json()).then(function(resp){
+      if(resp.error){
+        field.value = resp.error;
+        return;
+      }
+      field.value = resp.ssn || "";
+    }).catch(function(){
+      field.value = "Error";
+    });
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}

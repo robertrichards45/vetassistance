@@ -1,0 +1,49 @@
+{% extends "layout.html" %}
+{% block title %}Inbox - {{ BRAND_NAME }}{% endblock %}
+{% block content %}
+<div class="row">
+  <div>
+    <h2>Inbox</h2>
+    <div class="muted small">Assigned client messages in one place.</div>
+  </div>
+  <div class="row-actions">
+    <a class="btn secondary" href="{{ url_for('employee.dashboard') }}">Dashboard</a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table">
+    <div class="thead" style="grid-template-columns: 2fr 2fr 120px 140px;">
+      <div>Client</div><div>Latest Message</div><div>Unread</div><div></div>
+    </div>
+    {% for r in rows %}
+      <div class="trow" style="grid-template-columns: 2fr 2fr 120px 140px;">
+        <div>
+          <strong>{{ r.client.display_name() }}</strong>
+          <div class="muted small">{{ r.client.email }}</div>
+        </div>
+        <div class="muted small">
+          {% if r.last %}
+            <div><strong>{{ r.last.sender_role }}</strong> - {{ r.last.body[:120] }}{% if r.last.body|length > 120 %}...{% endif %}</div>
+            <div class="muted small">{{ r.last.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+          {% else %}
+            <div class="muted">No messages yet.</div>
+          {% endif %}
+        </div>
+        <div>
+          {% if r.unread > 0 %}
+            <span class="pill warn">{{ r.unread }} new</span>
+          {% else %}
+            <span class="pill ready">0</span>
+          {% endif %}
+        </div>
+        <div>
+          <a class="btn tiny" href="{{ url_for('messages.staff_thread', client_id=r.client.id) }}">Open Thread</a>
+        </div>
+      </div>
+    {% else %}
+      <div class="muted" style="padding:16px;">No conversations yet.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

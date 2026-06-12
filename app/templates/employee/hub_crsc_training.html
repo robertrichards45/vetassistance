@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Employee Hub - CRSC Training{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Employee Hub</div>
+      <h1 class="page-title">CRSC Training Modules</h1>
+      <p class="page-sub">Use this guide to keep CRSC analysis accurate and separated from VA benefits.</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('employee.hub') }}">Back to Hub</a>
+      <a class="btn btn-outline-light" href="{{ url_for('employee.hub_crsc') }}">Open CRSC Workspace</a>
+    </div>
+  </div>
+</section>
+
+<div class="admin-wrap">
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <div class="panel-title">Module 1: CRSC Fundamentals</div>
+      <ul class="muted small" style="margin-top:8px;">
+        <li>CRSC is a DoD program for retirees, not a VA benefit.</li>
+        <li>CRSC requires a combat nexus category: armed conflict, hazardous service, simulated war, instrumentality of war.</li>
+        <li>CRSC is tax-free and interacts with retirement pay and VA compensation.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card-shell" style="margin-top:12px;">
+    <div class="card-body-pad">
+      <div class="panel-title">Module 2: Evidence Standards</div>
+      <ul class="muted small" style="margin-top:8px;">
+        <li>Confirm VA rating decision and code sheet are on file.</li>
+        <li>Document combat indicators (awards, deployments, incident reports).</li>
+        <li>Line-of-duty evidence or incident narratives must match the combat category.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card-shell" style="margin-top:12px;">
+    <div class="card-body-pad">
+      <div class="panel-title">Module 3: Denial Prevention</div>
+      <ul class="muted small" style="margin-top:8px;">
+        <li>Do not label a non-combat injury as combat-related without evidence.</li>
+        <li>Clarify simulated war vs. training accident language.</li>
+        <li>Ensure narratives cite evidence and show how the injury fits the combat category.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card-shell" style="margin-top:12px;">
+    <div class="card-body-pad">
+      <div class="panel-title">Module 4: Packet Assembly</div>
+      <ul class="muted small" style="margin-top:8px;">
+        <li>Use the CRSC workspace to verify the branch form and evidence checklist.</li>
+        <li>Generate a CRSC packet summary and a nexus narrative when needed.</li>
+        <li>Verify all documents are readable and labeled clearly.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

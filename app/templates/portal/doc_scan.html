@@ -1,0 +1,56 @@
+{% extends "layout.html" %}
+{% block title %}Document Scan{% endblock %}
+{% block content %}
+<div class="row">
+  <div>
+    <h2>Document Quality Scan</h2>
+    <div class="muted small">{{ client.display_name() }}</div>
+  </div>
+  <div class="row-actions">
+    <a class="btn secondary" href="{{ url_for('portal.dashboard') }}">Back</a>
+  </div>
+</div>
+
+<div class="card" style="margin-top:12px;">
+  <h3>Scan a document</h3>
+  {% if is_guest %}
+    <div class="muted">Verify your email to scan documents.</div>
+  {% else %}
+    <form method="post" action="{{ url_for('portalx.doc_scan_post') }}" class="row" style="gap:12px;align-items:end;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div style="min-width:240px;">
+        <label>Document</label>
+        <select name="document_id">
+          {% for d in documents %}
+            <option value="{{ d.id }}">{{ d.filename }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <button class="btn">Scan now</button>
+      </div>
+    </form>
+  {% endif %}
+</div>
+
+{% if scan %}
+<div class="card" style="margin-top:14px;">
+  <h3>Scan result</h3>
+  <div class="muted">Score: <strong>{{ scan.score }}</strong></div>
+  <div class="muted">{{ scan.summary }}</div>
+  <div class="table" style="margin-top:10px;">
+    <div class="thead" style="grid-template-columns: 1fr 2fr;">
+      <div>Level</div><div>Detail</div>
+    </div>
+    {% for it in scan_issues %}
+      <div class="trow" style="grid-template-columns: 1fr 2fr;">
+        <div class="pill {{ 'ready' if it.level == 'green' else 'warn' if it.level == 'yellow' else 'danger' }}">{{ it.level }}</div>
+        <div>{{ it.title }} - {{ it.detail }}</div>
+      </div>
+    {% else %}
+      <div class="muted" style="padding:12px;">No issues detected.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

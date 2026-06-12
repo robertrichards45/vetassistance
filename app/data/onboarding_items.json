@@ -1,0 +1,100 @@
+﻿[
+  {
+    "title": "Review platform purpose and veteran-first standards",
+    "description": "Understand the mission of Veteran Benefits Assistance, the tone we use, and the standard of care expected when working with Veterans.",
+    "task_url": "/employee/hub/standards",
+    "sort_order": 1,
+    "is_active": true,
+    "is_required": true
+  },
+  {
+    "title": "Understand VA compliance rules and ethical boundaries",
+    "description": "Learn what employees can and cannot do (no legal advice, no outcome guarantees, handle documents responsibly, fees explained correctly).",
+    "task_url": "/employee/hub/compliance",
+    "sort_order": 2,
+    "is_active": true,
+    "is_required": true
+  },
+  {
+    "title": "Learn how to navigate dashboards, clients, and case records",
+    "description": "Learn where client records live, how to open a case, how to review notes, uploads, and service selections.",
+    "task_url": "/employee/clients",
+    "sort_order": 3,
+    "is_active": true,
+    "is_required": true
+  },
+  {
+    "title": "Upload, review, and manage evidence correctly",
+    "description": "Learn how to upload files, label them properly, categorize them, and avoid duplicates or missing key documents.",
+    "task_url": "/employee/hub/evidence-guide",
+    "sort_order": 4,
+    "is_active": true,
+    "is_required": true
+  },
+  {
+    "title": "Use AI guidance without overriding professional judgment",
+    "description": "Understand how AI suggestions are used (support tool only), how to verify accuracy, and when to escalate to Director.",
+    "task_url": "/employee/hub/ai-guidance",
+    "sort_order": 5,
+    "is_active": true,
+    "is_required": true
+  },
+  {
+    "title": "Generate correct VA forms and understand when each is required",
+    "description": "Learn how the forms generator works, where forms are stored, and how to avoid generating unnecessary or incorrect forms.",
+    "task_url": "/employee/hub/forms",
+    "sort_order": 6,
+    "is_active": true,
+    "is_required": true
+  },
+  {
+    "title": "Prepare, review, and finalize service agreements and contracts",
+    "description": "Learn how service agreements work, how pricing is displayed, when percent-based fees apply, and how to store signed docs.",
+    "task_url": "/employee/hub/fees-and-agreements",
+    "sort_order": 7,
+    "is_active": true,
+    "is_required": true
+  },
+  {
+    "title": "Communicate with clients through internal messaging",
+    "description": "Learn how to send and receive messages, use templates, document conversations, and avoid sharing sensitive info improperly.",
+    "task_url": "/messages/inbox",
+    "sort_order": 8,
+    "is_active": true,
+    "is_required": true
+  },
+  {
+    "title": "Handle life-event changes and update benefits accordingly",
+    "description": "Learn what dependency changes are (marriage, children, school status) and where to document changes for client follow-up.",
+    "task_url": "/employee/hub/life-events",
+    "sort_order": 9,
+    "is_active": true,
+    "is_required": true
+  },
+  {
+    "title": "Resolve common issues without escalation",
+    "description": "Learn standard fixes for common problems (missing files, unclear timelines, duplicate records, incomplete intake).",
+    "task_url": "/employee/hub/common-issues",
+    "sort_order": 10,
+    "is_active": true,
+    "is_required": true
+  },
+  {
+    "title": "Know when and how to escalate critical cases",
+    "description": "Learn escalation rules (urgent hardship, deadlines, safety concerns, legal representation questions, hostile communications).",
+    "task_url": "/employee/hub/escalation",
+    "sort_order": 11,
+    "is_active": true,
+    "is_required": true
+  },
+  {
+    "title": "Confirm understanding of data security and confidentiality",
+    "description": "Learn how we store documents, what is allowed, what is prohibited, and how to handle sensitive personal information safely.",
+    "task_url": "/employee/hub/security",
+    "sort_order": 12,
+    "is_active": true,
+    "is_required": true
+  }
+]
+
+

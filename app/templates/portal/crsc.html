@@ -1,0 +1,88 @@
+{% extends "layout.html" %}
+{% block title %}CRSC Dashboard - {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<div class="row">
+  <div>
+    <h2>CRSC Dashboard</h2>
+    <div class="muted small">{{ client.display_name() }}</div>
+  </div>
+  <div class="row-actions">
+    <a class="btn secondary" href="{{ url_for('portal.dashboard') }}">Back to Portal</a>
+  </div>
+</div>
+
+{% if is_guest %}
+  <div class="card" style="margin-top:12px;">
+    <div class="muted">Add and verify your email to unlock full CRSC status tracking.</div>
+  </div>
+{% endif %}
+
+<div class="grid2" style="margin-top:12px;">
+  <div class="card">
+    <h3>Eligibility confidence</h3>
+    <div class="pill ready" style="margin-top:8px;">{{ eligibility }}</div>
+    <div class="muted small" style="margin-top:8px;">Based on the CRSC intake questionnaire and current records.</div>
+    {% if missing %}
+      <div class="muted small" style="margin-top:8px;">Missing: {{ missing|join(', ') }}</div>
+    {% endif %}
+  </div>
+  <div class="card">
+    <h3>Packet readiness</h3>
+    <div class="muted small">{{ readiness_pct }}% complete</div>
+    <div class="progress" style="margin-top:8px;">
+      <div class="progress-bar" style="width: {{ readiness_pct }}%;"></div>
+    </div>
+    <ul class="muted small" style="margin-top:10px;">
+      {% for label, ok in readiness_items %}
+        <li>{{ label }} {% if ok %}<span class="pill ready">Done</span>{% else %}<span class="pill warn">Pending</span>{% endif %}</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+
+<div class="grid2" style="margin-top:14px;">
+  <div class="card">
+    <h3>CRSC status tracker</h3>
+    <div class="muted small">Your CRSC checklist progress.</div>
+    <div style="margin-top:10px;">
+      <div class="mini"><strong>Intake complete</strong> {% if crsc_form %}<span class="pill ready">Done</span>{% else %}<span class="pill warn">Pending</span>{% endif %}</div>
+      <div class="mini"><strong>Evidence uploaded</strong> {% if docs_count > 0 %}<span class="pill ready">Done</span>{% else %}<span class="pill warn">Pending</span>{% endif %}</div>
+      <div class="mini"><strong>Nexus narrative</strong> {% if narrative %}<span class="pill ready">Ready</span>{% else %}<span class="pill warn">Pending</span>{% endif %}</div>
+      <div class="mini"><strong>Packet generated</strong> {% if packet %}<span class="pill ready">Ready</span>{% else %}<span class="pill warn">Pending</span>{% endif %}</div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Evidence checklist</h3>
+    <div class="muted small">Focus on combat nexus documentation and retirement pay proof.</div>
+    <ul class="muted small" style="margin-top:10px;">
+      <li>Service-specific CRSC application form</li>
+      <li>VA rating decision and code sheet</li>
+      <li>Line-of-duty or incident report</li>
+      <li>Combat awards or deployment records</li>
+      <li>Medical records and diagnosis</li>
+      <li>Retired pay statement</li>
+    </ul>
+  </div>
+</div>
+
+<div class="grid2" style="margin-top:14px;">
+  <div class="card">
+    <h3>Nexus narrative preview</h3>
+    {% if narrative %}
+      <div class="muted small">Read-only preview of the latest CRSC nexus narrative.</div>
+      <div class="mini" style="margin-top:10px; white-space:pre-wrap;">{{ narrative.web_copy }}</div>
+    {% else %}
+      <div class="muted">No CRSC nexus narrative yet.</div>
+    {% endif %}
+  </div>
+  <div class="card">
+    <h3>Submission instructions</h3>
+    <div class="muted small">CRSC packets are submitted to your service branch. Your team will confirm the correct branch form and fax or mail instructions.</div>
+    <ul class="muted small" style="margin-top:10px;">
+      <li>Confirm the correct branch CRSC form is included.</li>
+      <li>Ensure all evidence is legible and dated.</li>
+      <li>Do not submit until the packet is marked ready.</li>
+    </ul>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2 class="mb-3">Welcome Packet</h2>
+
+  <p>
+    Welcome packet generation for
+    <strong>{{ client.first_name }} {{ client.last_name }}</strong>
+    ({{ client.claim_number }}) is ready to be built next.
+  </p>
+
+  <div class="mt-3">
+    <a class="btn btn-secondary" href="{{ url_for('client_detail', client_id=client.id) }}">Back to Client</a>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}VA Articles & Guides - {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<section class="blog-hero">
+  <div class="blog-hero-inner">
+    <div>
+      <div class="blog-kicker">VA Education Library</div>
+      <h1 class="blog-title">VA Articles & Guides</h1>
+      <p class="blog-sub">Long-form answers to the VA questions veterans search for most. Updated as rules change.</p>
+    </div>
+    <div class="blog-actions">
+      <a class="btn btn-primary" href="{{ url_for('public.guides') }}">Guides</a>
+      <a class="btn btn-outline-light" href="{{ url_for('public.home') }}">Home</a>
+    </div>
+  </div>
+</section>
+
+<div class="admin-wrap">
+  <section class="blog-grid">
+    {% for a in articles %}
+      <a class="blog-card" href="{{ url_for('public.article_detail', slug=a.slug) }}">
+        <div class="blog-card-kicker">Article</div>
+        <div class="blog-card-title">{{ a.title }}</div>
+        <div class="blog-card-text">{{ a.summary }}</div>
+        {% if a.updated_at %}
+          <div class="blog-card-meta">Last updated {{ a.updated_at.strftime('%Y-%m-%d') }}</div>
+        {% endif %}
+        <div class="blog-card-link">Read article</div>
+      </a>
+    {% else %}
+      <div class="muted">No articles yet.</div>
+    {% endfor %}
+  </section>
+
+  <section class="blog-split">
+    <div class="blog-panel">
+      <div class="panel-title">Popular Topics</div>
+      <div class="blog-topic-grid">
+        <div class="blog-topic">Back pay timelines</div>
+        <div class="blog-topic">C&P exam prep</div>
+        <div class="blog-topic">Rating criteria</div>
+        <div class="blog-topic">Denied claims</div>
+        <div class="blog-topic">Dependents & pay</div>
+        <div class="blog-topic">Tax questions</div>
+      </div>
+    </div>
+    <div class="blog-panel">
+      <div class="panel-title">Need a guided path?</div>
+      <div class="muted small">Use our guides for step-by-step explanations and checklists.</div>
+      <div class="blog-cta">
+        <a class="btn btn-outline-primary" href="{{ url_for('public.guides') }}">Open guides</a>
+      </div>
+    </div>
+  </section>
+</div>
+
+<style>
+.blog-hero{
+  background:
+    radial-gradient(900px 320px at 12% 18%, rgba(255,255,255,.12), transparent 60%),
+    linear-gradient(135deg, #0f2440 0%, #1b4c7a 60%, #0b1728 100%);
+  color:#fff;border-radius:22px;padding:22px;border:1px solid rgba(255,255,255,.15);
+  box-shadow:0 18px 44px rgba(2,8,23,.22);margin-bottom:16px;
+}
+.blog-hero-inner{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap}
+.blog-kicker{display:inline-flex;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);font-weight:800}
+.blog-title{margin:8px 0 4px;font-size:2rem}
+.blog-sub{margin:0;opacity:.9;max-width:760px}
+.blog-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+.blog-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:14px}
+.blog-card{
+  background:#fff;border:1px solid rgba(15,23,42,.12);border-radius:18px;padding:16px;
+  box-shadow:0 12px 28px rgba(2,8,23,.08);text-decoration:none;color:#0B1F3A;
+  display:flex;flex-direction:column;gap:8px;
+}
+.blog-card:hover{transform:translateY(-2px);transition:.15s ease;}
+.blog-card-kicker{font-weight:800;color:#1b3f6b;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em}
+.blog-card-title{font-weight:900;font-size:1.05rem}
+.blog-card-text{color:#4A5D73;font-weight:600}
+.blog-card-meta{color:#728097;font-weight:700;font-size:.85rem}
+.blog-card-link{font-weight:800;color:#1b4b8a}
+
+.blog-split{display:grid;grid-template-columns:1.2fr .8fr;gap:12px}
+.blog-panel{
+  background:#fff;border:1px solid rgba(15,23,42,.12);border-radius:18px;padding:16px;
+  box-shadow:0 12px 28px rgba(2,8,23,.08);
+}
+.blog-topic-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-top:10px}
+.blog-topic{
+  background:rgba(15,23,42,.06);border:1px solid rgba(15,23,42,.12);
+  padding:8px 10px;border-radius:12px;font-weight:800;color:#0B1F3A;
+}
+.blog-cta{margin-top:10px}
+
+@media (max-width: 980px){
+  .blog-split{grid-template-columns:1fr;}
+}
+</style>
+{% endblock %}

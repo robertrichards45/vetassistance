@@ -1,0 +1,62 @@
+
+{% extends "base.html" %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card vca-card">
+      <div class="card-body p-4">
+        <h2 class="h5 mb-3">One-Time Setup</h2>
+        <p class="text-muted">Create a Director account (and optional Employee accounts) to start using staff tools.</p>
+        <form method="post" class="vca-form">
+          <div class="mb-3">
+            <label class="form-label">Role</label>
+            <select class="form-select" name="role">
+              <option value="director">Director</option>
+              <option value="employee">Employee</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Name (optional)</label>
+            <input class="form-control" name="name" placeholder="Robert Richards">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input class="form-control" type="email" name="email" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Password</label>
+            <input class="form-control" type="password" name="password" required>
+          </div>
+          <button class="btn btn-primary" type="submit">Create User</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card vca-card">
+      <div class="card-body p-4">
+        <h2 class="h5 mb-3">Existing Users</h2>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead><tr><th>Email</th><th>Role</th><th>Name</th><th>Created</th></tr></thead>
+            <tbody>
+              {% for u in users %}
+              <tr>
+                <td>{{ u.email }}</td>
+                <td><span class="badge text-bg-secondary">{{ u.role }}</span></td>
+                <td>{{ u.name or "" }}</td>
+                <td class="text-muted">{{ u.created_at or "" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% if not director_exists %}
+          <div class="alert alert-warning mt-3 mb-0">No Director user exists yet. Create one on the left.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

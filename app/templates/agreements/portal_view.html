@@ -1,0 +1,54 @@
+{% extends "layout.html" %}
+{% block title %}Agreement - {{ client.display_name() }}{% endblock %}
+{% block content %}
+<div class="row">
+  <div>
+    <h2>Service Agreement</h2>
+    <div class="muted small">{{ client.display_name() }}</div>
+  </div>
+  <div class="row-actions">
+    <a class="btn secondary" href="{{ url_for('agreements.portal_list') }}">Back</a>
+  </div>
+</div>
+
+<div class="card">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;border-bottom:1px solid rgba(15,23,42,.10);padding-bottom:10px;">
+    <img src="{{ url_for('static', filename='brand/logo.png') }}" alt="Logo" style="height:50px;width:auto;">
+    <div>
+      <div style="font-weight:900;color:#0B1F3A;">{{ brand.brand }}</div>
+      <div class="muted small">{{ brand.email }} {% if brand.phone %} | {{ brand.phone }}{% endif %}</div>
+    </div>
+  </div>
+  <pre style="white-space:pre-wrap; font-family:inherit;">{{ item.body }}</pre>
+</div>
+
+{% if item.status != 'SIGNED' %}
+<div class="card">
+  <h3>Sign Agreement</h3>
+  <form method="post" action="{{ url_for('agreements.portal_sign', agreement_id=item.id) }}" class="grid">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div style="grid-column:1/-1;">
+      <label>Full name</label>
+      <input name="signed_name" required>
+    </div>
+    <div style="grid-column:1/-1;">
+      <label>Email (optional)</label>
+      <input name="signed_email" type="email">
+    </div>
+    <div style="grid-column:1/-1;">
+      <label><input type="checkbox" name="ack" value="yes" required> I agree to the terms above.</label>
+    </div>
+    <div style="grid-column:1/-1;">
+      <button class="btn btn-primary" type="submit">Sign Agreement</button>
+    </div>
+  </form>
+  <div class="muted small" style="margin-top:8px;">
+    You can also print this page, sign by hand, and upload it in Documents.
+  </div>
+</div>
+{% else %}
+<div class="card">
+  <div class="muted small">Signed by {{ item.signed_name }} on {{ item.signed_at.strftime('%Y-%m-%d') if item.signed_at else '' }}</div>
+</div>
+{% endif %}
+{% endblock %}

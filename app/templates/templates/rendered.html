@@ -1,0 +1,37 @@
+{% extends "layout.html" %}
+{% block title %}Generated • {{ template.name }}{% endblock %}
+{% block content %}
+<div class="row">
+  <div>
+    <h2>{{ template.name }}</h2>
+    <div class="muted small">{{ client.display_name() }}</div>
+  </div>
+  <div class="row-actions">
+    <a class="btn secondary" href="{{ url_for('templates.for_client', client_id=client.id) }}">Back</a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="row" style="margin-bottom:10px;">
+    <div class="muted small">Export + copy tools</div>
+    <div class="row-actions">
+      {% if artifact %}
+        <a class="btn tiny" href="{{ url_for('exports.download_artifact', artifact_id=artifact.id) }}">Download DOCX</a>
+        <a class="btn tiny secondary" href="{{ url_for('exports.email_draft', artifact_id=artifact.id) }}">Email Draft</a>
+      {% endif %}
+      <button class="btn tiny secondary" type="button" onclick="copyText()">Copy Web Copy</button>
+    </div>
+  </div>
+  <pre id="webcopy" class="pre">{{ output }}</pre>
+</div>
+
+<script>
+function copyText(){
+  const el = document.getElementById('webcopy');
+  const txt = el.innerText;
+  navigator.clipboard.writeText(txt).then(()=> {
+    alert("Copied to clipboard.");
+  }).catch(()=> alert("Copy failed."));
+}
+</script>
+{% endblock %}

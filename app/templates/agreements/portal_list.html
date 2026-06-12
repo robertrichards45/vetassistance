@@ -1,0 +1,46 @@
+{% extends "layout.html" %}
+{% block title %}Agreements - {{ client.display_name() }}{% endblock %}
+{% block content %}
+<div class="row">
+  <div>
+    <h2>Your Agreements</h2>
+    <div class="muted small">{{ client.display_name() }}</div>
+  </div>
+  <div class="row-actions">
+    <a class="btn secondary" href="{{ url_for('portal.dashboard') }}">Back</a>
+  </div>
+</div>
+
+<div class="card">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+    <img src="{{ url_for('static', filename='brand/logo.png') }}" alt="Logo" style="height:48px;width:auto;">
+    <div>
+      <div style="font-weight:900;color:#0B1F3A;">{{ brand.brand }}</div>
+      <div class="muted small">{{ brand.email }} {% if brand.phone %} | {{ brand.phone }}{% endif %}</div>
+    </div>
+  </div>
+  <div class="table">
+    <div class="thead" style="grid-template-columns: 1fr 140px 140px;">
+      <div>Agreement</div>
+      <div>Status</div>
+      <div>Action</div>
+    </div>
+    {% for a in items %}
+    <div class="trow" style="grid-template-columns: 1fr 140px 140px;">
+      <div>
+        <strong>{{ a.title }}</strong>
+        <div class="muted small">Created {{ a.created_at.strftime('%Y-%m-%d') }}</div>
+      </div>
+      <div class="pill {{ 'pill-good' if a.status == 'SIGNED' else 'pill-claim' }}">{{ a.status }}</div>
+      <div>
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('agreements.portal_view', agreement_id=a.id) }}">
+          {{ 'View' if a.status == 'SIGNED' else 'Review' }}
+        </a>
+      </div>
+    </div>
+    {% else %}
+      <div class="muted" style="padding:12px;">No agreements available yet.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "layout.html" %}
+{% block title %}Login • VA Claims Case Manager v15{% endblock %}
+
+{% block content %}
+<div class="grid grid-2">
+  <div class="card">
+    <h1>Employee Login</h1>
+    <p>Use your employee credentials to access the portal.</p>
+
+    <form method="POST" action="{{ url_for('login_post') }}">
+      <div class="grid" style="margin-top:10px;">
+        <input class="input" name="username" placeholder="Username" required>
+        <input class="input" type="password" name="password" placeholder="Password" required>
+        <button class="btn btn-primary" type="submit">Log In</button>
+      </div>
+    </form>
+
+    <p class="small" style="margin-top:12px;">
+      Default dev admin: <strong>admin</strong> / <strong>admin123!</strong>
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>Security Note</h2>
+    <p class="small">
+      This is dev-mode login. Next phase: role-based permissions, password reset,
+      and optional CAC-style authentication.
+    </p>
+  </div>
+</div>
+{% endblock %}

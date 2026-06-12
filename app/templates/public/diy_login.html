@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}DIY Login{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Do It Yourself</div>
+      <h1 class="page-title">Sign in</h1>
+      <p class="page-sub">Access your DIY tools and subscription.</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('diy.register') }}">Create account</a>
+    </div>
+  </div>
+</section>
+
+<div class="admin-wrap">
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <form method="post" action="{{ url_for('diy.login_post') }}" class="grid" style="max-width:520px;">
+        <label>Email</label>
+        <input name="email" type="email" required>
+        <label>Password</label>
+        <input name="password" type="password" required>
+        <button class="btn btn-primary" type="submit">Sign in</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

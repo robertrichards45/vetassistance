@@ -1,0 +1,160 @@
+﻿{% extends "base.html" %}
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Secure Intake</div>
+      <h1 class="page-title">Veteran Document Upload</h1>
+      <p class="page-sub">Upload documents without logging in. This is not a staff login page.</p>
+    </div>
+  </div>
+</section>
+
+<div class="card-shell">
+  <div class="card-body-pad">
+    <form method="post" enctype="multipart/form-data" class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Email (required)</label>
+        <input class="form-control" type="email" name="email" required>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Full Name</label>
+        <input class="form-control" type="text" name="full_name">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Phone</label>
+        <input class="form-control" type="text" name="phone">
+      </div>
+      <div class="col-12">
+        <label class="form-label">Documents</label>
+        <div class="dropzone" id="publicDropzone" style="padding:16px;border-radius:14px;border:1px dashed rgba(15,23,42,.25);background:#f7f9fc;">
+          <div class="dz-title" style="font-weight:900;color:#0B1F3A;">Drop files here</div>
+          <div class="muted small">or tap to browse - multiple files allowed</div>
+          <button type="button" class="btn btn-outline-primary btn-sm" id="publicPickBtn" style="margin-top:10px;">Select files</button>
+          <input id="publicFiles" class="file-input-overlay" type="file" name="file" multiple accept=".pdf,.png,.jpg,.jpeg,.docx" required>
+        </div>
+        <div id="publicQueue" class="muted small" style="margin-top:8px;"></div>
+      </div>
+      <div class="col-12 d-flex gap-2 justify-content-end">
+        <button class="btn btn-primary" id="publicUploadBtn" type="submit">Upload</button>
+      </div>
+      <div class="col-12">
+        <div id="publicUploadStatus" class="muted small" style="display:none;">Uploading...</div>
+        <div id="publicUploadProgress" class="upload-progress" style="display:none;">
+          <div id="publicUploadProgressBar" class="upload-progress-bar"></div>
+        </div>
+        <div id="publicUploadProgressText" class="upload-progress-text" style="display:none;">0%</div>
+      </div>
+    </form>
+
+{% if success %}
+  <div class="alert alert-success" style="margin-top:12px;">Upload successful.</div>
+{% endif %}
+  </div>
+</div>
+<script>
+(function(){
+  const dz = document.getElementById('publicDropzone');
+  const input = document.getElementById('publicFiles');
+  const pickBtn = document.getElementById('publicPickBtn');
+  const queue = document.getElementById('publicQueue');
+  const uploadForm = dz.closest('form');
+  const uploadBtn = document.getElementById('publicUploadBtn');
+  const uploadStatus = document.getElementById('publicUploadStatus');
+  const progressWrap = document.getElementById('publicUploadProgress');
+  const progressBar = document.getElementById('publicUploadProgressBar');
+  const progressText = document.getElementById('publicUploadProgressText');
+  if(!dz || !input || !queue || !uploadForm || !uploadBtn || !uploadStatus){ return; }
+
+  function renderQueue(files){
+    if(!files || files.length === 0){ queue.textContent = ''; return; }
+    const names = [];
+    for(const f of files){ names.push(f.name); }
+    queue.textContent = 'Selected: ' + names.join(', ');
+  }
+
+  dz.addEventListener('click', function(e){
+    if (e.target === input) return;
+    input.click();
+  });
+  if(pickBtn){
+    pickBtn.addEventListener('click', function(e){
+      e.preventDefault();
+      input.click();
+    });
+  }
+  input.addEventListener('change', function(){ renderQueue(input.files); });
+
+  ['dragenter','dragover'].forEach(function(ev){
+    dz.addEventListener(ev, function(e){ e.preventDefault(); dz.classList.add('drag'); });
+  });
+  ['dragleave','drop'].forEach(function(ev){
+    dz.addEventListener(ev, function(e){ e.preventDefault(); dz.classList.remove('drag'); });
+  });
+  dz.addEventListener('drop', function(e){
+    input.files = e.dataTransfer.files;
+    renderQueue(input.files);
+  });
+
+  uploadForm.addEventListener('submit', function(e){
+    if(!progressWrap || !progressBar || !progressText){
+      uploadBtn.disabled = true;
+      uploadBtn.textContent = 'Uploading...';
+      uploadStatus.style.display = 'block';
+      return;
+    }
+    e.preventDefault();
+    if(uploadForm.dataset.busy === '1'){ return; }
+    uploadForm.dataset.busy = '1';
+    uploadBtn.disabled = true;
+    uploadBtn.textContent = 'Uploading...';
+    uploadStatus.textContent = 'Uploading...';
+    uploadStatus.style.display = 'block';
+    progressWrap.style.display = 'block';
+    progressText.style.display = 'block';
+    progressBar.style.width = '0%';
+    progressText.textContent = '0%';
+
+    const xhr = new XMLHttpRequest();
+    xhr.open(uploadForm.method || 'POST', uploadForm.action);
+    xhr.upload.addEventListener('progress', function(evt){
+      if(!evt.lengthComputable) return;
+      const pct = Math.min(100, Math.max(1, Math.round((evt.loaded / evt.total) * 100)));
+      progressBar.style.width = pct + '%';
+      progressText.textContent = pct + '%';
+    });
+    xhr.onreadystatechange = function(){
+      if(xhr.readyState !== 4) return;
+      uploadForm.dataset.busy = '0';
+      if(xhr.status >= 200 && xhr.status < 400){
+        progressBar.style.width = '100%';
+        progressText.textContent = '100%';
+        const redirectUrl = xhr.responseURL;
+        if(redirectUrl){
+          window.location = redirectUrl;
+        } else {
+          window.location.reload();
+        }
+        return;
+      }
+      uploadBtn.disabled = false;
+      uploadBtn.textContent = 'Upload';
+      uploadStatus.textContent = 'Upload failed. Please try again.';
+    };
+    xhr.onerror = function(){
+      uploadForm.dataset.busy = '0';
+      uploadBtn.disabled = false;
+      uploadBtn.textContent = 'Upload';
+      uploadStatus.textContent = 'Upload failed. Please try again.';
+    };
+    const formData = new FormData(uploadForm);
+    xhr.send(formData);
+  });
+})();
+</script>
+<style>
+@media (max-width: 720px){
+  #publicPickBtn{width:100%;}
+}
+</style>
+{% endblock %}

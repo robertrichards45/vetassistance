@@ -1,0 +1,103 @@
+{% extends "layout.html" %}
+{% block title %}AI Guidance – {{ client.display_name() }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h2 class="mb-1">AI Guidance</h2>
+      <div class="text-muted small">
+        Client: {{ client.display_name() }} &middot;
+        Claim # {{ client.claim_number or ("CLIENT-" ~ "%06d"|format(client.id)) }}
+      </div>
+    </div>
+    <div class="text-end">
+      <a href="{{ url_for('client_detail', client_id=client.id) }}"
+         class="btn btn-secondary btn-sm mb-1">
+        Back to Client
+      </a>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Left: question + uploads -->
+    <div class="col-12 col-lg-5 mb-4">
+      <div class="card">
+        <div class="card-header">
+          Ask a Question About This Case
+        </div>
+        <div class="card-body">
+          <p class="small text-muted">
+            Use this to get structured guidance based on this client’s records.
+            The AI can help you:
+          </p>
+          <ul class="small text-muted">
+            <li>Spot which conditions might be supported by the evidence</li>
+            <li>Identify missing records or gaps</li>
+            <li>Outline next logical steps (records, statements, forms)</li>
+          </ul>
+          <p class="small text-muted mb-3">
+            It does <strong>not</strong> give legal advice or promise VA outcomes.
+          </p>
+
+          <form method="post"
+                action="{{ url_for('client_ai_guidance', client_id=client.id) }}"
+                enctype="multipart/form-data">
+            <div class="mb-3">
+              <label for="question" class="form-label">Your question</label>
+              <textarea id="question"
+                        name="question"
+                        rows="5"
+                        class="form-control"
+                        placeholder="Example: Based on this veteran’s PTSD and back records, what should I focus on next and what evidence may still be missing?">{{ question or "" }}</textarea>
+            </div>
+            <div class="mb-3">
+              <label for="files" class="form-label">
+                Optional: upload additional files for this guidance
+              </label>
+              <input type="file"
+                     id="files"
+                     name="files"
+                     class="form-control"
+                     multiple>
+              <div class="form-text small">
+                You can attach multiple PDFs/DOCX/TXT files (e.g. new exams, statements).
+                These will be added to the client record and included in the analysis.
+              </div>
+            </div>
+            <div class="d-flex justify-content-end">
+              <button type="submit" class="btn btn-primary btn-sm">
+                Ask AI
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: AI answer -->
+    <div class="col-12 col-lg-7">
+      <div class="card h-100">
+        <div class="card-header">
+          AI Guidance Answer
+        </div>
+        <div class="card-body" style="max-height: 70vh; overflow-y: auto;">
+          {% if ai_answer %}
+            <div class="small" style="white-space: pre-wrap;">
+              {{ ai_answer }}
+            </div>
+          {% else %}
+            <div class="text-muted small">
+              No AI guidance yet. Ask a question on the left and the answer will appear here.
+            </div>
+          {% endif %}
+        </div>
+        <div class="card-footer small text-muted">
+          Reminder: This is an administrative support tool only. It does not give legal advice,
+          and VA adjudicators make the final decision on all ratings and outcomes.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

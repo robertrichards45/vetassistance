@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+{% block title %}Letters • {{ BRAND_NAME }}{% endblock %}
+{% block content %}
+<div class="row">
+  <div>
+    <h2>Letters</h2>
+    <div class="muted small">{{ client.display_name() }}</div>
+  </div>
+  <div class="row-actions">
+    <a class="btn secondary" href="{{ url_for('portal.dashboard') }}">Back</a>
+  </div>
+</div>
+
+<div class="card">
+  {% for l in letters %}
+    <div class="mini">
+      <div><strong>{{ l.title }}</strong></div>
+      <div class="muted small">{{ l.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+      <pre class="pre" style="margin-top:10px;">{{ l.body }}</pre>
+    </div>
+  {% else %}
+    <div class="muted">No letters yet.</div>
+  {% endfor %}
+</div>
+{% endblock %}

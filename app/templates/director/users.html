@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Director • Users{% endblock %}
+{% block content %}
+
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Director</div>
+      <h1 class="page-title">Users</h1>
+      <p class="page-sub">Create, disable, and force‑reset staff accounts.</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('director.dashboard') }}">Back</a>
+      <a class="btn btn-outline-light" href="{{ url_for('invites.index') }}">Invite Links</a>
+    </div>
+  </div>
+</section>
+
+<div class="admin-wrap">
+  <div class="admin-grid">
+    <div class="card-shell">
+      <div class="card-body-pad">
+        <div class="panel-title">Create User</div>
+        <form method="post" action="{{ url_for('director.create_user') }}" class="stack-form single mt-2">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <label class="form-label">Email</label>
+          <input class="form-control" name="email" type="email" required>
+
+          <label class="form-label">Full name</label>
+          <input class="form-control" name="full_name">
+
+          <label class="form-label">Role</label>
+          <select class="form-control" name="role">
+            <option value="EMPLOYEE">Employee</option>
+            <option value="DIRECTOR">Director</option>
+          </select>
+
+          <label class="form-label">Temp password</label>
+          <input class="form-control" name="password" placeholder="ChangeMe123!">
+
+          <div class="d-flex gap-2 flex-wrap mt-3">
+            <button class="btn btn-primary" type="submit">Create User</button>
+            <div class="muted small">New users are forced to reset on first login.</div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="card-shell">
+      <div class="card-body-pad">
+        <div class="panel-title">All Users</div>
+        <div class="table">
+          <div class="thead" style="grid-template-columns: 2fr 1fr 1fr auto auto;">
+            <div>Email / Name</div><div>Role</div><div>Status</div><div></div><div></div>
+          </div>
+          {% for u in users %}
+            <div class="trow" style="grid-template-columns: 2fr 1fr 1fr auto auto;">
+              <div>
+                <strong>{{ u.email }}</strong>
+                <div class="muted small">{{ u.full_name or "" }}</div>
+              </div>
+              <div class="pill ready">{{ u.role.value }}</div>
+              <div class="pill {{ 'ready' if u.is_active else 'error' }}">{{ 'ACTIVE' if u.is_active else 'DISABLED' }}</div>
+              <div>
+                <form method="post" action="{{ url_for('director.force_reset', user_id=u.id) }}" style="display:inline;" onsubmit="return confirm('Force password reset for this user?');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-sm btn-outline-primary" type="submit">Force reset</button>
+                </form>
+              </div>
+              <div>
+                {% if u.id != current_user.id %}
+                  <form method="post" action="{{ url_for('director.toggle_user', user_id=u.id) }}" style="display:inline;" onsubmit="return confirm('Toggle this user?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-sm btn-outline-secondary" type="submit">{{ 'Disable' if u.is_active else 'Enable' }}</button>
+                  </form>
+                {% else %}
+                  <span class="muted small">You</span>
+                {% endif %}
+              </div>
+            </div>
+          {% else %}
+            <div class="muted" style="padding:16px;">No users found.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

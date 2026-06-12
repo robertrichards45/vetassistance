@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="200" viewBox="0 0 600 200">
+  <rect width="600" height="200" fill="#f8fafc"/>
+  <g fill="#1b3f6b">
+    <rect x="40" y="40" width="520" height="18" rx="6"/>
+    <rect x="40" y="75" width="520" height="18" rx="6"/>
+    <rect x="40" y="110" width="520" height="18" rx="6"/>
+    <rect x="40" y="145" width="520" height="18" rx="6"/>
+  </g>
+  <text x="50%" y="30" text-anchor="middle" font-family="Times New Roman, serif" font-size="18" fill="#0B1F3A">Enlisted Ranks</text>
+</svg>

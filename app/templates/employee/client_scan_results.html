@@ -1,0 +1,141 @@
+{% extends "layout.html" %}
+{% block title %}Scan Results – {{ client.display_name() }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h2 class="mb-1">Scan Results</h2>
+      <div class="text-muted small">
+        Client: {{ client.display_name() }} &middot;
+        Claim # {{ client.claim_number or ("CLIENT-" ~ "%06d"|format(client.id)) }}<br>
+        Document: {{ doc.filename }} &middot;
+        Uploaded {{ doc.created_at.strftime("%Y-%m-%d %H:%M") if doc.created_at else "N/A" }}
+      </div>
+      {% if va_lib_error %}
+        <div class="mt-2 alert alert-warning py-1 px-2 small mb-0">
+          {{ va_lib_error }}
+        </div>
+      {% endif %}
+    </div>
+    <div class="text-end">
+      <a href="{{ url_for('client_detail', client_id=client.id) }}"
+         class="btn btn-secondary btn-sm mb-1">Back to Client</a><br>
+      <a href="{{ url_for('client_scan', client_id=client.id) }}"
+         class="btn btn-outline-primary btn-sm mb-1">Scan Another File</a>
+    </div>
+  </div>
+
+  {% if findings|length == 0 %}
+    <div class="alert alert-info">
+      No CFR/condition findings were detected for this document.
+      The pages and extracted text are still stored for reference.
+    </div>
+  {% endif %}
+
+  <div class="row">
+    <!-- Findings column -->
+    <div class="col-12 col-lg-7 mb-4">
+      {% for f in findings %}
+        <div class="card mb-3">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+              <strong>{{ f.condition_name }}</strong>
+              {% if f.cfr_hint %}
+                <div class="small text-muted">{{ f.cfr_hint }}</div>
+              {% endif %}
+            </div>
+            <div class="text-end">
+              {% if f.confidence is not none %}
+                {% set pct = (f.confidence * 100) | round(1) %}
+                <div class="badge bg-primary">
+                  Est. probability: {{ pct }}%
+                </div>
+              {% else %}
+                <div class="badge bg-secondary">No score</div>
+              {% endif %}
+              {% if f.hits %}
+                <div class="small text-muted">
+                  Evidence hits: {{ f.hits }}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+          <div class="card-body">
+            {% if f.evidence_snippet %}
+              <pre class="small mb-2" style="white-space: pre-wrap;">{{ f.evidence_snippet }}</pre>
+            {% else %}
+              <p class="small text-muted mb-2">
+                No summary/evidence snippet recorded; see detailed evidence on the right.
+              </p>
+            {% endif %}
+
+            {% set ev_list = evidence_map.get(f.id) %}
+            {% if ev_list and ev_list|length > 0 %}
+              <div class="mt-2">
+                <div class="fw-semibold small mb-1">Evidence snippets</div>
+                <ul class="small mb-0">
+                  {% for ev in ev_list %}
+                    <li>
+                      {% if ev.page_number and ev.page_number > 0 %}
+                        <span class="text-muted">[Page {{ ev.page_number }}]</span>
+                      {% endif %}
+                      {% if ev.is_negative %}
+                        <span class="badge bg-warning text-dark">Negative / normal</span>
+                      {% endif %}
+                      {{ ev.snippet }}
+                    </li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Pages / raw extraction column -->
+    <div class="col-12 col-lg-5">
+      <div class="card mb-3">
+        <div class="card-header">
+          Pages & Extraction Method
+        </div>
+        <div class="card-body" style="max-height: 70vh; overflow-y: auto;">
+          {% if pages|length == 0 %}
+            <div class="text-muted small">
+              No page-level text was stored for this document.
+            </div>
+          {% else %}
+            {% for p in pages %}
+              <div class="mb-3 border rounded p-2">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <div class="fw-semibold">
+                    Page {{ p.page_number }}
+                  </div>
+                  <div class="small text-muted">
+                    Method:
+                    {% if p.extraction_method == 'ocr' %}
+                      OCR
+                    {% else %}
+                      Text
+                    {% endif %}
+                  </div>
+                </div>
+                <pre class="small mb-0" style="white-space: pre-wrap; max-height: 150px; overflow-y: auto;">
+{{ (p.extracted_text or "")[:400] }}{% if p.extracted_text and p.extracted_text|length > 400 %}…{% endif %}
+                </pre>
+              </div>
+            {% endfor %}
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="small text-muted">
+        Note: This tool is for organizing and reviewing medical evidence against VA
+        rating criteria. It does <strong>not</strong> replace VA adjudicators and
+        does not guarantee any rating or outcome.
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

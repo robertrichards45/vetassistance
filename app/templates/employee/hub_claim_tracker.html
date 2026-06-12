@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Employee Hub - Claim Tracker{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Employee Hub</div>
+      <h1 class="page-title">Claim Tracker</h1>
+      <p class="page-sub">Track case status updates and maintain a clean timeline.</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('employee.hub') }}">Back to Hub</a>
+    </div>
+  </div>
+</section>
+
+<div class="admin-wrap">
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <form method="get" class="row" style="gap:12px;align-items:end;">
+        <div style="min-width:240px;">
+          <label>Client</label>
+          <select name="client_id">
+            <option value="">Select a client</option>
+            {% for c in clients %}
+              <option value="{{ c.id }}" {% if selected_client and c.id == selected_client.id %}selected{% endif %}>{{ c.display_name() }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <button class="btn btn-primary">Open</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if selected_client %}
+  <div class="admin-grid split-40">
+    <div class="card-shell">
+      <div class="card-body-pad">
+        <div class="panel-title">Add Update</div>
+        <form method="post" action="{{ url_for('employee.hub_claim_tracker_post') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="client_id" value="{{ selected_client.id }}">
+          <label>Status label</label>
+          <input name="status_label" placeholder="e.g., Records Gathering" value="">
+          <label style="margin-top:8px;">Status key (optional)</label>
+          <input name="status_key" placeholder="records_gathering">
+          <label style="margin-top:8px;">Notes</label>
+          <textarea name="note" rows="4" placeholder="Add a short update for the timeline."></textarea>
+          <button class="btn btn-primary" style="margin-top:10px;">Add Update</button>
+        </form>
+      </div>
+    </div>
+    <div class="card-shell">
+      <div class="card-body-pad">
+        <div class="panel-title">Timeline</div>
+        {% if updates %}
+          {% for u in updates %}
+            <div class="mini" style="margin-top:10px;">
+              <div><strong>{{ u.status_label or u.status_key or "Update" }}</strong></div>
+              <div class="muted small">{{ u.created_at|format_et }}</div>
+              {% if u.note %}
+                <div class="muted">{{ u.note }}</div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="muted" style="margin-top:8px;">No updates yet.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

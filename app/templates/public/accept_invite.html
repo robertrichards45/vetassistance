@@ -1,0 +1,20 @@
+{% extends "layout.html" %}
+{% block title %}Accept Invite • {{ BRAND_NAME }}{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>Set Your Password</h2>
+  <p class="lead">Account: <strong>{{ email }}</strong> • Role: <strong>{{ role }}</strong></p>
+  <form method="post" class="grid" action="{{ url_for('public.accept_invite_post', token=token) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div style="grid-column:1/-1;">
+      <label>Password (10+ characters)</label>
+      <input type="password" name="password" minlength="10" required>
+    </div>
+    <div style="grid-column:1/-1;">
+      <label>Confirm</label>
+      <input type="password" name="confirm" minlength="10" required>
+    </div>
+    <button class="btn" type="submit">Create Account</button>
+  </form>
+</div>
+{% endblock %}

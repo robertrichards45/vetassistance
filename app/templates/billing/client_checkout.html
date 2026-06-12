@@ -1,0 +1,100 @@
+{% extends "layout.html" %}
+{% block title %}Billing - {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<section class="pay-hero">
+  <div>
+    <div class="pay-kicker">Secure Payment</div>
+    <h2>Pay Your Service Fee</h2>
+    <p class="muted">Pay any amount securely. A receipt is available immediately after payment.</p>
+  </div>
+  <div class="pay-badge">
+    <div class="pay-badge-label">Client</div>
+    <div class="pay-badge-name">{{ client.display_name() }}</div>
+  </div>
+</section>
+
+{% if request.args.get('canceled') %}
+  <div class="alert alert-warning">Payment canceled.</div>
+{% endif %}
+
+<div class="card pay-card">
+  <form method="post" action="{{ url_for('billing.checkout') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="pay-grid">
+      <div>
+        <label class="pay-label">Amount (USD)</label>
+        <div class="pay-input-wrap">
+          <span class="pay-currency">$</span>
+          <input class="pay-input" name="amount" type="number" min="1" step="0.01" placeholder="Enter amount">
+        </div>
+        <div class="muted small">Enter any amount. Minimum $1.00.</div>
+      </div>
+      <div class="pay-summary">
+        <div class="pay-summary-title">What happens next</div>
+        <ul class="pay-list">
+          <li>Secure Stripe checkout</li>
+          <li>Instant receipt</li>
+          <li>Your team is notified automatically</li>
+        </ul>
+      </div>
+    </div>
+    <button class="btn btn-primary pay-btn" type="submit">Continue to Secure Checkout</button>
+  </form>
+</div>
+
+<style>
+.pay-hero{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  background:linear-gradient(135deg,#0B1F3A 0%, #12325C 60%, #1E4E8C 100%);
+  color:#fff;
+  padding:18px 20px;
+  border-radius:16px;
+  box-shadow:0 20px 40px rgba(2,8,23,.18);
+}
+.pay-kicker{ text-transform:uppercase; letter-spacing:.12em; font-size:11px; opacity:.8; }
+.pay-hero h2{ margin:6px 0 6px; font-weight:900; }
+.pay-badge{
+  background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.25);
+  padding:10px 14px;
+  border-radius:12px;
+}
+.pay-badge-label{ font-size:11px; text-transform:uppercase; letter-spacing:.12em; opacity:.8; }
+.pay-badge-name{ font-weight:800; }
+.pay-card{ margin-top:16px; }
+.pay-grid{ display:grid; gap:16px; grid-template-columns: 1.2fr .8fr; }
+.pay-label{ font-weight:800; display:block; margin-bottom:6px; }
+.pay-input-wrap{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  background:#fff;
+  border:1px solid rgba(15,23,42,.12);
+  border-radius:12px;
+  padding:8px 10px;
+}
+.pay-currency{ font-weight:900; color:#0B1F3A; }
+.pay-input{
+  border:none;
+  outline:none;
+  width:100%;
+  font-size:16px;
+}
+.pay-summary{
+  background:#F8FAFC;
+  border-radius:12px;
+  padding:12px 14px;
+  border:1px solid rgba(15,23,42,.08);
+}
+.pay-summary-title{ font-weight:800; margin-bottom:6px; }
+.pay-list{ margin:0; padding-left:18px; }
+.pay-btn{ margin-top:12px; }
+@media (max-width: 760px){
+  .pay-hero{ flex-direction:column; align-items:flex-start; }
+  .pay-grid{ grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}

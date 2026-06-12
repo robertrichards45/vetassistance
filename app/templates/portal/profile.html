@@ -1,0 +1,344 @@
+{% extends "layout.html" %}
+{% block title %}Profile - {{ BRAND_NAME }}{% endblock %}
+{% block content %}
+<section class="profile-hero">
+  <div class="profile-hero-inner">
+    <div class="profile-hero-copy">
+      <div class="profile-kicker">Client Portal</div>
+      <h2>Profile and Contact Info</h2>
+      <div class="muted small">{{ client.display_name() }}</div>
+      <div class="muted small" style="margin-top:8px;">Keep your contact, address, and service details current so we can prefill forms accurately.</div>
+      <div class="profile-progress">
+        <div class="profile-progress-label">Profile completeness</div>
+        <div class="profile-progress-track">
+          <div class="profile-progress-fill" id="profileProgressFill" style="width:0%;"></div>
+        </div>
+        <div class="profile-progress-meta" id="profileProgressMeta">0% complete</div>
+      </div>
+    </div>
+    <div class="profile-hero-actions">
+      <a class="btn secondary" href="{{ url_for('portal.dashboard') }}">Back</a>
+      <a class="btn secondary" href="{{ url_for('portalx.notes') }}">Notes</a>
+    </div>
+  </div>
+</section>
+
+<section class="profile-shell">
+  <div class="profile-card">
+    <div class="profile-card-title">Profile Details</div>
+    <div class="profile-card-sub">Saved securely and used only to support your claim preparation.</div>
+  </div>
+
+  <div class="profile-card">
+    <form method="post" action="{{ url_for('portalx.profile_save') }}" class="profile-grid" id="profileForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="profile-section">
+        <div class="profile-section-title">
+          <span class="profile-section-icon" aria-hidden="true">
+            <svg class="profile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="16" rx="3"></rect>
+              <circle cx="9" cy="10" r="2"></circle>
+              <path d="M6.5 16c1.1-1.8 4-2.6 6.2-2.1"></path>
+              <path d="M13 9h5"></path>
+              <path d="M13 13h5"></path>
+            </svg>
+          </span>
+          Identity
+        </div>
+        <div class="profile-fields">
+          <div class="profile-field wide"><label>Full legal name</label><input class="profile-input" name="full_legal_name" value="{{ client.full_legal_name or '' }}"></div>
+          <div class="profile-field"><label>DOB</label><input class="profile-input" name="dob" placeholder="YYYY-MM-DD" value="{{ client.dob or '' }}"></div>
+          <div class="profile-field"><label>Phone</label><input class="profile-input" name="phone" value="{{ client.phone or '' }}"></div>
+          <div class="profile-field wide"><label>SSN (optional)</label><input class="profile-input" name="ssn_full" type="password" autocomplete="off" placeholder="Stored encrypted"></div>
+        </div>
+      </div>
+
+      <div class="profile-section">
+        <div class="profile-section-title">
+          <span class="profile-section-icon" aria-hidden="true">
+            <svg class="profile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 8h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8z"></path>
+              <path d="M22 8l-10 6L2 8"></path>
+              <path d="M4 6h16"></path>
+            </svg>
+          </span>
+          Mailing address
+        </div>
+        <div class="profile-fields">
+          <div class="profile-field wide"><label>Mailing address</label><input class="profile-input" name="mailing_address1" placeholder="Street address" value="{{ client.mailing_address1 or '' }}"></div>
+          <div class="profile-field wide"><input class="profile-input" name="mailing_address2" placeholder="Apt / Unit (optional)" value="{{ client.mailing_address2 or '' }}"></div>
+          <div class="profile-field"><label>City</label><input class="profile-input" name="mailing_city" value="{{ client.mailing_city or '' }}"></div>
+          <div class="profile-field"><label>State</label><input class="profile-input" name="mailing_state" value="{{ client.mailing_state or '' }}"></div>
+          <div class="profile-field"><label>ZIP</label><input class="profile-input" name="mailing_zip" value="{{ client.mailing_zip or '' }}"></div>
+        </div>
+      </div>
+
+      <div class="profile-section">
+        <div class="profile-section-title profile-section-row">
+          <span>
+            <span class="profile-section-icon" aria-hidden="true">
+              <svg class="profile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 10.5L12 4l8 6.5"></path>
+                <path d="M6 9.5V20h12V9.5"></path>
+                <path d="M10 20v-6h4v6"></path>
+              </svg>
+            </span>
+            Physical address
+          </span>
+          <button class="btn btn-outline-primary btn-sm" type="button" id="copyMailing">Copy mailing to physical</button>
+        </div>
+        <div class="profile-fields">
+          <div class="profile-field wide"><label>Physical address</label><input class="profile-input" name="physical_address1" placeholder="Street address" value="{{ client.physical_address1 or '' }}"></div>
+          <div class="profile-field wide"><input class="profile-input" name="physical_address2" placeholder="Apt / Unit (optional)" value="{{ client.physical_address2 or '' }}"></div>
+          <div class="profile-field"><label>City</label><input class="profile-input" name="physical_city" value="{{ client.physical_city or '' }}"></div>
+          <div class="profile-field"><label>State</label><input class="profile-input" name="physical_state" value="{{ client.physical_state or '' }}"></div>
+          <div class="profile-field"><label>ZIP</label><input class="profile-input" name="physical_zip" value="{{ client.physical_zip or '' }}"></div>
+        </div>
+      </div>
+
+      <div class="profile-section">
+        <div class="profile-section-title">
+          <span class="profile-section-icon" aria-hidden="true">
+            <svg class="profile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 7h16"></path>
+              <path d="M6 7v10"></path>
+              <path d="M18 7v10"></path>
+              <path d="M6 17h12"></path>
+              <path d="M9 12h6"></path>
+            </svg>
+          </span>
+          Service details
+        </div>
+        <div class="profile-fields">
+          <div class="profile-field"><label>Service branch</label><input class="profile-input" name="service_branch" value="{{ client.service_branch or '' }}"></div>
+          <div class="profile-field"><label>Service entry date</label><input class="profile-input" name="service_entry_date" placeholder="YYYY-MM-DD" value="{{ client.service_entry_date or '' }}"></div>
+          <div class="profile-field"><label>Service discharge date</label><input class="profile-input" name="service_discharge_date" placeholder="YYYY-MM-DD" value="{{ client.service_discharge_date or '' }}"></div>
+        </div>
+      </div>
+
+      <div class="profile-section">
+        <div class="profile-section-title">
+          <span class="profile-section-icon" aria-hidden="true">
+            <svg class="profile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M15.5 7.5a3.5 3.5 0 1 1-7 0a3.5 3.5 0 0 1 7 0z"></path>
+              <path d="M4 20c1.6-3.5 6-5 8-5s6.4 1.5 8 5"></path>
+              <path d="M18.5 8.5l2 0"></path>
+            </svg>
+          </span>
+          Emergency contact
+        </div>
+        <div class="profile-fields">
+          <div class="profile-field"><label>Contact name</label><input class="profile-input" name="emergency_contact_name" value="{{ client.emergency_contact_name or '' }}"></div>
+          <div class="profile-field"><label>Contact phone</label><input class="profile-input" name="emergency_contact_phone" value="{{ client.emergency_contact_phone or '' }}"></div>
+          <div class="profile-field"><label>Relationship</label><input class="profile-input" name="emergency_contact_relationship" value="{{ client.emergency_contact_relationship or '' }}"></div>
+        </div>
+      </div>
+
+      <div class="profile-actions">
+        <button class="btn" type="submit">Save Profile</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="profile-card">
+    <div class="profile-card-title">Call Log</div>
+    <div class="profile-card-sub">Recent calls you have logged.</div>
+    {% if call_logs %}
+      <div class="table" style="margin-top:10px;">
+        <div class="thead" style="grid-template-columns: 1fr 1fr 2fr;">
+          <div>Type</div><div>Date</div><div>Summary</div>
+        </div>
+        {% for log in call_logs %}
+          <div class="trow" style="grid-template-columns: 1fr 1fr 2fr;">
+            <div>{{ log.call_type or "General" }}</div>
+            <div class="muted small">{{ log.created_at.strftime('%Y-%m-%d') }}</div>
+            <div class="muted small">{{ log.summary or log.notes or '' }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="muted" style="margin-top:8px;">No call logs yet.</div>
+    {% endif %}
+    <div style="margin-top:10px;">
+      <a class="btn btn-outline-primary btn-sm" href="{{ url_for('portal.va_calls') }}">View full call log</a>
+      <a class="btn btn-outline-primary btn-sm" href="{{ url_for('portal.va_calls') }}#va-calls">Add new call</a>
+    </div>
+  </div>
+</section>
+    <div>
+      <div class="muted small">Client Portal</div>
+      <h2 style="margin:6px 0 2px;">Profile and Contact Info</h2>
+      <div class="muted small">{{ client.display_name() }}</div>
+    </div>
+    <div class="row-actions">
+      <a class="btn secondary" href="{{ url_for('portal.dashboard') }}">Back</a>
+    </div>
+  </div>
+  <div class="muted small">Keep your contact, address, and service details current so we can prefill forms accurately.</div>
+</section>
+
+<script>
+(function(){
+  const btn = document.getElementById('copyMailing');
+  if(!btn) return;
+  btn.addEventListener('click', function(){
+    const map = [
+      ['mailing_address1', 'physical_address1'],
+      ['mailing_address2', 'physical_address2'],
+      ['mailing_city', 'physical_city'],
+      ['mailing_state', 'physical_state'],
+      ['mailing_zip', 'physical_zip'],
+    ];
+    map.forEach(function(pair){
+      const src = document.querySelector('[name=\"' + pair[0] + '\"]');
+      const dst = document.querySelector('[name=\"' + pair[1] + '\"]');
+      if(src && dst){ dst.value = src.value; }
+    });
+  });
+})();
+</script>
+
+<script>
+(function(){
+  const inputs = Array.from(document.querySelectorAll('.profile-input'));
+  const fill = document.getElementById('profileProgressFill');
+  const meta = document.getElementById('profileProgressMeta');
+  if(!inputs.length || !fill || !meta) return;
+  const optional = new Set(["ssn_full"]);
+  function calc(){
+    let total = 0;
+    let filled = 0;
+    inputs.forEach(function(input){
+      const name = input.getAttribute('name') || '';
+      if(optional.has(name)) return;
+      total += 1;
+      if((input.value || '').trim().length) filled += 1;
+    });
+    const pct = total ? Math.round((filled / total) * 100) : 0;
+    fill.style.width = pct + '%';
+    meta.textContent = pct + '% complete';
+  }
+  inputs.forEach(function(input){
+    input.addEventListener('input', calc);
+  });
+  calc();
+})();
+</script>
+
+<style>
+.profile-hero{
+  background: radial-gradient(circle at 10% 10%, rgba(255,255,255,.4), rgba(255,255,255,0) 45%),
+              linear-gradient(135deg, #0f2d4f, #1f4b7a 45%, #183a66);
+  color: #fff;
+  border-radius: 18px;
+  padding: 26px 26px;
+  box-shadow: 0 18px 40px rgba(2, 6, 23, .2);
+}
+.profile-hero-inner{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 20px;
+  flex-wrap:wrap;
+}
+.profile-kicker{
+  font-size:12px;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  opacity:.75;
+}
+.profile-hero h2{ margin:8px 0 2px; font-size:24px; }
+.profile-progress{ margin-top:14px; }
+.profile-progress-label{ font-size:12px; text-transform:uppercase; letter-spacing:.12em; opacity:.7; }
+.profile-progress-track{
+  width: 260px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.2);
+  margin-top:8px;
+  overflow:hidden;
+}
+.profile-progress-fill{
+  height: 100%;
+  background: linear-gradient(90deg, #7fd4ff, #b5f3ff);
+  box-shadow: 0 0 12px rgba(127,212,255,.5);
+  transition: width .25s ease;
+}
+.profile-progress-meta{ font-size:12px; opacity:.8; margin-top:6px; }
+.profile-shell{ margin-top:16px; display:grid; gap:14px; }
+.profile-card{
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 16px 36px rgba(15,23,42,.08);
+  padding: 18px 20px;
+  border: 1px solid rgba(15,23,42,.06);
+}
+.profile-card-title{ font-weight:800; font-size:16px; }
+.profile-card-sub{ font-size:12px; color:#5b6b7c; margin-top:6px; }
+.profile-grid{ display:grid; gap:18px; }
+.profile-section{
+  background: linear-gradient(180deg, rgba(15,23,42,.02), rgba(15,23,42,0));
+  border: 1px solid rgba(15,23,42,.06);
+  border-radius: 14px;
+  padding: 16px;
+}
+.profile-section-title{
+  font-weight:800;
+  font-size:13px;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:#20324a;
+  margin-bottom:10px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.profile-section-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.profile-section-icon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:28px;
+  height:28px;
+  border-radius:10px;
+  background: rgba(31,75,122,.12);
+  color:#1f4b7a;
+  font-weight:800;
+  font-size:11px;
+}
+.profile-icon{
+  width:16px;
+  height:16px;
+}
+.profile-fields{
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 12px;
+}
+.profile-field label{
+  display:block;
+  font-size:12px;
+  color:#4a5d73;
+  margin-bottom:6px;
+}
+.profile-field input{
+  width:100%;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid rgba(15,23,42,.12);
+  background:#fff;
+}
+.profile-field.wide{ grid-column: 1 / -1; }
+.profile-actions{
+  display:flex;
+  justify-content:flex-end;
+}
+@media (max-width: 900px){
+  .profile-fields{ grid-template-columns: 1fr; }
+  .profile-hero{ padding:22px; }
+  .profile-hero h2{ font-size:20px; }
+  .profile-progress-track{ width: 100%; }
+}
+</style>
+{% endblock %}

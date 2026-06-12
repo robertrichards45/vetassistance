@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Director - Traffic{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Director</div>
+      <h1 class="page-title">Traffic</h1>
+      <p class="page-sub">Last 30 days of real visitor traffic (staff + bots excluded).</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('director.dashboard') }}">Back</a>
+      <a class="btn btn-outline-light" href="{{ url_for('director.users') }}">Users</a>
+    </div>
+  </div>
+</section>
+
+<div class="admin-wrap">
+  <div class="admin-grid split-40">
+    <div class="card-shell">
+      <div class="card-body-pad">
+        <div class="panel-title">Summary</div>
+        <div class="muted" style="margin-top:8px;">Total views (real): <strong>{{ total }}</strong></div>
+        <div class="muted" style="margin-top:6px;">Unique visitors (real): <strong>{{ unique }}</strong></div>
+      </div>
+    </div>
+    <div class="card-shell">
+      <div class="card-body-pad">
+        <div class="panel-title">Top Pages</div>
+        <div class="table" style="margin-top:10px;">
+          <div class="thead" style="grid-template-columns: 2fr 1fr;">
+            <div>Path</div><div>Views</div>
+          </div>
+          {% for path, cnt in top_paths %}
+            <div class="trow" style="grid-template-columns: 2fr 1fr;">
+              <div class="muted">{{ path }}</div>
+              <div class="pill ready">{{ cnt }}</div>
+            </div>
+          {% else %}
+            <div class="muted" style="padding:16px;">No data yet.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <div class="panel-title">Daily Unique Visitors</div>
+      <div class="table" style="margin-top:10px;">
+        <div class="thead" style="grid-template-columns: 1fr 1fr;">
+          <div>Date</div><div>Unique</div>
+        </div>
+        {% for day, cnt in daily %}
+          <div class="trow" style="grid-template-columns: 1fr 1fr;">
+            <div class="muted">{{ day }}</div>
+            <div class="pill ready">{{ cnt }}</div>
+          </div>
+        {% else %}
+          <div class="muted" style="padding:16px;">No data yet.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

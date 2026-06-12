@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Director</div>
+      <h1 class="page-title">Staff Metrics</h1>
+      <p class="page-sub">Email volume, document activity, and intake conversions in one view.</p>
+    </div>
+    <div class="page-actions">
+      <form method="get" class="d-flex gap-2 align-items-center">
+        <label class="form-label mb-0">Days</label>
+        <input class="form-control" name="days" value="{{ days }}" style="width:90px;">
+        <button class="btn btn-outline-light" type="submit">Apply</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-4">
+    <div class="card-shell">
+      <div class="card-body-pad">
+        <div class="page-kicker">Converted intakes</div>
+        <div class="page-title" style="font-size:1.8rem;">{{ converted }}</div>
+        <div class="page-sub">Last {{ days }} days</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card-shell">
+  <div class="card-body-pad">
+    <div class="table-responsive">
+      <table class="table align-middle premium-table">
+        <thead>
+          <tr>
+            <th>Staff</th>
+            <th>Role</th>
+            <th>Emails Sent</th>
+            <th>Documents Uploaded</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+            <tr>
+              <td style="font-weight:900;color:var(--heading);">{{ r.name }}</td>
+              <td><span class="pill">{{ r.role }}</span></td>
+              <td>{{ r.emails }}</td>
+              <td>{{ r.docs }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="small muted mt-2">Note: intake conversion attribution can be expanded by tracking actor_user_id on conversion.</div>
+  </div>
+</div>
+{% endblock %}

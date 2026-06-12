@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+{% block title %}DIY Register{% endblock %}
+{% block content %}
+<section class="diy-hero">
+  <div class="diy-hero-inner">
+    <div>
+      <div class="diy-kicker">Do It Yourself</div>
+      <h1 class="diy-title">Create your premium DIY account</h1>
+      <p class="diy-sub">A guided workspace with rating tools, checklists, and document quality scans.</p>
+      <div class="diy-hero-highlights">
+        <span>Built for Veterans</span>
+        <span>Secure by default</span>
+        <span>Cancel anytime</span>
+      </div>
+    </div>
+    <div class="diy-hero-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('diy.login') }}">Already have an account?</a>
+      <a class="btn btn-primary" href="{{ url_for('public.pricing') }}">View plans</a>
+    </div>
+  </div>
+</section>
+
+<section class="diy-plans">
+  <div class="diy-plans-inner">
+    <div class="diy-plans-head">
+      <div class="diy-plans-title">Plan details</div>
+      <a class="btn btn-outline-primary" href="{{ url_for('public.pricing') }}">View plans</a>
+    </div>
+    <div class="diy-plans-grid">
+      <div class="diy-plan-card">
+        <div class="diy-plan-name">Basic</div>
+        <div class="diy-plan-price">$29<span>/mo</span></div>
+        <ul class="diy-plan-list full">
+          <li>Full VA rating chart with percentage criteria</li>
+          <li>Combined rating calculator (VA math)</li>
+          <li>VA forms list + filing guidance</li>
+          <li>DIY playbook overview</li>
+          <li>Public resources hub access</li>
+        </ul>
+      </div>
+      <div class="diy-plan-card pro">
+        <div class="diy-plan-name">Pro</div>
+        <div class="diy-plan-price">$59<span>/mo</span></div>
+        <ul class="diy-plan-list full">
+          <li>Everything in Basic</li>
+          <li>Evidence checklist builder</li>
+          <li>Document quality scan + OCR check</li>
+          <li>AI benefits tools + state benefits lookup</li>
+          <li>Upload storage + organization tags</li>
+          <li>Priority DIY tool updates</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="diy-wrap">
+  <div class="diy-grid">
+    <div class="diy-panel diy-panel-premium">
+      <div class="diy-panel-title">Premium DIY Access</div>
+      <div class="diy-panel-sub">Everything you need to organize and submit a stronger claim.</div>
+      <ul class="diy-list">
+        <li>VA rating chart with percentage criteria</li>
+        <li>Combined rating calculator</li>
+        <li>Evidence checklist and claim tracker</li>
+        <li>Document quality scan (Pro)</li>
+        <li>VA forms library and guidance</li>
+        <li>DIY playbook and step-by-step roadmap</li>
+      </ul>
+      <div class="diy-badges">
+        <span class="diy-badge">Encrypted storage</span>
+        <span class="diy-badge">Audit logs</span>
+        <span class="diy-badge">Refund policy</span>
+      </div>
+      <div class="diy-price-card">
+        <div class="diy-price-head">DIY Plans</div>
+        <div class="diy-price-row">
+          <div>
+            <div class="diy-price-name">Basic</div>
+            <div class="diy-price-sub">Rating chart + calculator</div>
+            <ul class="diy-plan-list">
+              <li>Full rating chart with criteria</li>
+              <li>Combined rating calculator</li>
+              <li>Evidence checklist builder</li>
+              <li>VA forms list + filing guidance</li>
+              <li>DIY playbook overview</li>
+            </ul>
+          </div>
+          <div class="diy-price-amt">$29<span>/mo</span></div>
+        </div>
+        <div class="diy-price-row">
+          <div>
+            <div class="diy-price-name">Pro</div>
+            <div class="diy-price-sub">All tools + AI + scans</div>
+            <ul class="diy-plan-list">
+              <li>Everything in Basic</li>
+              <li>Evidence checklist builder</li>
+              <li>Document quality scan + OCR check</li>
+              <li>AI benefits tools + state benefits</li>
+              <li>Upload storage + organization tags</li>
+            </ul>
+          </div>
+          <div class="diy-price-amt">$59<span>/mo</span></div>
+        </div>
+        <div class="diy-price-note">Refunds within 72 hours with upload rules applied.</div>
+      </div>
+    </div>
+    <div class="diy-panel diy-panel-form">
+      <div class="diy-panel-title">Create account</div>
+      {% if error %}
+        <div class="diy-alert diy-alert-error">{{ error }}</div>
+      {% endif %}
+      {% if info %}
+        <div class="diy-alert diy-alert-info">{{ info }}</div>
+      {% endif %}
+      <form method="post" action="{{ url_for('diy.register_post') }}" class="diy-form">
+        <div class="diy-field">
+          <label>Full name</label>
+          <input name="full_name" value="{{ form_full_name or '' }}" required>
+        </div>
+        <div class="diy-field">
+          <label>Email</label>
+          <input name="email" type="email" value="{{ form_email or '' }}" autocapitalize="none" required>
+        </div>
+        <div class="diy-field">
+          <label>Password</label>
+          <input name="password" type="password" minlength="8" required>
+        </div>
+        <div class="diy-field">
+          <label>Confirm password</label>
+          <input name="confirm_password" type="password" minlength="8" required>
+        </div>
+        <button class="btn btn-primary diy-submit" type="submit">Create account</button>
+      </form>
+      <div class="diy-form-note">After signup, choose Basic or Pro.</div>
+      <div class="diy-trust">
+        <div class="diy-trust-card">
+          <div class="diy-trust-title">Data security</div>
+          <div class="diy-trust-sub">Uploads stay private. Access is role-based.</div>
+        </div>
+        <div class="diy-trust-card">
+          <div class="diy-trust-title">Pro required for AI</div>
+          <div class="diy-trust-sub">AI tools are unlocked with Pro.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+:root{
+  --diy-steel:#20486a;
+  --diy-steel-dark:#123351;
+  --diy-ice:#f3f7fb;
+  --diy-line:rgba(15,23,42,.10);
+  --diy-accent:#2b77c4;
+}
+.diy-hero{
+  background:
+    radial-gradient(900px 320px at 12% -8%, rgba(43,119,196,.10), transparent 60%),
+    radial-gradient(720px 260px at 92% 0%, rgba(25,99,178,.10), transparent 60%),
+    linear-gradient(135deg, #ffffff 0%, #eef3f8 55%, #e7eef6 100%);
+  color:#0b1f3a;border-radius:24px;padding:28px 26px;border:1px solid var(--diy-line);
+  box-shadow:0 22px 52px rgba(2,8,23,.12);margin-bottom:18px;position:relative;overflow:hidden;
+}
+.diy-hero:after{
+  content:"";
+  position:absolute;inset:0;
+  background-image: radial-gradient(rgba(32,72,106,.12) 1px, transparent 1px);
+  background-size: 18px 18px;
+  opacity:.18;pointer-events:none;
+}
+.diy-hero-inner{display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap}
+.diy-kicker{display:inline-flex;padding:6px 12px;border-radius:999px;background:rgba(43,119,196,.10);border:1px solid rgba(43,119,196,.28);font-weight:800;letter-spacing:.02em;color:var(--diy-steel)}
+.diy-title{margin:8px 0 6px;font-size:2.15rem;color:var(--diy-steel)}
+.diy-sub{margin:0;max-width:720px;font-weight:600;color:#3b556d}
+.diy-hero-highlights{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.diy-hero-highlights span{
+  display:inline-flex;padding:6px 10px;border-radius:999px;
+  background:rgba(43,119,196,.08);border:1px solid rgba(43,119,196,.22);
+  font-weight:800;font-size:.82rem;color:var(--diy-steel);
+}
+.diy-wrap{max-width:1200px;margin:0 auto}
+.diy-plans{
+  margin:16px 0;
+}
+.diy-plans-inner{
+  max-width:1200px;margin:0 auto;
+  background:#fff;border:1px solid var(--diy-line);border-radius:20px;
+  padding:18px;box-shadow:0 16px 36px rgba(2,8,23,.10);
+}
+.diy-plans-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.diy-plans-title{font-weight:900;color:#0B1F3A;font-size:1.15rem}
+.diy-plans-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.diy-plan-card{
+  border:1px solid rgba(15,23,42,.12);border-radius:16px;padding:14px;background:#f8fafc;
+}
+.diy-plan-card.pro{
+  background:linear-gradient(180deg,#ffffff 0%, #eef3f8 100%);
+  border:1px solid rgba(43,119,196,.25);
+}
+.diy-plan-name{font-weight:900;color:#0B1F3A}
+.diy-plan-price{font-weight:900;color:var(--diy-steel);font-size:1.2rem;margin:6px 0}
+.diy-plan-price span{font-size:.85rem;color:#4A5D73;font-weight:700}
+.diy-plan-list.full{margin:0;padding-left:18px;color:#4A5D73;font-weight:600;display:grid;gap:6px}
+.diy-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:16px}
+.diy-panel{background:#fff;border:1px solid var(--diy-line);border-radius:20px;padding:20px;box-shadow:0 16px 36px rgba(2,8,23,.10)}
+.diy-panel-premium{background: linear-gradient(180deg, #ffffff 0%, #f2f6fb 100%)}
+.diy-panel-form{box-shadow:0 20px 46px rgba(2,8,23,.12);border-top:4px solid var(--diy-accent)}
+.diy-panel-title{font-weight:900;color:#0B1F3A;margin-bottom:6px;font-size:1.15rem}
+.diy-panel-sub{color:#4A5D73;font-weight:600;margin-bottom:12px}
+.diy-list{margin:0;padding-left:18px;color:#4A5D73;font-weight:600;display:grid;gap:8px}
+.diy-badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.diy-badge{background:rgba(43,119,196,.08);border:1px solid rgba(43,119,196,.22);border-radius:999px;padding:6px 10px;font-weight:800;color:#0B1F3A}
+.diy-price-card{
+  margin-top:16px;border-radius:18px;border:1px solid rgba(15,23,42,.12);
+  padding:14px;background:#ffffff;box-shadow:0 10px 26px rgba(2,8,23,.08);
+}
+.diy-price-head{font-weight:900;color:#0B1F3A;margin-bottom:10px}
+.diy-price-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px dashed rgba(15,23,42,.12)}
+.diy-price-row:first-of-type{border-top:0}
+.diy-price-name{font-weight:900;color:#0B1F3A}
+.diy-price-sub{color:#4A5D73;font-weight:600;font-size:.9rem}
+.diy-price-amt{font-weight:900;color:var(--diy-steel);font-size:1.2rem}
+.diy-price-amt span{font-size:.85rem;color:#4A5D73;font-weight:700}
+.diy-price-note{margin-top:8px;color:#4A5D73;font-weight:600;font-size:.85rem}
+.diy-plan-list{
+  margin:8px 0 0;
+  padding-left:18px;
+  color:#4A5D73;
+  font-weight:600;
+  display:grid;
+  gap:4px;
+}
+.diy-form-note{margin-top:10px;color:#4A5D73;font-weight:700}
+.diy-form{
+  display:grid;
+  gap:12px;
+  margin-top:10px;
+  padding:14px;
+  border-radius:16px;
+  background:#f8fafc;
+  border:1px solid rgba(15,23,42,.08);
+}
+.diy-field label{
+  display:block;
+  font-weight:800;
+  color:#0B1F3A;
+  margin-bottom:6px;
+}
+.diy-field input{
+  width:100%;
+  border-radius:12px;
+  border:1px solid rgba(15,23,42,.14);
+  padding:10px 12px;
+  background:#fff;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.7);
+}
+.diy-field input:focus{
+  outline:none;
+  border-color: rgba(43,119,196,.55);
+  box-shadow: 0 0 0 .2rem rgba(43,119,196,.15);
+}
+.diy-submit{
+  justify-self:stretch;
+  padding:12px 18px;
+}
+.diy-trust{display:grid;gap:10px;margin-top:16px}
+.diy-trust-card{
+  border:1px solid rgba(43,119,196,.20);
+  border-radius:14px;padding:10px 12px;background:rgba(43,119,196,.06);
+}
+.diy-trust-title{font-weight:900;color:#0B1F3A}
+.diy-trust-sub{color:#4A5D73;font-weight:600;font-size:.9rem}
+.diy-alert{
+  margin:10px 0;
+  padding:10px 12px;
+  border-radius:14px;
+  border:1px solid rgba(15,23,42,.12);
+  background:#fff;
+  font-weight:800;
+}
+.diy-alert-error{background:rgba(185,28,28,.10);border-color:rgba(185,28,28,.22);color:#7f1d1d}
+.diy-alert-info{background:rgba(44,95,168,.10);border-color:rgba(44,95,168,.22);color:#12335E}
+@media (max-width: 980px){
+  .diy-grid{grid-template-columns:1fr}
+  .diy-plans-grid{grid-template-columns:1fr}
+}
+</style>
+{% endblock %}

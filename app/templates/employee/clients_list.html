@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page">
+  <div class="page-header">
+    <div>
+      <div class="kicker">Employee</div>
+      <h1 class="title">Clients</h1>
+      <p class="subtitle">Search, open a client, manage files, and run scans.</p>
+    </div>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{ url_for('clients_create') }}">+ New Client</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Client Directory</div>
+      <div class="card-tools">
+        <input id="clientSearch" class="input" type="text" placeholder="Search by name, claim #, status…" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="table" id="clientsTable">
+        <thead>
+          <tr>
+            <th style="width: 40%;">Client</th>
+            <th>Claim #</th>
+            <th>Status</th>
+            <th style="width: 160px;" class="text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in clients %}
+          <tr>
+            <td>
+              <div class="row-title">{{ c.full_name or c.name or ('Client #' ~ c.id) }}</div>
+              <div class="row-sub">ID: {{ c.id }}</div>
+            </td>
+            <td><span class="pill pill-soft">{{ c.claim_number or '' }}</span></td>
+            <td>
+              {% if c.is_active is defined %}
+                {% if c.is_active %}
+                  <span class="pill pill-green">Active</span>
+                {% else %}
+                  <span class="pill">Inactive</span>
+                {% endif %}
+              {% else %}
+                <span class="pill">{{ c.status or '—' }}</span>
+              {% endif %}
+            </td>
+            <td class="text-right">
+              <a class="btn btn-sm" href="{{ url_for('client_detail', client_id=c.id) }}">Open</a>
+              <a class="btn btn-sm" href="{{ url_for('client_files', client_id=c.id) }}">Files</a>
+            </td>
+          </tr>
+          {% endfor %}
+          {% if clients|length == 0 %}
+          <tr><td colspan="4" class="empty">No clients yet. Click <b>New Client</b> to add one.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const input = document.getElementById('clientSearch');
+  const table = document.getElementById('clientsTable');
+  if(!input || !table) return;
+  input.addEventListener('input', function(){
+    const q = (input.value || '').toLowerCase().trim();
+    const rows = table.querySelectorAll('tbody tr');
+    rows.forEach(r => {
+      const text = r.innerText.toLowerCase();
+      r.style.display = text.includes(q) ? '' : 'none';
+    });
+  });
+})();
+</script>
+{% endblock %}

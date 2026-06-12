@@ -1,0 +1,89 @@
+{% extends "layout.html" %}
+{% block title %}Clients • VA Claims Case Manager{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="section-header">
+    <h2>Clients</h2>
+    <p>Create and manage clients. Click Open to view the case file.</p>
+  </div>
+
+  <div class="two-column" style="margin-bottom:18px;">
+    <div class="card">
+      <h3 style="margin-top:0;">Quick Add New Client</h3>
+      <form action="{{ url_for('clients_create') }}" method="post" class="stack-form">
+        <label>First Name
+          <input type="text" name="first_name" required>
+        </label>
+        <label>Last Name
+          <input type="text" name="last_name" required>
+        </label>
+        <label>Email (optional)
+          <input type="email" name="email">
+        </label>
+        <label>Phone (optional)
+          <input type="text" name="phone">
+        </label>
+        <label>Notes (optional)
+          <textarea name="notes" placeholder="Brief context."></textarea>
+        </label>
+
+        <button class="btn btn-primary" type="submit">Create Client & Claim Number</button>
+      </form>
+    </div>
+
+    <div class="panel panel-note">
+      <h3>Tips</h3>
+      <ul>
+        <li>Use legal names that match VA records.</li>
+        <li>Claim numbers are used for uploads + internal tracking.</li>
+        <li>Use “Open” to access welcome packet + uploads.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">All Clients</h3>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Claim #</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th style="width:1%;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for client in clients %}
+          <tr>
+            <td>{{ client.display_name() }}</td>
+            <td><code>{{ client.claim_number }}</code></td>
+            <td>{{ client.email or "—" }}</td>
+            <td>{{ client.phone or "—" }}</td>
+            <td>
+              {% if client.active %}
+                <span style="color:var(--success); font-size:12px;">● Active</span>
+              {% else %}
+                <span style="color:var(--text-soft); font-size:12px;">● Inactive</span>
+              {% endif %}
+            </td>
+            <td>{{ client.created_at.strftime("%Y-%m-%d") }}</td>
+            <td>
+              <a class="btn btn-outline small" href="{{ url_for('client_detail', client_id=client.id) }}">Open</a>
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="7" style="text-align:center; color:var(--text-soft);">
+              No clients yet.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

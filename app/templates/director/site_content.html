@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Director Panel</div>
+      <h1 class="page-title">Homepage Content & Theme</h1>
+      <p class="page-sub">Edit hero text, disclaimer, navbar colors, and all homepage blocks (JSON). Save applies site-wide.</p>
+    </div>
+
+    <div class="page-actions">
+      <a class="btn btn-secondary" href="{{ url_for('director_dashboard') }}">Director Dashboard</a>
+      <a class="btn btn-secondary" href="{{ url_for('home_preview') }}">Preview Home</a>
+      <a class="btn btn-secondary" href="{{ url_for('director_employees') }}">Employees</a>
+      <a class="btn btn-secondary" href="{{ url_for('director_pricing_list') }}">Pricing</a>
+    </div>
+  </div>
+</section>
+
+{% if not config.get('SMTP_HOST') %}
+  <div class="card-shell" style="margin-bottom:12px;">
+    <div class="card-body-pad">
+      <div class="panel-title">Email not configured</div>
+      <div class="muted">SMTP is not configured, so invite emails and message notifications will not send yet. Add SMTP settings in `.env` to enable email delivery.</div>
+    </div>
+  </div>
+{% endif %}
+
+<div class="admin-wrap">
+<form method="post" class="grid-2">
+
+  <div class="card-shell">
+    <div class="card-head">
+      <div class="card-title">Hero</div>
+      <div class="card-sub">Front-page message and CTA that set the tone.</div>
+    </div>
+    <div class="card-body form-grid">
+      <div class="field">
+        <label>Kicker</label>
+        <input name="home_hero_kicker" value="{{ settings.home_hero_kicker }}">
+      </div>
+
+      <div class="field field-wide">
+        <label>Title</label>
+        <input name="home_hero_title" value="{{ settings.home_hero_title }}">
+      </div>
+
+      <div class="field field-wide">
+        <label>Subtitle</label>
+        <input name="home_hero_subtitle" value="{{ settings.home_hero_subtitle }}">
+      </div>
+
+      <div class="field">
+        <label>Primary CTA text</label>
+        <input name="home_primary_cta_text" value="{{ settings.home_primary_cta_text }}">
+      </div>
+      <div class="field">
+        <label>Primary CTA URL</label>
+        <input name="home_primary_cta_url" value="{{ settings.home_primary_cta_url }}">
+      </div>
+    </div>
+  </div>
+
+  <div class="card-shell">
+    <div class="card-head">
+      <div class="card-title">Theme</div>
+      <div class="card-sub">Navbar + accent colors (hex). Keep it consistent with brand.</div>
+    </div>
+    <div class="card-body form-grid">
+      <div class="field">
+        <label>Navbar color</label>
+        <input name="theme_navbar_color" value="{{ settings.theme_navbar_color }}" placeholder="#1f4b7a">
+      </div>
+      <div class="field">
+        <label>Navbar text</label>
+        <input name="theme_navbar_text" value="{{ settings.theme_navbar_text }}" placeholder="#ffffff">
+      </div>
+      <div class="field">
+        <label>Accent</label>
+        <input name="theme_accent" value="{{ settings.theme_accent }}" placeholder="#2b77c4">
+      </div>
+
+      <div class="field field-wide">
+        <label>Disclaimer box</label>
+        <textarea name="home_disclaimer_box" rows="4">{{ settings.home_disclaimer_box }}</textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-shell full">
+    <div class="card-head">
+      <div>
+        <div class="card-title">ALL Homepage blocks (JSON)</div>
+        <div class="card-sub">Controls every section/card/bullet. Must stay valid JSON.</div>
+      </div>
+      <div class="sticky-actions">
+        <button class="btn btn-primary" type="submit">Save Changes</button>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <textarea class="jsonbox" name="home_sections_json" rows="20">{{ settings.home_sections | tojson(indent=2) }}</textarea>
+      <div class="helpnote">
+        Tip: Use a JSON validator if something won-t save. One missing comma will break the page editor.
+      </div>
+    </div>
+  </div>
+
+</form>
+</div>
+
+<style>
+.page-hero{
+  border-radius: 20px;
+  padding: 18px;
+  color: #fff;
+  background:
+    radial-gradient(900px 360px at 18% 12%, rgba(255,255,255,.14), transparent 60%),
+    radial-gradient(680px 260px at 72% 22%, rgba(169,199,234,.16), transparent 55%),
+    linear-gradient(135deg, #1f4b7a 0%, #122242 55%, #0c1221 100%);
+  border: 1px solid rgba(255,255,255,.14);
+  box-shadow: 0 18px 44px rgba(2,8,23,.22);
+  margin-bottom: 16px;
+}
+.page-hero-inner{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:center}
+.page-kicker{display:inline-flex;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);font-weight:800}
+.page-title{margin:8px 0 4px;font-size:1.8rem}
+.page-sub{margin:0;opacity:.92;max-width:760px}
+.page-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.full{grid-column:1/-1}
+@media (max-width: 980px){.grid-2{grid-template-columns:1fr}}
+
+.card-shell{
+  background:#fff;border:1px solid rgba(15,23,42,.10);
+  border-radius:18px;box-shadow:0 18px 44px rgba(2,8,23,.10);overflow:hidden;
+}
+.card-head{
+  padding:14px 16px;border-bottom:1px solid rgba(15,23,42,.06);
+  display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;
+}
+.card-title{font-weight:900;color:#0B1F3A}
+.card-sub{color:#4A5D73;font-weight:700;margin-top:4px}
+.card-body{padding:14px 16px}
+
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field-wide{grid-column:1/-1}
+@media (max-width: 760px){.form-grid{grid-template-columns:1fr}}
+
+.field label{display:block;font-weight:900;color:#0B1F3A;margin-bottom:6px}
+.field input,.field textarea{
+  width:100%;border-radius:14px;border:1px solid rgba(15,23,42,.12);
+  padding:10px 12px;background:#fff;
+}
+.jsonbox{
+  width:100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+  font-size:12.5px;
+  line-height:1.5;
+  border-radius:16px;
+  border:1px solid rgba(15,23,42,.12);
+  padding:12px 12px;
+  background: linear-gradient(180deg,#f4f7fb, #fff);
+}
+.helpnote{
+  margin-top:10px;
+  color:#4A5D73;
+  font-size:.92rem;
+  line-height:1.45;
+  background:#f7fafc;
+  border:1px solid rgba(15,23,42,.08);
+  padding:10px 12px;
+  border-radius:14px
+}
+</style>
+
+{% endblock %}

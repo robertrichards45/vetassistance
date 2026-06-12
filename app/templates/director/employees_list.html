@@ -1,0 +1,117 @@
+{% extends "layout.html" %}
+{% block title %}Director – Employees{% endblock %}
+
+{% block content %}
+<div class="container" style="padding:18px 0;">
+  <h1 style="margin:0 0 12px;">Employees</h1>
+
+  <!-- Create -->
+  <div style="border:1px solid #e5e7eb; border-radius:12px; padding:14px; background:#fff; margin-bottom:16px;">
+    <h2 style="margin:0 0 10px; font-size:16px;">Create Employee</h2>
+
+    <form method="post" action="{{ url_for('director_employees') }}" style="display:grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap:10px;">
+      <input type="hidden" name="action" value="create">
+
+      <input name="username" placeholder="Username" required
+             style="padding:10px; border:1px solid #e5e7eb; border-radius:10px;">
+
+      <input name="full_name" placeholder="Full name" required
+             style="padding:10px; border:1px solid #e5e7eb; border-radius:10px;">
+
+      <input name="email" placeholder="Email"
+             style="padding:10px; border:1px solid #e5e7eb; border-radius:10px;">
+
+      <select name="role" style="padding:10px; border:1px solid #e5e7eb; border-radius:10px;">
+        <option value="employee">employee</option>
+        <option value="admin">admin</option>
+        <option value="director">director</option>
+      </select>
+
+      <input name="temp_password" placeholder="Temp password (default ChangeMe123!)"
+             style="padding:10px; border:1px solid #e5e7eb; border-radius:10px;">
+
+      <div style="grid-column: 1 / -1; display:flex; justify-content:flex-end;">
+        <button type="submit" style="padding:10px 14px; border-radius:10px; border:1px solid #0f172a; background:#0f172a; color:#fff; font-weight:800;">
+          Create
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- List -->
+  <div style="overflow:auto; border:1px solid #e5e7eb; border-radius:12px; background:#fff;">
+    <table style="width:100%; border-collapse:collapse; min-width:900px;">
+      <thead>
+        <tr style="background:#f8fafc; text-align:left;">
+          <th style="padding:12px; border-bottom:1px solid #e5e7eb;">User</th>
+          <th style="padding:12px; border-bottom:1px solid #e5e7eb;">Email</th>
+          <th style="padding:12px; border-bottom:1px solid #e5e7eb;">Role</th>
+          <th style="padding:12px; border-bottom:1px solid #e5e7eb;">Active</th>
+          <th style="padding:12px; border-bottom:1px solid #e5e7eb;">Actions</th>
+        </tr>
+      </thead>
+
+      <tbody>
+      {% for u in users %}
+        <tr>
+          <td style="padding:12px; border-bottom:1px solid #e5e7eb;">
+            <strong>{{ u.full_name }}</strong>
+            <div style="color:#64748b; font-size:12px;">@{{ u.username }}</div>
+          </td>
+
+          <td style="padding:12px; border-bottom:1px solid #e5e7eb;">
+            {{ u.email or "" }}
+          </td>
+
+          <td style="padding:12px; border-bottom:1px solid #e5e7eb;">
+            <form method="post" action="{{ url_for('director_employees') }}" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <input type="hidden" name="action" value="update">
+              <input type="hidden" name="user_id" value="{{ u.id }}">
+
+              <input name="username" value="{{ u.username }}" style="padding:8px 10px; border:1px solid #e5e7eb; border-radius:10px; width:160px;">
+              <input name="full_name" value="{{ u.full_name }}" style="padding:8px 10px; border:1px solid #e5e7eb; border-radius:10px; width:220px;">
+              <input name="email" value="{{ u.email or '' }}" style="padding:8px 10px; border:1px solid #e5e7eb; border-radius:10px; width:220px;">
+
+              <select name="role" style="padding:8px 10px; border:1px solid #e5e7eb; border-radius:10px;">
+                <option value="employee" {{ "selected" if u.role=="employee" else "" }}>employee</option>
+                <option value="admin" {{ "selected" if u.role=="admin" else "" }}>admin</option>
+                <option value="director" {{ "selected" if u.role=="director" else "" }}>director</option>
+              </select>
+
+              <select name="active" style="padding:8px 10px; border:1px solid #e5e7eb; border-radius:10px;">
+                <option value="y" {{ "selected" if u.active else "" }}>Yes</option>
+                <option value="n" {{ "selected" if not u.active else "" }}>No</option>
+              </select>
+
+              <button type="submit" style="padding:8px 12px; border-radius:10px; border:1px solid #0f172a; background:#0f172a; color:#fff; font-weight:800;">
+                Save
+              </button>
+            </form>
+          </td>
+
+          <td style="padding:12px; border-bottom:1px solid #e5e7eb;">
+            {{ "Yes" if u.active else "No" }}
+          </td>
+
+          <td style="padding:12px; border-bottom:1px solid #e5e7eb; white-space:nowrap;">
+            {% if u.id != current_user.id %}
+            <form method="post" action="{{ url_for('director_employees') }}"
+                  style="display:inline-block;"
+                  onsubmit="return confirm('Delete this employee? Clients assigned to them will become unassigned.');">
+              <input type="hidden" name="action" value="delete">
+              <input type="hidden" name="user_id" value="{{ u.id }}">
+              <button type="submit" style="padding:8px 10px; border-radius:10px; border:1px solid #ef4444; background:#fff; color:#b91c1c; font-weight:900;">
+                Delete
+              </button>
+            </form>
+            {% else %}
+              <span style="color:#64748b; font-size:12px;">(you)</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

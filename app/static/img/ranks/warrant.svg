@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="200" viewBox="0 0 600 200">
+  <rect width="600" height="200" fill="#f8fafc"/>
+  <g fill="#1b3f6b">
+    <rect x="60" y="60" width="480" height="24" rx="8"/>
+    <rect x="90" y="100" width="420" height="24" rx="8"/>
+    <rect x="120" y="140" width="360" height="24" rx="8"/>
+  </g>
+  <text x="50%" y="30" text-anchor="middle" font-family="Times New Roman, serif" font-size="18" fill="#0B1F3A">Warrant Officer Ranks</text>
+</svg>

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Director - DIY Users{% endblock %}
+{% block content %}
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div>
+      <div class="page-kicker">Director</div>
+      <h1 class="page-title">DIY Users</h1>
+      <p class="page-sub">Separate list of do-it-yourself accounts.</p>
+    </div>
+    <div class="page-actions">
+      <a class="btn btn-outline-light" href="{{ url_for('director.dashboard') }}">Back</a>
+    </div>
+  </div>
+</section>
+
+<div class="admin-wrap">
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <div class="panel-title">Summary</div>
+      <div class="muted" style="margin-top:8px;">Total DIY signups: <strong>{{ total }}</strong></div>
+      <div class="muted" style="margin-top:6px;">Active subscribers: <strong>{{ purchased }}</strong></div>
+      <div class="muted" style="margin-top:6px;">Converted to clients: <strong>{{ converted }}</strong></div>
+    </div>
+  </div>
+
+  <div class="card-shell">
+    <div class="card-body-pad">
+      <div class="table">
+        <div class="thead" style="grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr;">
+          <div>Name</div><div>Status</div><div>Plan</div><div>Created</div><div>Client</div>
+        </div>
+        {% for r in rows %}
+          {% set sub = subs.get(r.id) %}
+          <div class="trow" style="grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr;">
+            <div>{{ r.full_name }}</div>
+            <div class="pill {{ 'ready' if r.status == 'active' else 'warn' }}">{{ r.status }}</div>
+            <div class="muted small">{{ sub.plan if sub else "—" }}</div>
+            <div class="muted small">{{ r.created_at.strftime('%Y-%m-%d') }}</div>
+            <div class="pill {{ 'ready' if r.user_id in converted_ids else 'warn' }}">{{ 'Yes' if r.user_id in converted_ids else 'No' }}</div>
+          </div>
+        {% else %}
+          <div class="muted" style="padding:12px;">No DIY users yet.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
