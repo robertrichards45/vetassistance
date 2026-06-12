@@ -5,6 +5,7 @@ if sys.version_info >= (3, 14):
 
 
 import click
+from sqlalchemy import text
 from app import create_app
 from app.extensions import init_db, SessionLocal
 from app.models import Base, Organization, User
@@ -79,6 +80,85 @@ def migrate_sqlite_to_postgres_cmd(sqlite_path: str, truncate: bool, batch_size:
         click.echo("Destination counts:")
         for table_name, row_count in counts.items():
             click.echo(f"{table_name}: {row_count} row(s)")
+
+
+@app.cli.command("migrate-storage-paths")
+@click.option(
+    "--windows-root",
+    default=r"C:\Users\rober\Desktop\merged website",
+    show_default=True,
+    help="Legacy Windows project root used in the SQLite database.",
+)
+@click.option(
+    "--railway-root",
+    default="/app/storage",
+    show_default=True,
+    help="Mounted Railway volume root.",
+)
+@click.option("--dry-run", is_flag=True, help="Show counts without updating PostgreSQL.")
+def migrate_storage_paths_cmd(windows_root: str, railway_root: str, dry_run: bool):
+    """Rewrite legacy Windows file paths to the Railway volume layout."""
+    engine = init_db(app)
+    normalized_windows_root = windows_root.rstrip("\\/")
+    normalized_railway_root = railway_root.rstrip("/")
+    replacements = [
+        ("documents", "storage_path"),
+        ("documents", "extracted_text_path"),
+        ("rendered_artifacts", "docx_path"),
+        ("rendered_artifacts", "pdf_path"),
+        ("cue_files", "docx_path"),
+        ("cue_files", "pdf_path"),
+        ("cue_files", "decision_path"),
+        ("cue_files", "confirmation_path"),
+        ("diy_documents", "storage_path"),
+    ]
+
+    def _legacy_prefix(dirname: str) -> str:
+        return f"{normalized_windows_root}\\{dirname}\\"
+
+    def _target_prefix(dirname: str) -> str:
+        return f"{normalized_railway_root}/{dirname}/"
+
+    with engine.begin() as conn:
+        for table_name, column_name in replacements:
+            updated_rows = 0
+            for dirname in ("uploads", "storage"):
+                prefix = _legacy_prefix(dirname)
+                count_stmt = text(
+                    f"""
+                    SELECT COUNT(*)
+                    FROM {table_name}
+                    WHERE {column_name} LIKE :prefix
+                    """
+                )
+                row_count = conn.execute(count_stmt, {"prefix": f"{prefix}%"}).scalar() or 0
+                if not row_count:
+                    continue
+                click.echo(f"{table_name}.{column_name}: {row_count} row(s) matched {dirname}")
+                if dry_run:
+                    continue
+                update_stmt = text(
+                    f"""
+                    UPDATE {table_name}
+                    SET {column_name} = REPLACE(
+                        REPLACE({column_name}, :prefix, :target_prefix),
+                        '\\\\',
+                        '/'
+                    )
+                    WHERE {column_name} LIKE :like_prefix
+                    """
+                )
+                conn.execute(
+                    update_stmt,
+                    {
+                        "prefix": prefix,
+                        "target_prefix": _target_prefix(dirname),
+                        "like_prefix": f"{prefix}%",
+                    },
+                )
+                updated_rows += row_count
+            if not dry_run and updated_rows:
+                click.echo(f"{table_name}.{column_name}: updated {updated_rows} row(s)")
 
 if __name__ == "__main__":
     app.run()
