@@ -4,12 +4,12 @@
 {% block content %}
 <section class="home-hero">
   <div class="home-hero-copy">
-    <div class="home-kicker">{{ SITE.home_hero_kicker or "Veteran Benefits Assistance" }}</div>
-    <h1 class="home-title">{{ SITE.home_hero_title or "Build a clearer VA claim with practical guidance and secure tools." }}</h1>
-    <p class="home-subtitle">{{ SITE.home_hero_subtitle or "Use evidence checklists, benefits tools, and a secure client portal to organize the next step without guesswork." }}</p>
+    <div class="home-kicker">{{ SITE.home_hero_kicker or "Veterans Helping Veterans" }}</div>
+    <h1 class="home-title">{{ home_content.hero_title or SITE.home_hero_title or "Veterans Benefits" }}</h1>
+    <p class="home-subtitle">{{ home_content.hero_subtitle or SITE.home_hero_subtitle or "A premium claims intelligence ecosystem: portal, evidence discipline, and AI-guided strategy built to win." }}</p>
     <div class="home-actions">
-      <a class="btn btn-primary" href="{{ SITE.home_primary_cta_url or url_for('onboard.become_client') }}">{{ SITE.home_primary_cta_text or "Become a Client" }}</a>
-      <a class="btn btn-outline-primary" href="{{ url_for('public.intelligent_benefits') }}">Benefits Finder</a>
+      <a class="btn btn-primary" href="{{ SITE.home_primary_cta_url or url_for('onboard.become_client') }}">{{ home_content.cta_primary or SITE.home_primary_cta_text or "Become a Client" }}</a>
+      <a class="btn btn-outline-primary" href="{{ url_for('portal.portal_home') }}">{{ home_content.cta_secondary or "Client Login" }}</a>
       <a class="btn btn-outline-primary" href="{{ url_for('public.pricing') }}">Pricing</a>
     </div>
     <div class="home-disclaimer">{{ SITE.home_disclaimer_box or "Educational support only. No guarantee of outcome." }}</div>
@@ -32,24 +32,24 @@
 
 <section class="home-grid">
   <article class="home-panel">
-    <div class="home-panel-kicker">Start Here</div>
-    <h2>Choose the path that fits your situation.</h2>
+    <div class="home-panel-kicker">{{ home_content.feature_1_title or "Evidence Discipline" }}</div>
+    <h2>{{ home_content.feature_1_body or "Upload, categorize, and track evidence with checklists and timelines so nothing gets missed." }}</h2>
     <div class="home-link-list">
       <a href="{{ url_for('onboard.become_client') }}">Become a client</a>
-      <a href="{{ url_for('public.intelligent_benefits') }}">Find likely and missed benefits</a>
-      <a href="{{ url_for('public.benefits_hub') }}">Browse benefits hub</a>
+      <a href="{{ url_for('portal.portal_home') }}">Client login</a>
+      <a href="{{ url_for('public.veteran_upload') }}">Veteran upload</a>
       <a href="{{ url_for('public.contact') }}">Contact the team</a>
     </div>
   </article>
 
   <article class="home-panel">
-    <div class="home-panel-kicker">What You Get</div>
-    <h2>Clearer evidence, fewer blind spots.</h2>
+    <div class="home-panel-kicker">{{ home_content.feature_2_title or "AI Guidance per Client" }}</div>
+    <h2>{{ home_content.feature_2_body or "Evidence scoring, gaps, conflicts, and next-best actions tied to the client file." }}</h2>
     <ul class="home-feature-list">
-      <li>Condition and rating guidance in plain language</li>
+      <li>{{ home_content.feature_3_title or "Documents + Letters on Demand" }}</li>
+      <li>{{ home_content.feature_3_body or "Generate DOCX, web copy, and email drafts in seconds. Nexus packets included." }}</li>
       <li>Secure portal for files, checklists, and messages</li>
       <li>Benefits discovery by location and eligibility clues</li>
-      <li>Pricing and service options without hidden steps</li>
     </ul>
   </article>
 </section>

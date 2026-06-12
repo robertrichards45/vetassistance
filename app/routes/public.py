@@ -15,6 +15,7 @@ from app.models.user import Role
 from app.services.diy_access import has_diy_access
 from app.services.locator import zip_to_place
 from app.services.article_store import list_articles, load_article
+from app.services.site_content import get_value
 
 public_bp = Blueprint("public", __name__)
 
@@ -59,13 +60,32 @@ def home():
     pricing_items = _get_pricing_items()
     diy_access = False
     comments = []
+    default_name = current_app.config.get("DEFAULT_TENANT", "Veteran Benefits Assistance")
+    db = SessionLocal()
+    org_id = None
+    home_content = {}
     if current_user.is_authenticated:
         if current_user.role == Role.DIY:
             diy_access = has_diy_access(current_user.id)
         else:
             diy_access = True
-    db = SessionLocal()
     try:
+        org = db.query(Organization).filter(Organization.name == default_name).first()
+        if not org:
+            org = db.query(Organization).first()
+        org_id = org.id if org else 1
+        home_content = {
+            "hero_title": get_value(org_id, "HOME_HERO_TITLE"),
+            "hero_subtitle": get_value(org_id, "HOME_HERO_SUBTITLE"),
+            "cta_primary": get_value(org_id, "HOME_CTA_PRIMARY"),
+            "cta_secondary": get_value(org_id, "HOME_CTA_SECONDARY"),
+            "feature_1_title": get_value(org_id, "HOME_FEATURE_1_TITLE"),
+            "feature_1_body": get_value(org_id, "HOME_FEATURE_1_BODY"),
+            "feature_2_title": get_value(org_id, "HOME_FEATURE_2_TITLE"),
+            "feature_2_body": get_value(org_id, "HOME_FEATURE_2_BODY"),
+            "feature_3_title": get_value(org_id, "HOME_FEATURE_3_TITLE"),
+            "feature_3_body": get_value(org_id, "HOME_FEATURE_3_BODY"),
+        }
         comments = (
             db.query(PublicComment)
             .filter_by(is_approved=True)
@@ -80,6 +100,7 @@ def home():
         pricing_items=pricing_items,
         diy_access=diy_access,
         comments=comments,
+        home_content=home_content,
         meta_title=f"{current_app.config.get('SITE_NAME','Veteran Benefits Assistance')} | VA Claims Guidance",
         meta_description="VA claims guidance with evidence checklists, rating criteria, and a secure portal. Build a clear plan and avoid common gaps.",
     )
