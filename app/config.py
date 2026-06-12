@@ -14,6 +14,23 @@ def _default_sqlite_uri() -> str:
     # sqlite:///C:/path/to/db
     return "sqlite:///" + db_path.as_posix()
 
+def _normalize_database_url(raw_url: str | None) -> str:
+    url = (raw_url or "").strip()
+    if not url:
+        return _default_sqlite_uri()
+    if url.startswith("postgres://"):
+        return "postgresql+psycopg://" + url[len("postgres://") :]
+    if url.startswith("postgresql://") and not url.startswith("postgresql+"):
+        return "postgresql+psycopg://" + url[len("postgresql://") :]
+    return url
+
+def _database_url() -> str:
+    return _normalize_database_url(
+        os.environ.get("DATABASE_URL")
+        or os.environ.get("DATABASE_PUBLIC_URL")
+        or os.environ.get("POSTGRES_URL")
+    )
+
 class BaseConfig:
     # Flask
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key-change-me")
@@ -22,7 +39,7 @@ class BaseConfig:
     WTF_CSRF_TIME_LIMIT = None
 
     # Database
-    DATABASE_URL = os.environ.get("DATABASE_URL", _default_sqlite_uri())
+    DATABASE_URL = _database_url()
 
     # Support both patterns used across the app
     SQLALCHEMY_DATABASE_URI = DATABASE_URL
@@ -64,7 +81,13 @@ class ProductionConfig(BaseConfig):
     ENV = "production"
     DEBUG = False
 
+def _select_config():
+    env = (os.environ.get("FLASK_ENV") or os.environ.get("ENV") or "").strip().lower()
+    if env == "production" or os.environ.get("RAILWAY_ENVIRONMENT"):
+        return ProductionConfig
+    return DevelopmentConfig
+
 # Backwards-compatible alias used across the codebase
-Config = DevelopmentConfig
+Config = _select_config()
 
 
