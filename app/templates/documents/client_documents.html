@@ -46,9 +46,13 @@
       <button class="btn secondary" type="submit">Search</button>
     </form>
     <div class="muted small">Tip: keep filenames meaningful (DecisionLetter, C&P, DBQ, TreatmentRecords).</div>
-    <form method="post" action="{{ url_for('documents.reclassify_client_docs', client_id=client.id) }}" style="margin-top:10px;">
+    <form method="post" action="{{ url_for('documents.categorize_client_docs_ai', client_id=client.id) }}" style="margin-top:10px;" onsubmit="return confirm('Use AI to categorize every document for this client?');">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <button class="btn btn-outline-primary btn-sm" type="submit">Reclassify all documents</button>
+      <button class="btn btn-outline-primary btn-sm" type="submit">AI categorize all</button>
+    </form>
+    <form method="post" action="{{ url_for('documents.share_all_documents', client_id=client.id) }}" style="margin-top:10px;" onsubmit="return confirm('Share every document with this client in the portal?');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-outline-primary btn-sm" type="submit">Share all with client</button>
     </form>
     <form id="bulkDeleteForm" method="post" action="{{ url_for('documents.delete_documents_bulk', client_id=client.id) }}" style="margin-top:10px;">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

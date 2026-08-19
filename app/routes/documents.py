@@ -14,6 +14,72 @@ from app.services.audit_service import log as audit_log
 import os
 import json
 
+DOCUMENT_CATEGORIES = [
+    "Decision Letter",
+    "C&P Exam",
+    "DBQ",
+    "Treatment Records",
+    "Service Records (STR)",
+    "Buddy Statement",
+    "Employer Statement",
+    "Imaging/Labs",
+    "Other",
+    "Uncategorized",
+]
+
+
+def _document_text(doc: Document, limit: int = 12000) -> str:
+    if not doc.extracted_text_path or not os.path.exists(doc.extracted_text_path):
+        return ""
+    try:
+        with open(doc.extracted_text_path, "r", encoding="utf-8", errors="ignore") as f:
+            return f.read(limit)
+    except Exception:
+        return ""
+
+
+def _ai_categories(docs: list[Document]) -> dict[int, str]:
+    from flask import current_app
+    from openai import OpenAI
+
+    api_key = current_app.config.get("OPENAI_API_KEY")
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY is not configured")
+    model = current_app.config.get("OPENAI_MODEL", "gpt-4.1-mini")
+    payload = [
+        {
+            "id": doc.id,
+            "filename": doc.filename,
+            "mime_type": doc.mime_type or "unknown",
+            "text": _document_text(doc, limit=4000),
+        }
+        for doc in docs
+    ]
+    allowed = ", ".join(DOCUMENT_CATEGORIES)
+    prompt = f"""Categorize each VA claim document into exactly one allowed category.
+Allowed categories: {allowed}
+Return a JSON object whose keys are the document IDs and whose values are category names.
+Include every supplied document ID and no other keys.
+
+Documents:
+{json.dumps(payload, ensure_ascii=False)}
+"""
+    response = OpenAI(api_key=api_key).chat.completions.create(
+        model=model,
+        temperature=0,
+        response_format={"type": "json_object"},
+        messages=[
+            {"role": "system", "content": "You classify VA claim documents. Return exactly one allowed category."},
+            {"role": "user", "content": prompt},
+        ],
+    )
+    raw = json.loads(response.choices[0].message.content or "{}")
+    results = {}
+    for doc in docs:
+        category = str(raw.get(str(doc.id), raw.get(doc.id, "Other"))).strip()
+        results[doc.id] = category if category in DOCUMENT_CATEGORIES else "Other"
+    return results
+
 documents_bp = Blueprint("documents", __name__, url_prefix="/documents")
 
 @documents_bp.get("/client/<int:client_id>")
@@ -130,6 +196,76 @@ def reclassify_client_docs(client_id: int):
         flash(f"Reclassified documents. Updated {updated} file(s). Extracted {extracted} now, queued {queued}.", "success")
     else:
         flash(f"Reclassified documents. Updated {updated} file(s).", "success")
+    return redirect(url_for("documents.client_documents", client_id=c.id))
+
+
+@documents_bp.post("/client/<int:client_id>/categorize-ai")
+@login_required
+@require_roles(Role.DIRECTOR, Role.EMPLOYEE)
+def categorize_client_docs_ai(client_id: int):
+    db = SessionLocal()
+    c = db.get(Client, client_id)
+    if not c or c.org_id != current_user.org_id:
+        return "Not found", 404
+    if not current_app().config.get("OPENAI_API_KEY"):
+        flash("AI categorization is unavailable because OPENAI_API_KEY is not configured.", "error")
+        return redirect(url_for("documents.client_documents", client_id=c.id))
+
+    docs = db.query(Document).filter_by(org_id=current_user.org_id, client_id=c.id).all()
+    updated = 0
+    failed = 0
+    batch_size = 8
+    for start in range(0, len(docs), batch_size):
+        batch = docs[start:start + batch_size]
+        try:
+            categories = _ai_categories(batch)
+            for d in batch:
+                category = categories[d.id]
+                if d.category != category:
+                    d.category = category
+                    updated += 1
+        except Exception:
+            failed += len(batch)
+    db.commit()
+    audit_log(
+        current_user.org_id,
+        current_user.id,
+        "DOCS_AI_CATEGORIZED",
+        "Document",
+        "bulk",
+        detail=f"client_id={c.id}, total={len(docs)}, updated={updated}, failed={failed}",
+    )
+    if failed:
+        flash(f"AI categorized {len(docs) - failed} document(s); {failed} could not be categorized.", "warning")
+    else:
+        flash(f"AI categorized all {len(docs)} document(s).", "success")
+    return redirect(url_for("documents.client_documents", client_id=c.id))
+
+
+@documents_bp.post("/client/<int:client_id>/share-all")
+@login_required
+@require_roles(Role.DIRECTOR, Role.EMPLOYEE)
+def share_all_documents(client_id: int):
+    db = SessionLocal()
+    c = db.get(Client, client_id)
+    if not c or c.org_id != current_user.org_id:
+        return "Not found", 404
+    docs = db.query(Document).filter_by(org_id=current_user.org_id, client_id=c.id).all()
+    changed = 0
+    for d in docs:
+        if not d.is_client_visible:
+            d.is_client_visible = True
+            changed += 1
+    db.commit()
+    audit_log(
+        current_user.org_id,
+        current_user.id,
+        "DOCS_SHARED_ALL",
+        "Document",
+        "bulk",
+        detail=f"client_id={c.id}, total={len(docs)}, changed={changed}",
+    )
+    flash(f"Shared all {len(docs)} document(s) with the client.", "success")
     return redirect(url_for("documents.client_documents", client_id=c.id))
 
 @documents_bp.post("/client/<int:client_id>/upload")
