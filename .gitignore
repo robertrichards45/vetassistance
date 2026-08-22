@@ -13,6 +13,7 @@ storage/
 app.db
 .pytest_cache/
 .mypy_cache/
+cfr_data/.va_ratings_chart_refresh_triggered_at
 .ruff_cache/
 .DS_Store
 Thumbs.db

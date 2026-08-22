@@ -1,7 +1,62 @@
 import json
 import os
 import re
+import time
+from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
+
+# How old the generated ratings chart can get before a background rebuild
+# is triggered. eCFR.gov itself only changes on the government's own
+# amendment schedule, so this doesn't need to be tight — it just keeps the
+# "live from eCFR.gov" page from silently going stale for months if nobody
+# happens to rerun the build script by hand.
+REFRESH_STALE_DAYS = 7
+# Once a refresh has been enqueued, don't enqueue another one for this long
+# even if the page keeps getting hit while the rebuild is still stale/still
+# running — avoids flooding the queue with duplicate jobs.
+REFRESH_MARKER_COOLDOWN_SECONDS = 6 * 60 * 60
+
+
+def _refresh_marker_path(base_dir: str) -> str:
+    return os.path.join(base_dir, "cfr_data", ".va_ratings_chart_refresh_triggered_at")
+
+
+def maybe_trigger_stale_refresh(base_dir: str, payload: Dict[str, Any]) -> None:
+    """Enqueues a background rebuild of the VA ratings chart from the live
+    eCFR.gov API if the current one is older than REFRESH_STALE_DAYS, so the
+    page self-refreshes over time instead of relying on someone remembering
+    to rerun scripts/build_va_ratings_chart_ecfr.py by hand. Safe to call on
+    every request: it's a no-op unless the data is actually stale, and any
+    failure (no Redis configured, no worker running) is swallowed so page
+    rendering is never affected."""
+    generated_at = payload.get("generated_at")
+    if not generated_at:
+        return
+    try:
+        generated = datetime.fromisoformat(generated_at)
+        if generated.tzinfo is None:
+            generated = generated.replace(tzinfo=timezone.utc)
+        age_days = (datetime.now(timezone.utc) - generated).total_seconds() / 86400
+    except (ValueError, TypeError):
+        return
+    if age_days < REFRESH_STALE_DAYS:
+        return
+
+    marker = _refresh_marker_path(base_dir)
+    try:
+        if os.path.exists(marker) and (time.time() - os.path.getmtime(marker)) < REFRESH_MARKER_COOLDOWN_SECONDS:
+            return
+    except OSError:
+        pass
+
+    try:
+        from app.services.queue import get_queue
+        from scripts.build_va_ratings_chart_ecfr import build_chart
+        get_queue("default").enqueue(build_chart)
+        with open(marker, "w", encoding="utf-8") as f:
+            f.write(str(time.time()))
+    except Exception:
+        pass
 
 
 def load_va_ratings_chart(base_dir: str) -> Dict[str, Any]:
@@ -50,6 +105,7 @@ def load_va_ratings_chart(base_dir: str) -> Dict[str, Any]:
         items.sort(key=lambda x: (x.get("condition") or ""))
         result["grouped"].append({"category": cat, "items_list": items})
     result["categories"] = [g["category"] for g in result["grouped"]]
+    maybe_trigger_stale_refresh(base_dir, payload)
     return result
 
 

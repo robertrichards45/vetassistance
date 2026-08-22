@@ -26,6 +26,94 @@ DOT_LEADER_RE = re.compile(r"\.{2,}.*$")
 FORMULA_HEAD_RE = re.compile(r"^(general\s+)?rating formula", re.IGNORECASE)
 
 
+def extract_section(text: str) -> str:
+    m = re.search(r"4\.\d+[a-z]*", (text or "").lower())
+    return m.group(0) if m else ""
+
+
+def criteria_from_lines(rating_lines: list[str]) -> list[dict]:
+    out = []
+    for line in rating_lines or []:
+        m = re.search(r"(100|90|80|70|60|50|40|30|20|10|0)\s*%?", str(line))
+        if not m:
+            continue
+        pct = int(m.group(1))
+        out.append({"percent": pct, "text": str(line).strip()})
+    return out
+
+
+def keyword_best_formula(candidates, name_l):
+    """Picks the single best-scoring formula by keyword overlap with the
+    condition name — never concatenates multiple formulas together, which is
+    how unrelated conditions' criteria end up glued onto one entry."""
+    best, best_score = None, 0
+    for fname, fcriteria in candidates:
+        if not fcriteria:
+            continue
+        base = (fname or "").lower().replace("general rating formula for", "").replace("rating formula for", "")
+        words = [w for w in re.split(r"[^a-z]+", base) if len(w) >= 4]
+        if not words:
+            continue
+        score = sum(1 for w in words if w in name_l)
+        if score > best_score:
+            best_score = score
+            best = fcriteria
+    return best if best_score > 0 else None
+
+
+def is_bad_name(title: str) -> bool:
+    """Flags condition titles that are actually amendment-history notes,
+    dot-leader table-of-contents artifacts, or fragments of a different DC's
+    name concatenated on — the parser signatures left behind by cfr38_full.json's
+    older PDF-OCR extraction and by mis-parsed cross-reference sentences."""
+    t = title.strip()
+    if not t:
+        return True
+    if "[removed]" in t.lower():
+        return True
+    if "added" in t.lower() or "criterion" in t.lower() or "note" in t.lower():
+        return True
+    if t.lower() in {"complete", "partial", "total"}:
+        return True
+    if "." in t and DOT_LEADER_RE.sub("", t).strip() != t.strip():
+        return True
+    if len(t) < 6:
+        return True
+    # "resection of", "malunion of", "impairment of" etc. are genuine,
+    # complete VA condition titles — ending in "of" is this dataset's
+    # naming convention, not a sign of truncation. "and"/"or"/a trailing
+    # comma are still treated as cut-off markers.
+    if t.endswith((" and", " or", ",")):
+        return True
+    if not re.search(r"[A-Za-z]", t):
+        return True
+    # A real condition title never starts mid-sentence — these are marks
+    # of a stray fragment (e.g. a cross-reference sentence like "Note:
+    # ...use DC 7327 or DC 7329 (Intestine, large, resection of),
+    # whichever results in a higher evaluation." got misread as DC
+    # 7329's own name).
+    if t.startswith(("(", ")", ",", "-")):
+        return True
+    if "whichever results in" in t.lower() or "whichever" in t.lower():
+        return True
+    # A real condition title doesn't contain ANOTHER standalone 4-digit
+    # diagnostic code — that's the signature of two different DCs'
+    # names having been concatenated (e.g. "Knee, other impairment of:
+    # 5258 Cartilage, semilunar, dislocated, with frequent").
+    if re.search(r"(?<!\S)\d{4}(?!\S)", t):
+        return True
+    # An unclosed parenthetical means the title was cut off mid-sentence
+    # (e.g. "Fibromyalgia (fibrositis, primary fibromyalgia With chronic
+    # residuals consisting" — the opening "(" never closes).
+    if t.count("(") != t.count(")"):
+        return True
+    # Same as "[removed]" but without the brackets — an amendment-history
+    # entry ("Removed February 7, 2021.") standing in for a real title.
+    if t.lower().startswith("removed "):
+        return True
+    return False
+
+
 def expand_dc_list(text: str) -> list[str]:
     out = []
     for part in re.split(r"[,\s]+", text):
@@ -285,20 +373,6 @@ def build_chart(sections_override: list[str] | None = None):
             if candidate and len(candidate) > len(live_dc_names.get(dc, "")):
                 live_dc_names[dc] = candidate
 
-    def _extract_section(text: str) -> str:
-        m = re.search(r"4\.\d+[a-z]*", (text or "").lower())
-        return m.group(0) if m else ""
-
-    def _criteria_from_lines(rating_lines: list[str]) -> list[dict]:
-        out = []
-        for line in rating_lines or []:
-            m = re.search(r"(100|90|80|70|60|50|40|30|20|10|0)\s*%?", str(line))
-            if not m:
-                continue
-            pct = int(m.group(1))
-            out.append({"percent": pct, "text": str(line).strip()})
-        return out
-
     conditions = []
     if os.path.exists(CFR_JSON):
         with open(CFR_JSON, "r", encoding="utf-8") as f:
@@ -308,7 +382,7 @@ def build_chart(sections_override: list[str] | None = None):
             if not dc.isdigit():
                 continue
             name = str(r.get("title") or r.get("key") or "").strip()
-            section = dc_to_section.get(dc) or _extract_section(r.get("cfr") or "")
+            section = dc_to_section.get(dc) or extract_section(r.get("cfr") or "")
             criteria = []
             formula_names = []
             source_url = section_url_for(section) if section else ""
@@ -316,25 +390,6 @@ def build_chart(sections_override: list[str] | None = None):
             if section in section_map:
                 parsed = section_map[section]["parsed"]
                 formula_by_name = section_map[section]["formula_by_name"]
-
-                def _keyword_best(candidates, name_l):
-                    """Picks the single best-scoring formula by keyword overlap
-                    with the condition name — never concatenates multiple
-                    formulas together, which is how unrelated conditions'
-                    criteria end up glued onto one entry."""
-                    best, best_score = None, 0
-                    for fname, fcriteria in candidates:
-                        if not fcriteria:
-                            continue
-                        base = fname.lower().replace("general rating formula for", "").replace("rating formula for", "")
-                        words = [w for w in re.split(r"[^a-z]+", base) if len(w) >= 4]
-                        if not words:
-                            continue
-                        score = sum(1 for w in words if w in name_l)
-                        if score > best_score:
-                            best_score = score
-                            best = fcriteria
-                    return best if best_score > 0 else None
 
                 # Prefer criteria extracted directly under this DC's own row
                 # over a formula-name association, which can be misattributed
@@ -358,11 +413,11 @@ def build_chart(sections_override: list[str] | None = None):
                     # the one that actually matches the condition by keyword,
                     # rather than concatenating all of them into one garbled
                     # list.
-                    picked = _keyword_best([(f, formula_by_name.get(f, [])) for f in real_formula_names], (name or "").lower())
+                    picked = keyword_best_formula([(f, formula_by_name.get(f, [])) for f in real_formula_names], (name or "").lower())
                     if picked:
                         criteria.extend(picked)
                 if not criteria:
-                    picked = _keyword_best(list(formula_by_name.items()), (name or "").lower())
+                    picked = keyword_best_formula(list(formula_by_name.items()), (name or "").lower())
                     if picked:
                         criteria.extend(picked)
                 if not criteria:
@@ -371,7 +426,7 @@ def build_chart(sections_override: list[str] | None = None):
                         criteria.extend(formulas_with_criteria[0].get("criteria", []))
 
             if not criteria:
-                criteria = _criteria_from_lines(r.get("rating_criteria", []) or [])
+                criteria = criteria_from_lines(r.get("rating_criteria", []) or [])
             if not criteria and global_formulas:
                 name_l = (name or "").lower()
                 best = None
@@ -441,54 +496,6 @@ def build_chart(sections_override: list[str] | None = None):
             if dc and title and "[removed]" not in title.lower():
                 name_map[dc] = title
 
-    def _bad_name(title: str) -> bool:
-        t = title.strip()
-        if not t:
-            return True
-        if "[removed]" in t.lower():
-            return True
-        if "added" in t.lower() or "criterion" in t.lower() or "note" in t.lower():
-            return True
-        if t.lower() in {"complete", "partial", "total"}:
-            return True
-        if "." in t and DOT_LEADER_RE.sub("", t).strip() != t.strip():
-            return True
-        if len(t) < 6:
-            return True
-        # "resection of", "malunion of", "impairment of" etc. are genuine,
-        # complete VA condition titles — ending in "of" is this dataset's
-        # naming convention, not a sign of truncation. "and"/"or"/a trailing
-        # comma are still treated as cut-off markers.
-        if t.endswith((" and", " or", ",")):
-            return True
-        if not re.search(r"[A-Za-z]", t):
-            return True
-        # A real condition title never starts mid-sentence — these are marks
-        # of a stray fragment (e.g. a cross-reference sentence like "Note:
-        # ...use DC 7327 or DC 7329 (Intestine, large, resection of),
-        # whichever results in a higher evaluation." got misread as DC
-        # 7329's own name).
-        if t.startswith(("(", ")", ",", "-")):
-            return True
-        if "whichever results in" in t.lower() or "whichever" in t.lower():
-            return True
-        # A real condition title doesn't contain ANOTHER standalone 4-digit
-        # diagnostic code — that's the signature of two different DCs'
-        # names having been concatenated (e.g. "Knee, other impairment of:
-        # 5258 Cartilage, semilunar, dislocated, with frequent").
-        if re.search(r"(?<!\S)\d{4}(?!\S)", t):
-            return True
-        # An unclosed parenthetical means the title was cut off mid-sentence
-        # (e.g. "Fibromyalgia (fibrositis, primary fibromyalgia With chronic
-        # residuals consisting" — the opening "(" never closes).
-        if t.count("(") != t.count(")"):
-            return True
-        # Same as "[removed]" but without the brackets — an amendment-history
-        # entry ("Removed February 7, 2021.") standing in for a real title.
-        if t.lower().startswith("removed "):
-            return True
-        return False
-
     # cfr38_full.json carries multiple historical entries for the same DC
     # (an amendment-history row alongside the real one, sometimes several).
     # Without deduplication, a fixed/clean entry and a still-garbled sibling
@@ -497,7 +504,7 @@ def build_chart(sections_override: list[str] | None = None):
     # one with more extracted criteria rows.
     best_by_dc = {}
     for c in conditions:
-        if _bad_name(c.get("condition", "")):
+        if is_bad_name(c.get("condition", "")):
             # Prefer the name pulled straight from the live eCFR.gov text
             # over cfr38_full.json's title, since that file's titles come
             # from an older PDF-OCR pass and are sometimes amendment notes
@@ -506,7 +513,7 @@ def build_chart(sections_override: list[str] | None = None):
             alt = live_dc_names.get(c.get("diagnostic_code", "")) or name_map.get(c.get("diagnostic_code", ""))
             if alt:
                 c["condition"] = alt
-        if _bad_name(c.get("condition", "")):
+        if is_bad_name(c.get("condition", "")):
             continue
         dc_key = c.get("diagnostic_code", "")
         existing = best_by_dc.get(dc_key)
