@@ -76,6 +76,12 @@
     margin-top:14px; padding:14px; border-radius:16px; border:1px solid rgba(15,23,42,.12);
     background:#fff; font-weight:600;
   }
+  .calc-card{ background:#fff; border:1px solid rgba(15,23,42,.10); border-radius:18px; padding:14px 16px; box-shadow:0 12px 30px rgba(2,8,23,.08); margin-top:14px; }
+  .calc-grid{ display:grid; grid-template-columns: 1.3fr 1fr; gap:12px; }
+  .calc-list{ display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+  .calc-pill{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; border:1px solid rgba(15,23,42,.15); background:rgba(15,23,42,.04); font-weight:700; }
+  .calc-pill button{ border:none; background:none; font-weight:900; cursor:pointer; }
+  @media (max-width: 920px){ .calc-grid{ grid-template-columns: 1fr; } }
 </style>
 
 <div class="chart-shell">
@@ -84,12 +90,48 @@
     <p>Condition-by-condition rating criteria pulled from CFR Part 4.</p>
     <div class="chart-meta">
       {% if has_data %}
-        Source: {{ source_pdf or "CFR PDF" }} · Updated: {{ generated_at or "unknown" }}
+        {% if source_part_url %}
+          <a href="{{ source_part_url }}" target="_blank" rel="noopener" style="color:inherit;">Live from {{ source or "eCFR.gov" }}</a>
+        {% else %}
+          Source: {{ source or "eCFR.gov" }}
+        {% endif %}
+        {% if effective_date %} · Part effective as of {{ effective_date }}{% endif %}
       {% else %}
         Data not generated yet.
       {% endif %}
     </div>
   </section>
+
+  <div class="calc-card">
+    <div class="calc-grid">
+      <div>
+        <div style="font-weight:800;">Combined Rating Calculator</div>
+        <div class="muted" style="margin-top:6px;">Enter ratings and calculate VA combined rating.</div>
+        <div class="row" style="margin-top:10px; gap:8px; align-items:end;">
+          <div>
+            <label>Add rating %</label>
+            <input id="calcInput" class="chart-input" placeholder="e.g., 50">
+          </div>
+          <div>
+            <button class="btn btn-primary" id="calcAddBtn" type="button">Add</button>
+          </div>
+          <div>
+            <button class="btn btn-outline-secondary" id="calcClearBtn" type="button">Clear</button>
+          </div>
+        </div>
+        <div class="calc-list" id="calcList"></div>
+      </div>
+      <div>
+        <div style="font-weight:800;">Result</div>
+        <div class="muted" style="margin-top:6px;">Combined before rounding and final rounded value.</div>
+        <div style="margin-top:12px;">
+          <div class="pill ready" id="calcRaw">Raw: 0%</div>
+          <div class="pill ready" id="calcFinal" style="margin-left:8px;">Final: 0%</div>
+        </div>
+        <div class="muted small" style="margin-top:10px;">Formula: 100 - (100 - a) * (100 - b) / 100, rounded to nearest 10.</div>
+      </div>
+    </div>
+  </div>
 
   <div class="chart-toolbar">
     <input class="chart-input" id="chartSearch" placeholder="Search condition, diagnostic code, or CFR section...">
@@ -136,12 +178,35 @@
               {% else %}
                 <div class="chart-meta-row">No percentage criteria detected for this code.</div>
               {% endif %}
+              {% if c.criteria %}
+                <div style="margin-top:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                  <select class="chart-select dc-percent-select">
+                    {% for r in c.criteria|sort(attribute='percent', reverse=true) %}
+                      <option value="{{ r.percent }}">{{ r.percent }}%</option>
+                    {% endfor %}
+                  </select>
+                  <button type="button" class="btn btn-outline-secondary justify-add-btn" data-dc="{{ c.diagnostic_code }}" data-name="{{ c.condition }}">+ Add to Justification</button>
+                </div>
+              {% endif %}
             </div>
           </details>
           {% endfor %}
         </div>
       </section>
     {% endfor %}
+  </div>
+
+  <div class="calc-card" id="justifyCard">
+    <div style="font-weight:800;">Write Justification</div>
+    <div class="muted" style="margin-top:6px;">Select conditions above, then draft an AI justification grounded in the live regulation text.</div>
+    <div class="calc-list" id="justifySelectedList"></div>
+    <label style="display:block; margin-top:10px; font-weight:700;">Case notes (optional, background only)</label>
+    <textarea id="justifyNotes" class="chart-input" style="width:100%; min-height:70px; margin-top:6px;" placeholder="Relevant case details for context…"></textarea>
+    <div style="margin-top:10px;">
+      <button class="btn btn-primary" id="justifyBtn" type="button" disabled>Write Justification</button>
+    </div>
+    <p id="justifyStatus" class="muted" style="margin-top:8px;"></p>
+    <textarea id="justifyOutput" class="chart-input" style="width:100%; min-height:160px; margin-top:8px; display:none;" readonly></textarea>
   </div>
   {% endif %}
 </div>
@@ -192,6 +257,140 @@
   }
   if (search) search.addEventListener("input", render);
   if (percentFilter) percentFilter.addEventListener("change", render);
+})();
+</script>
+<script>
+(function(){
+  const input = document.getElementById("calcInput");
+  const addBtn = document.getElementById("calcAddBtn");
+  const clearBtn = document.getElementById("calcClearBtn");
+  const list = document.getElementById("calcList");
+  const rawOut = document.getElementById("calcRaw");
+  const finalOut = document.getElementById("calcFinal");
+  const ratings = [];
+
+  function renderList(){
+    list.innerHTML = "";
+    ratings.forEach((r, idx) => {
+      const pill = document.createElement("div");
+      pill.className = "calc-pill";
+      pill.textContent = `${r}%`;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = "x";
+      btn.addEventListener("click", () => {
+        ratings.splice(idx, 1);
+        renderList();
+        recalc();
+      });
+      pill.appendChild(btn);
+      list.appendChild(pill);
+    });
+  }
+
+  function recalc(){
+    if (ratings.length === 0){
+      rawOut.textContent = "Raw: 0%";
+      finalOut.textContent = "Final: 0%";
+      return;
+    }
+    const sorted = ratings.slice().sort((a,b) => b - a);
+    let combined = sorted[0];
+    for (let i = 1; i < sorted.length; i += 1){
+      combined = 100 - ((100 - combined) * (100 - sorted[i]) / 100);
+    }
+    const raw = Math.round(combined * 10) / 10;
+    const final = Math.round(raw / 10) * 10;
+    rawOut.textContent = `Raw: ${raw}%`;
+    finalOut.textContent = `Final: ${final}%`;
+  }
+
+  function addRating(){
+    const val = Number((input.value || "").replace("%","").trim());
+    if (!Number.isFinite(val) || val < 0 || val > 100){
+      input.value = "";
+      input.focus();
+      return;
+    }
+    ratings.push(Math.round(val));
+    input.value = "";
+    renderList();
+    recalc();
+  }
+
+  if (addBtn) addBtn.addEventListener("click", addRating);
+  if (clearBtn) clearBtn.addEventListener("click", () => {
+    ratings.length = 0;
+    renderList();
+    recalc();
+  });
+  if (input) input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter"){ e.preventDefault(); addRating(); }
+  });
+})();
+</script>
+<script>
+(function(){
+  const selected = [];
+  const list = document.getElementById("justifySelectedList");
+  const btn = document.getElementById("justifyBtn");
+  const status = document.getElementById("justifyStatus");
+  const output = document.getElementById("justifyOutput");
+  const notesInput = document.getElementById("justifyNotes");
+  if (!btn) return;
+  const endpoint = "{{ url_for('cfr.justification') }}";
+
+  function render(){
+    list.innerHTML = "";
+    selected.forEach((s, idx) => {
+      const pill = document.createElement("div");
+      pill.className = "calc-pill";
+      pill.textContent = `${s.condition} (DC ${s.diagnostic_code}, ${s.percentage}%)`;
+      const rm = document.createElement("button");
+      rm.type = "button";
+      rm.textContent = "x";
+      rm.addEventListener("click", () => { selected.splice(idx, 1); render(); });
+      pill.appendChild(rm);
+      list.appendChild(pill);
+    });
+    btn.disabled = selected.length === 0;
+  }
+
+  document.querySelectorAll(".justify-add-btn").forEach((addBtn) => {
+    addBtn.addEventListener("click", () => {
+      const item = addBtn.closest(".cond-item");
+      const pctSelect = item ? item.querySelector(".dc-percent-select") : null;
+      selected.push({
+        diagnostic_code: addBtn.dataset.dc,
+        condition: addBtn.dataset.name,
+        percentage: pctSelect ? Number(pctSelect.value) : null,
+      });
+      render();
+    });
+  });
+
+  btn.addEventListener("click", () => {
+    status.textContent = "AI is drafting the justification…";
+    btn.disabled = true;
+    output.style.display = "none";
+    fetch(endpoint, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ selections: selected, notes: notesInput.value }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.error) { status.textContent = data.error; return; }
+        output.value = data.justification;
+        output.style.display = "block";
+        status.textContent = "Draft ready. Review before adding it to the case file.";
+      })
+      .catch(() => { status.textContent = "Something went wrong. Please try again."; })
+      .finally(() => { btn.disabled = selected.length === 0; });
+  });
+
+  render();
 })();
 </script>
 {% endblock %}

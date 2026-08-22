@@ -90,7 +90,12 @@
     <p>Rating chart plus combined percentage calculator.</p>
     <div class="chart-meta">
       {% if has_data %}
-        Source: {{ source_pdf or "CFR PDF" }} - Updated: {{ generated_at or "unknown" }}
+        {% if source_part_url %}
+          <a href="{{ source_part_url }}" target="_blank" rel="noopener" style="color:inherit;">Live from {{ source or "eCFR.gov" }}</a>
+        {% else %}
+          Source: {{ source or "eCFR.gov" }}
+        {% endif %}
+        {% if effective_date %} - Part effective as of {{ effective_date }}{% endif %}
       {% else %}
         Data not generated yet.
       {% endif %}
@@ -173,12 +178,35 @@
               {% else %}
                 <div class="chart-meta-row">No percentage criteria detected for this code.</div>
               {% endif %}
+              {% if c.criteria %}
+                <div style="margin-top:10px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                  <select class="chart-select dc-percent-select">
+                    {% for r in c.criteria|sort(attribute='percent', reverse=true) %}
+                      <option value="{{ r.percent }}">{{ r.percent }}%</option>
+                    {% endfor %}
+                  </select>
+                  <button type="button" class="btn btn-outline-secondary justify-add-btn" data-dc="{{ c.diagnostic_code }}" data-name="{{ c.condition }}">+ Add to Justification</button>
+                </div>
+              {% endif %}
             </div>
           </details>
           {% endfor %}
         </div>
       </section>
     {% endfor %}
+  </div>
+
+  <div class="calc-card" id="justifyCard">
+    <div style="font-weight:800;">Write Justification</div>
+    <div class="muted" style="margin-top:6px;">Select conditions above, then draft an AI justification grounded in the live regulation text.</div>
+    <div class="calc-list" id="justifySelectedList"></div>
+    <label style="display:block; margin-top:10px; font-weight:700;">Case notes (optional, background only)</label>
+    <textarea id="justifyNotes" class="chart-input" style="width:100%; min-height:70px; margin-top:6px;" placeholder="Relevant case details for context…"></textarea>
+    <div style="margin-top:10px;">
+      <button class="btn btn-primary" id="justifyBtn" type="button" disabled>Write Justification</button>
+    </div>
+    <p id="justifyStatus" class="muted" style="margin-top:8px;"></p>
+    <textarea id="justifyOutput" class="chart-input" style="width:100%; min-height:160px; margin-top:8px; display:none;" readonly></textarea>
   </div>
   {% endif %}
 </div>
@@ -299,6 +327,70 @@
   if (input) input.addEventListener("keydown", (e) => {
     if (e.key === "Enter"){ e.preventDefault(); addRating(); }
   });
+})();
+</script>
+<script>
+(function(){
+  const selected = [];
+  const list = document.getElementById("justifySelectedList");
+  const btn = document.getElementById("justifyBtn");
+  const status = document.getElementById("justifyStatus");
+  const output = document.getElementById("justifyOutput");
+  const notesInput = document.getElementById("justifyNotes");
+  if (!btn) return;
+  const endpoint = "{{ url_for('employee.hub_ratings_justification') }}";
+
+  function render(){
+    list.innerHTML = "";
+    selected.forEach((s, idx) => {
+      const pill = document.createElement("div");
+      pill.className = "calc-pill";
+      pill.textContent = `${s.condition} (DC ${s.diagnostic_code}, ${s.percentage}%)`;
+      const rm = document.createElement("button");
+      rm.type = "button";
+      rm.textContent = "x";
+      rm.addEventListener("click", () => { selected.splice(idx, 1); render(); });
+      pill.appendChild(rm);
+      list.appendChild(pill);
+    });
+    btn.disabled = selected.length === 0;
+  }
+
+  document.querySelectorAll(".justify-add-btn").forEach((addBtn) => {
+    addBtn.addEventListener("click", () => {
+      const item = addBtn.closest(".cond-item");
+      const pctSelect = item ? item.querySelector(".dc-percent-select") : null;
+      selected.push({
+        diagnostic_code: addBtn.dataset.dc,
+        condition: addBtn.dataset.name,
+        percentage: pctSelect ? Number(pctSelect.value) : null,
+      });
+      render();
+    });
+  });
+
+  btn.addEventListener("click", () => {
+    status.textContent = "AI is drafting the justification…";
+    btn.disabled = true;
+    output.style.display = "none";
+    fetch(endpoint, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ selections: selected, notes: notesInput.value }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.error) { status.textContent = data.error; return; }
+        output.value = data.justification;
+        output.style.display = "block";
+        status.textContent = "Draft ready. Review before adding it to the case file.";
+      })
+      .catch(() => { status.textContent = "Something went wrong. Please try again."; })
+      .finally(() => { btn.disabled = selected.length === 0; });
+  });
+
+  render();
 })();
 </script>
 {% endblock %}

@@ -22,7 +22,8 @@ from app.models import (
 from app.models.user import Role
 from app.routes._authz import require_roles
 from app.services.audit_service import log as audit_log
-from app.services.ai_engine import run_claim_review
+from app.services.ai_engine import run_claim_review, draft_rating_justification
+from app.services.cfr_service import load_va_ratings_chart
 from app.services.doc_text import extract_text
 from app.services.docx_export import export_docx
 from app.services.pdf_export import export_text_pdf
@@ -363,50 +364,22 @@ def hub_claim_review_post():
 @require_roles(Role.DIRECTOR, Role.EMPLOYEE)
 def hub_ratings():
     base_dir = current_app.root_path + "/.."
-    data_path = os.path.join(base_dir, "cfr_data", "va_ratings_chart.json")
-    source_pdf = None
-    generated_at = None
-    count = 0
-    grouped = []
-    categories = []
-    if os.path.exists(data_path):
-        with open(data_path, "r", encoding="utf-8") as f:
-            payload = json.load(f)
-        source_pdf = payload.get("source_pdf")
-        generated_at = payload.get("generated_at")
-        conditions = payload.get("conditions", [])
-        count = len(conditions)
+    data = load_va_ratings_chart(base_dir)
+    return render_template("employee/ratings_tools.html", **data)
 
-        def _category_for(section: str | None) -> str:
-            s = (section or "").lower()
-            if s.startswith("4.130"):
-                return "Mental Health"
-            if s.startswith(("4.16", "4.25", "4.26", "4.28", "4.29", "4.30")):
-                return "Secondary"
-            return "Physical Health"
 
-        buckets = {}
-        for c in conditions:
-            cat = _category_for(c.get("cfr_section"))
-            buckets.setdefault(cat, []).append(c)
-
-        order = ["Physical Health", "Mental Health", "Secondary"]
-        for cat in order:
-            items = buckets.get(cat, [])
-            if not items:
-                continue
-            items.sort(key=lambda x: (x.get("condition") or ""))
-            grouped.append({"category": cat, "items_list": items})
-        categories = [g["category"] for g in grouped]
-    return render_template(
-        "employee/ratings_tools.html",
-        has_data=os.path.exists(data_path),
-        source_pdf=source_pdf,
-        generated_at=generated_at,
-        count=count,
-        grouped=grouped,
-        categories=categories,
-    )
+@employee_bp.post("/hub/ratings/justification")
+@csrf.exempt
+@login_required
+@require_roles(Role.DIRECTOR, Role.EMPLOYEE)
+def hub_ratings_justification():
+    body = request.get_json(silent=True) or {}
+    selections = body.get("selections") or []
+    if not selections:
+        return {"error": "Select at least one condition first."}, 400
+    notes = str(body.get("notes") or "")[:4000]
+    text = draft_rating_justification(selections, notes)
+    return {"justification": text}
 
 
 @employee_bp.get("/hub/crsc")

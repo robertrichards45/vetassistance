@@ -4,6 +4,70 @@ import re
 from typing import Dict, Any, List, Optional
 
 
+def load_va_ratings_chart(base_dir: str) -> Dict[str, Any]:
+    """Loads cfr_data/va_ratings_chart.json and groups it for display.
+    Shared by the public /cfr/ratings-chart route and the staff
+    /employee/hub/ratings route so the two stay in sync."""
+    data_path = os.path.join(base_dir, "cfr_data", "va_ratings_chart.json")
+    result = {
+        "has_data": os.path.exists(data_path),
+        "source": None,
+        "source_part_url": None,
+        "effective_date": None,
+        "generated_at": None,
+        "count": 0,
+        "grouped": [],
+        "categories": [],
+    }
+    if not result["has_data"]:
+        return result
+
+    with open(data_path, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+    result["source"] = payload.get("source")
+    result["source_part_url"] = payload.get("source_part_url")
+    result["effective_date"] = payload.get("effective_date")
+    result["generated_at"] = payload.get("generated_at")
+    conditions = payload.get("conditions", [])
+    result["count"] = len(conditions)
+
+    def _category_for(section: Optional[str]) -> str:
+        s = (section or "").lower()
+        if s.startswith("4.130"):
+            return "Mental Health"
+        if s.startswith(("4.16", "4.25", "4.26", "4.28", "4.29", "4.30")):
+            return "Secondary"
+        return "Physical Health"
+
+    buckets: Dict[str, List[Dict[str, Any]]] = {}
+    for c in conditions:
+        buckets.setdefault(_category_for(c.get("cfr_section")), []).append(c)
+
+    for cat in ["Physical Health", "Mental Health", "Secondary"]:
+        items = buckets.get(cat, [])
+        if not items:
+            continue
+        items.sort(key=lambda x: (x.get("condition") or ""))
+        result["grouped"].append({"category": cat, "items_list": items})
+    result["categories"] = [g["category"] for g in result["grouped"]]
+    return result
+
+
+def find_condition_by_dc(base_dir: str, diagnostic_code: str) -> Optional[Dict[str, Any]]:
+    """Looks up a single condition's raw entry (condition, diagnostic_code,
+    cfr_section, criteria, source_url) from cfr_data/va_ratings_chart.json by
+    diagnostic code."""
+    data_path = os.path.join(base_dir, "cfr_data", "va_ratings_chart.json")
+    if not os.path.exists(data_path):
+        return None
+    with open(data_path, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+    for c in payload.get("conditions", []):
+        if str(c.get("diagnostic_code") or "") == str(diagnostic_code or ""):
+            return c
+    return None
+
+
 class CFRService:
     """
     Loads CFR rules from a local JSON file now.

@@ -2,44 +2,28 @@ import json
 import argparse
 import os
 import re
+import sys
 from datetime import datetime, timezone
-from html import unescape
-from urllib.parse import urljoin
-
-import requests
-
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-OUT_PATH = os.path.join(ROOT, "cfr_data", "va_ratings_chart.json")
-CACHE_DIR = os.path.join(ROOT, "cfr_data", "ecfr_cache")
-CFR_JSON = os.path.join(ROOT, "cfr_data", "cfr38_full.json")
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
 
-BASE_PART_URL = "https://ecfr.io/Title-38/Part-4"
-SECTION_URL = "https://ecfr.io/Title-38/Section-{}"
+from app.services.ecfr_live import get_live_va_data  # noqa: E402
+
+OUT_PATH = os.path.join(ROOT, "cfr_data", "va_ratings_chart.json")
+CFR_JSON = os.path.join(ROOT, "cfr_data", "cfr38_full.json")
 
 PERCENT_LINE_RE = re.compile(r"\|\s*(100|90|80|70|60|50|40|30|20|10|0)\s*$")
 PERCENT_ONLY_RE = re.compile(r"^(100|90|80|70|60|50|40|30|20|10|0)\s*\|\s*$")
-SECTION_RE = re.compile(r"\bSECTION\s+4\.\d+[a-z]*\b", re.IGNORECASE)
+BARE_PERCENT_RE = re.compile(r"^(100|90|80|70|60|50|40|30|20|10|0)$")
 DC_LINE_RE = re.compile(r"^(\d{4})\s+(.+)$")
 DC_MULTI_RE = re.compile(r"(\d{4})\s+(.+?)(?=\s+\d{4}\s+|$)")
 DC_ANY_RE = re.compile(r"\b\d{4}\b")
 DC_INLINE_RE = re.compile(r"\bDCs?\b\s*([0-9,\-\s]+)", re.IGNORECASE)
 RANGE_RE = re.compile(r"(\d{4})\s*-\s*(\d{4})")
-GARBAGE_RE = re.compile(r"\b(VerDate|Jkt|RFC|DORP|SGML|Frm|Fmt|Sfmt|Y:\\\\SGML)\b")
 DOT_LEADER_RE = re.compile(r"\.{2,}.*$")
 FORMULA_HEAD_RE = re.compile(r"^(general\s+)?rating formula", re.IGNORECASE)
-
-
-def html_to_text(html: str) -> list[str]:
-    s = html
-    s = re.sub(r"(?is)<script.*?>.*?</script>", "", s)
-    s = re.sub(r"(?is)<style.*?>.*?</style>", "", s)
-    s = s.replace("</tr>", "\n").replace("</p>", "\n").replace("<br>", "\n").replace("<br/>", "\n")
-    s = s.replace("</td>", " | ").replace("</th>", " | ")
-    s = re.sub(r"(?is)<[^>]+>", "", s)
-    s = unescape(s)
-    lines = [re.sub(r"\s{2,}", " ", line).strip() for line in s.splitlines()]
-    return [line for line in lines if line]
 
 
 def expand_dc_list(text: str) -> list[str]:
@@ -61,31 +45,15 @@ def expand_dc_list(text: str) -> list[str]:
     return out
 
 
-def _load_section_html(section: str) -> str:
-    os.makedirs(CACHE_DIR, exist_ok=True)
-    cache_path = os.path.join(CACHE_DIR, f"section_{section}.html")
-    if os.path.exists(cache_path):
-        with open(cache_path, "r", encoding="utf-8") as f:
-            return f.read()
-    url = SECTION_URL.format(section)
-    resp = requests.get(url, timeout=30)
-    resp.raise_for_status()
-    html = resp.text
-    with open(cache_path, "w", encoding="utf-8") as f:
-        f.write(html)
-    return html
-
-
-def parse_section(section: str) -> dict:
-    url = SECTION_URL.format(section)
-    html = _load_section_html(section)
-    lines = html_to_text(html)
-
+def parse_section(identifier: str, lines: list[str], url: str) -> dict:
+    """Extracts diagnostic codes, rating formulas, and percent/text criteria
+    from a section's clean text lines (already produced by
+    app.services.ecfr_live from the official eCFR.gov XML — table rows come
+    through as "<criteria text> | <percent>" per line, one row per line)."""
     codes = []
     formulas = []
     formula_map = {}
     current_dc = None
-    current_dc_name = None
     dc_criteria = {}
     current_formula = None
     current_formula_lines = []
@@ -102,18 +70,11 @@ def parse_section(section: str) -> dict:
     i = 0
     while i < len(lines):
         line = lines[i]
-        if GARBAGE_RE.search(line):
-            i += 1
-            continue
-        if "privacy policy" in line.lower():
-            i += 1
-            continue
-        if line.lower().startswith("table of contents"):
+        if not line:
             i += 1
             continue
 
         if FORMULA_HEAD_RE.match(line.lower()):
-            # merge with next line if heading wrapped
             if i + 1 < len(lines):
                 nxt = lines[i + 1]
                 if "|" not in nxt and not PERCENT_ONLY_RE.match(nxt) and not nxt.strip().isdigit():
@@ -124,7 +85,7 @@ def parse_section(section: str) -> dict:
             flush_formula()
             current_formula = line.strip()
             current_formula_lines = []
-            # map if line explicitly lists DCs
+            buffer_lines = []
             dc_inline = DC_INLINE_RE.search(line)
             if dc_inline:
                 for dc in expand_dc_list(dc_inline.group(1)):
@@ -132,6 +93,10 @@ def parse_section(section: str) -> dict:
             elif recent_codes:
                 for dc in recent_codes:
                     formula_map.setdefault(dc, set()).add(current_formula)
+            # This formula heading has now claimed whichever DCs were listed
+            # since the last formula (or section start) — start a fresh
+            # accumulation so a later, unrelated formula doesn't inherit them.
+            recent_codes = []
             i += 1
             continue
         if "rating formula" in line.lower() and ("diagnostic code" in line.lower() or "diagnostic codes" in line.lower()):
@@ -143,28 +108,44 @@ def parse_section(section: str) -> dict:
             i += 1
             continue
 
-        # extract multiple codes on the same line
-        multi = list(DC_MULTI_RE.finditer(line))
-        if multi:
-            recent_codes = []
+        # Genuine diagnostic-code listing lines are short ("5000 Osteomyelitis,
+        # acute, subacute, or chronic:"). Long lines are narrative <P> prose
+        # that can incidentally contain a 4-digit number (e.g. section 4.27's
+        # explanation that codes "extend from 5000 to a possible 9999") —
+        # skip DC detection there so prose doesn't get misread as a listing.
+        is_listing_length = len(line) <= 160
+
+        # DC_MULTI_RE's non-greedy match falls back to end-of-line when there's
+        # only one code on the line, so it would otherwise "match" every
+        # ordinary single-DC listing line too — but unlike the DC_LINE_RE
+        # branch below, it never sets current_dc. Only take this branch when
+        # there are genuinely 2+ codes on the line (e.g. "5013 Osteoporosis
+        # 5014 Osteomalacia"); a lone match falls through to DC_LINE_RE.
+        multi = list(DC_MULTI_RE.finditer(line)) if is_listing_length else []
+        if len(multi) >= 2:
             for m in multi:
                 dc = m.group(1)
                 name = m.group(2).strip()
                 codes.append({"dc": dc, "name": name})
+                # Accumulate (don't replace) — a formula heading further down
+                # applies to every DC introduced since the last formula, not
+                # just the ones on this one line.
                 recent_codes.append(dc)
                 if current_formula:
                     formula_map.setdefault(dc, set()).add(current_formula)
+            buffer_lines = []
             i += 1
             continue
 
-        dc_match = DC_LINE_RE.match(line)
+        dc_match = DC_LINE_RE.match(line) if is_listing_length else None
         if dc_match:
             current_dc = dc_match.group(1)
             current_dc_name = dc_match.group(2).strip()
             codes.append({"dc": current_dc, "name": current_dc_name})
-            recent_codes = [current_dc]
+            recent_codes.append(current_dc)
             if current_formula:
                 formula_map.setdefault(current_dc, set()).add(current_formula)
+            buffer_lines = []
             i += 1
             continue
 
@@ -200,7 +181,26 @@ def parse_section(section: str) -> dict:
             i += 2
             continue
 
-        if current_formula:
+        # Some sections (e.g. musculoskeletal tables) render each row as
+        # "<criteria text line(s)>" followed by a bare percent number on its
+        # own line, with no pipe delimiter at all — distinct from the
+        # pipe-delimited layout handled above.
+        if BARE_PERCENT_RE.match(line) and (current_formula or current_dc) and buffer_lines:
+            percent = int(line)
+            text = " ".join(buffer_lines).strip()
+            if current_formula:
+                current_formula_lines.append({"percent": percent, "text": text})
+            elif current_dc:
+                dc_criteria.setdefault(current_dc, []).append({"percent": percent, "text": text})
+            buffer_lines = []
+            i += 1
+            continue
+
+        if current_formula or current_dc:
+            if line.lower().startswith("note") and (line[4:5] in ("", " ", "(", ":")):
+                buffer_lines = []
+                i += 1
+                continue
             if line.endswith("|"):
                 buffer_lines.append(line.strip().strip("|").strip())
                 i += 1
@@ -212,14 +212,13 @@ def parse_section(section: str) -> dict:
 
     flush_formula()
 
-    # override: eating disorders use their own formula, not mental disorders
     for dc, names in list(formula_map.items()):
         has_eating = any("eating" in n.lower() for n in names)
         if has_eating:
             formula_map[dc] = set([n for n in names if "eating" in n.lower()])
 
     return {
-        "section": section,
+        "section": identifier,
         "url": url,
         "codes": codes,
         "formulas": formulas,
@@ -229,26 +228,23 @@ def parse_section(section: str) -> dict:
 
 
 def build_chart(sections_override: list[str] | None = None):
-    if sections_override:
-        sections = sections_override
-    else:
-        resp = requests.get(BASE_PART_URL, timeout=30)
-        resp.raise_for_status()
-        lines = html_to_text(resp.text)
-        sections = []
-        for line in lines:
-            m = SECTION_RE.search(line)
-            if m:
-                sec = m.group(0).split()[-1].strip()
-                if sec not in sections:
-                    sections.append(sec)
+    live = get_live_va_data()
+    live_by_id = {s["identifier"]: s for s in live["sections"]}
+    section_url_for = lambda ident: f"{live['source_url']}/section-{ident}"
+
+    sections = sections_override or list(live_by_id.keys())
 
     section_map = {}
     global_formulas = []
     dc_to_section = {}
-    for section in sections:
-        parsed = parse_section(section)
-        section_map[section] = {
+    live_dc_names = {}
+    for identifier in sections:
+        live_section = live_by_id.get(identifier)
+        if not live_section:
+            continue
+        lines = (live_section.get("text") or "").split("\n")
+        parsed = parse_section(identifier, lines, section_url_for(identifier))
+        section_map[identifier] = {
             "parsed": parsed,
             "formula_by_name": {f["name"]: f["criteria"] for f in parsed["formulas"]},
         }
@@ -257,16 +253,24 @@ def build_chart(sections_override: list[str] | None = None):
                 global_formulas.append((f.get("name") or "", f.get("criteria")))
         for code in parsed.get("codes", []):
             dc = code.get("dc")
-            if dc and dc not in dc_to_section:
-                dc_to_section[dc] = section
+            if not dc:
+                continue
+            if dc not in dc_to_section:
+                dc_to_section[dc] = identifier
+            # Prefer the longest name seen for a DC — short entries are
+            # usually a section's own summary listing, the fuller ones come
+            # from the row with real criteria attached.
+            candidate = (code.get("name") or "").strip().rstrip(":").strip()
+            if candidate and len(candidate) > len(live_dc_names.get(dc, "")):
+                live_dc_names[dc] = candidate
 
     def _extract_section(text: str) -> str:
         m = re.search(r"4\.\d+[a-z]*", (text or "").lower())
         return m.group(0) if m else ""
 
-    def _criteria_from_lines(lines: list[str]) -> list[dict]:
+    def _criteria_from_lines(rating_lines: list[str]) -> list[dict]:
         out = []
-        for line in lines or []:
+        for line in rating_lines or []:
             m = re.search(r"(100|90|80|70|60|50|40|30|20|10|0)\s*%?", str(line))
             if not m:
                 continue
@@ -286,17 +290,21 @@ def build_chart(sections_override: list[str] | None = None):
             section = dc_to_section.get(dc) or _extract_section(r.get("cfr") or "")
             criteria = []
             formula_names = []
-            source_url = SECTION_URL.format(section) if section else ""
+            source_url = section_url_for(section) if section else ""
 
             if section in section_map:
                 parsed = section_map[section]["parsed"]
                 formula_by_name = section_map[section]["formula_by_name"]
+                # Prefer criteria extracted directly under this DC's own row
+                # over a formula-name association, which can be misattributed
+                # to a later, unrelated general formula for DCs whose code
+                # only appears once near the top of a long section.
+                criteria = list(parsed.get("dc_criteria", {}).get(dc, []))
                 formula_names = parsed["formula_map"].get(dc, [])
-                if formula_names:
+                if not criteria and formula_names:
                     for fname in formula_names:
                         criteria.extend(formula_by_name.get(fname, []))
                 if not criteria:
-                    # keyword match between formula name and condition name
                     name_l = (name or "").lower()
                     best = None
                     best_score = 0
@@ -314,7 +322,6 @@ def build_chart(sections_override: list[str] | None = None):
                     if best and best_score > 0:
                         criteria.extend(best)
                 if not criteria:
-                    # fallback: apply the only formula if the section has one
                     formulas_with_criteria = [f for f in parsed["formulas"] if f.get("criteria")]
                     if len(formulas_with_criteria) == 1:
                         criteria.extend(formulas_with_criteria[0].get("criteria", []))
@@ -322,7 +329,6 @@ def build_chart(sections_override: list[str] | None = None):
             if not criteria:
                 criteria = _criteria_from_lines(r.get("rating_criteria", []) or [])
             if not criteria and global_formulas:
-                # global keyword match as last resort
                 name_l = (name or "").lower()
                 best = None
                 best_score = 0
@@ -337,10 +343,13 @@ def build_chart(sections_override: list[str] | None = None):
                         best = fcriteria
                 if best and best_score > 0:
                     criteria = best
-            if not criteria and global_formulas:
-                # fallback: use the most complete formula in the entire Part 4
-                best = max(global_formulas, key=lambda x: len(x[1]))
-                criteria = best[1]
+            # Deliberately no further fallback here: grabbing an unrelated
+            # formula "because it's the biggest one in the document" would
+            # attach a confidently wrong condition's rating criteria (e.g.
+            # spine criteria under a mental-health DC). Better to show no
+            # criteria — with source_url still pointing at the real
+            # regulation text — than to show wrong ones, especially once
+            # this data feeds AI-drafted justifications.
 
             conditions.append({
                 "condition": name,
@@ -351,9 +360,11 @@ def build_chart(sections_override: list[str] | None = None):
                 "source_url": source_url,
             })
     else:
-        for section in sections:
-            parsed = section_map[section]["parsed"]
-            formula_by_name = section_map[section]["formula_by_name"]
+        for identifier in sections:
+            if identifier not in section_map:
+                continue
+            parsed = section_map[identifier]["parsed"]
+            formula_by_name = section_map[identifier]["formula_by_name"]
             for code in parsed["codes"]:
                 dc = code["dc"]
                 name = code["name"]
@@ -370,12 +381,12 @@ def build_chart(sections_override: list[str] | None = None):
                 conditions.append({
                     "condition": name,
                     "diagnostic_code": dc,
-                    "cfr_section": section,
+                    "cfr_section": identifier,
                     "criteria": criteria,
                     "formula_names": formula_names,
                     "source_url": parsed["url"],
                 })
-    # optional name cleanup from local CFR JSON
+
     name_map = {}
     if os.path.exists(CFR_JSON):
         with open(CFR_JSON, "r", encoding="utf-8") as f:
@@ -409,7 +420,12 @@ def build_chart(sections_override: list[str] | None = None):
     cleaned = []
     for c in conditions:
         if _bad_name(c.get("condition", "")):
-            alt = name_map.get(c.get("diagnostic_code", ""))
+            # Prefer the name pulled straight from the live eCFR.gov text
+            # over cfr38_full.json's title, since that file's titles come
+            # from an older PDF-OCR pass and are sometimes amendment notes
+            # ("Added February 3, 1988") or dot-leader table-of-contents
+            # artifacts instead of the actual condition name.
+            alt = live_dc_names.get(c.get("diagnostic_code", "")) or name_map.get(c.get("diagnostic_code", ""))
             if alt:
                 c["condition"] = alt
         if _bad_name(c.get("condition", "")):
@@ -417,8 +433,9 @@ def build_chart(sections_override: list[str] | None = None):
         cleaned.append(c)
 
     payload = {
-        "source": "ecfr.io (mirror of eCFR)",
-        "source_part_url": BASE_PART_URL,
+        "source": "eCFR.gov (official)",
+        "source_part_url": live["source_url"],
+        "effective_date": live["effective_date"],
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "conditions": cleaned,
     }
@@ -434,4 +451,3 @@ if __name__ == "__main__":
     override = [s.strip() for s in (args.sections or "").split(",") if s.strip()] or None
     path, count = build_chart(override)
     print(f"Wrote {count} conditions to {path}")
-import argparse
