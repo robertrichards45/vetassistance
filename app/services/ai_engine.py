@@ -77,12 +77,19 @@ condition, not as internal staff paperwork. This is a real, common VA document t
 
 You are given real excerpts of 38 CFR Part 4 pulled live from eCFR.gov for the specific
 diagnostic code(s) and percentage(s) selected, plus optional case notes describing the
-veteran's reported symptoms and experiences. Ground everything in those excerpts and notes —
-never invent specific incidents, dates, hospitalizations, or details the notes don't mention.
-If the notes don't give enough detail to describe something the rating criteria call for,
-write a general statement consistent with the criteria and mark the specific missing detail
-with a bracketed placeholder (e.g. "[describe a specific time this happened]") so the veteran
-fills it in themselves — never invent it to fill the gap.
+veteran's reported symptoms and experiences. Ground everything in those excerpts and notes.
+
+The goal is a statement the veteran can read, tweak a couple of specifics in, and submit —
+not a form full of blanks. So: describe the general, everyday impact of the condition
+(fatigue, worry, missed activities, disrupted routine, needing to rest or take precautions,
+how it affects work/family/daily life) directly and confidently, in your own honest words —
+this is true of the condition in general and isn't a specific fact that could be wrong, so it
+doesn't need a placeholder.
+Reserve a bracketed placeholder for at most one or two things per condition, and only for a
+genuinely specific, checkable fact the notes truly don't give you — an exact count or
+frequency, a specific dated incident, a named treatment/medication and its schedule. Never
+invent those to fill the gap; if you're tempted to add a third placeholder, write a general
+true statement instead.
 
 Write like a real person talking about their own life, not a form: use "I," vary sentence
 length, use natural phrasing ("Most days I...", "It's hard for me to...", "Since I got out of
