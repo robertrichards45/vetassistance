@@ -25,6 +25,7 @@ presumptive must be an object with:
 - logic_log[] (strings)
 - disclaimer (string)
 Do NOT provide medical diagnoses or guarantees. Be operational, VA-compliant, and specific.
+Write all string field values as plain text — no markdown (no **bold**, #headers, or --- rules); these render as-is in the UI, not as formatted markdown.
 """
 
 DOC_QA_PROMPT = """You answer questions using the provided context (documents + client profile + intake + prior AI summary).
@@ -37,6 +38,8 @@ Return response in this structure:
 Scope: Client-specific | General guidance
 Answer: <your answer>
 Evidence needed: <bullet list if key evidence is missing, otherwise say "None">
+
+Write in plain text — no markdown (no **bold**, #headers, or --- rules); this renders as-is in the UI, not as formatted markdown.
 """
 
 CLAIM_REVIEW_PROMPT = """You are the internal Claims Quality reviewer for Veteran Benefits Assistance.
@@ -63,6 +66,7 @@ Rules:
 - Do not diagnose or guarantee outcomes.
 - Be operational, specific, and concise.
  - If CRSC_HINTS suggest a retiree/medical retiree with combat indicators, add a note starting with "CRSC:" that recommends CRSC review and list missing evidence in missing_evidence (retirement orders, retired pay statement, combat nexus proof).
+ - Write all string field values as plain text — no markdown (no **bold**, #headers, or --- rules); these render as-is in the UI, not as formatted markdown.
 """
 
 
@@ -75,6 +79,7 @@ not present in the excerpts or the case notes.
 Write in a professional, VA-compliant tone suitable for a case file.
 Do not provide a medical diagnosis or guarantee an outcome.
 End with a line: "Draft for staff review — not a final rating determination."
+Write in plain text — no markdown (no **bold**, #headers, or --- rules); this renders as-is in a plain textarea, not as formatted markdown.
 """
 
 
@@ -121,14 +126,13 @@ def draft_rating_justification(selections: list, notes: str = "") -> str:
 
     from openai import OpenAI
     client = OpenAI(api_key=current_app.config["OPENAI_API_KEY"])
-    model = current_app.config.get("OPENAI_MODEL", "gpt-4.1-mini")
+    model = current_app.config.get("OPENAI_MODEL", "gpt-5.5")
     resp = client.chat.completions.create(
         model=model,
         messages=[
             {"role": "system", "content": JUSTIFICATION_PROMPT},
             {"role": "user", "content": prompt},
         ],
-        temperature=0.2,
     )
     return (resp.choices[0].message.content or "").strip()
 
@@ -155,14 +159,13 @@ def run_claim_review(prompt: str) -> str:
 
     from openai import OpenAI
     client = OpenAI(api_key=current_app.config["OPENAI_API_KEY"])
-    model = current_app.config.get("OPENAI_MODEL", "gpt-4.1-mini")
+    model = current_app.config.get("OPENAI_MODEL", "gpt-5.5")
     resp = client.chat.completions.create(
         model=model,
         messages=[
             {"role": "system", "content": CLAIM_REVIEW_PROMPT},
             {"role": "user", "content": prompt},
         ],
-        temperature=0.2,
     )
     return resp.choices[0].message.content or ""
 
@@ -191,14 +194,13 @@ def _call_openai(prompt: str) -> str:
 
     from openai import OpenAI
     client = OpenAI(api_key=current_app.config["OPENAI_API_KEY"])
-    model = current_app.config.get("OPENAI_MODEL", "gpt-4.1-mini")
+    model = current_app.config.get("OPENAI_MODEL", "gpt-5.5")
     resp = client.chat.completions.create(
         model=model,
         messages=[
             {"role":"system","content": SYSTEM_PROMPT},
             {"role":"user","content": prompt},
         ],
-        temperature=0.2,
     )
     return resp.choices[0].message.content or ""
 
@@ -213,7 +215,7 @@ def answer_doc_question(doc_text: str, question: str, history: str = "", extra_c
 
     from openai import OpenAI
     client = OpenAI(api_key=current_app.config["OPENAI_API_KEY"])
-    model = current_app.config.get("OPENAI_MODEL", "gpt-4.1-mini")
+    model = current_app.config.get("OPENAI_MODEL", "gpt-5.5")
     prompt = (
         "DOCUMENT_TEXT:\\n"
         f"{doc_text[:12000]}\\n\\n"
@@ -226,7 +228,6 @@ def answer_doc_question(doc_text: str, question: str, history: str = "", extra_c
             {"role": "system", "content": DOC_QA_PROMPT},
             {"role": "user", "content": prompt},
         ],
-        temperature=0.2,
     )
     return (resp.choices[0].message.content or "").strip()
 

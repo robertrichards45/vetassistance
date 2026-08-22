@@ -72,7 +72,7 @@ class BaseConfig:
 
     # AI
     OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
-    OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4.1-mini")
+    OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-5.5")
 
     # Rate limiting storage (avoid in-memory warning)
     RATELIMIT_STORAGE_URL = os.environ.get("RATELIMIT_STORAGE_URL", "memory://")

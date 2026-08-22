@@ -48,7 +48,7 @@ python -m flask --app manage.py worker --queues default,ai,docs
 Put your key in `.env`:
 ```
 OPENAI_API_KEY=...
-OPENAI_MODEL=gpt-4.1-mini
+OPENAI_MODEL=gpt-5.5
 ```
 Then restart the app + worker.  
 Run AI per client: open a client â†’ **AI Guidance** â†’ **Run Analysis**.
