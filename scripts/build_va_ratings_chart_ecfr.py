@@ -121,7 +121,12 @@ def parse_section(identifier: str, lines: list[str], url: str) -> dict:
         # branch below, it never sets current_dc. Only take this branch when
         # there are genuinely 2+ codes on the line (e.g. "5013 Osteoporosis
         # 5014 Osteomalacia"); a lone match falls through to DC_LINE_RE.
-        multi = list(DC_MULTI_RE.finditer(line)) if is_listing_length else []
+        # Also require the line to *start* with a digit: a real DC-listing
+        # row always does, whereas a cross-reference sentence like "Note:
+        # For colectomy or colostomy, use DC 7327 or DC 7329 (...)" merely
+        # mentions codes mid-sentence and would otherwise be misread as a
+        # two-code table row, capturing the trailing prose as the "name".
+        multi = list(DC_MULTI_RE.finditer(line)) if is_listing_length and line[:1].isdigit() else []
         if len(multi) >= 2:
             # A formula that already has criteria rows recorded is "done" —
             # a fresh DC listing appearing now belongs to whatever comes
@@ -450,13 +455,47 @@ def build_chart(sections_override: list[str] | None = None):
             return True
         if len(t) < 6:
             return True
-        if t.endswith((" and", " or", " of", ",")):
+        # "resection of", "malunion of", "impairment of" etc. are genuine,
+        # complete VA condition titles — ending in "of" is this dataset's
+        # naming convention, not a sign of truncation. "and"/"or"/a trailing
+        # comma are still treated as cut-off markers.
+        if t.endswith((" and", " or", ",")):
             return True
         if not re.search(r"[A-Za-z]", t):
             return True
+        # A real condition title never starts mid-sentence — these are marks
+        # of a stray fragment (e.g. a cross-reference sentence like "Note:
+        # ...use DC 7327 or DC 7329 (Intestine, large, resection of),
+        # whichever results in a higher evaluation." got misread as DC
+        # 7329's own name).
+        if t.startswith(("(", ")", ",", "-")):
+            return True
+        if "whichever results in" in t.lower() or "whichever" in t.lower():
+            return True
+        # A real condition title doesn't contain ANOTHER standalone 4-digit
+        # diagnostic code — that's the signature of two different DCs'
+        # names having been concatenated (e.g. "Knee, other impairment of:
+        # 5258 Cartilage, semilunar, dislocated, with frequent").
+        if re.search(r"(?<!\S)\d{4}(?!\S)", t):
+            return True
+        # An unclosed parenthetical means the title was cut off mid-sentence
+        # (e.g. "Fibromyalgia (fibrositis, primary fibromyalgia With chronic
+        # residuals consisting" — the opening "(" never closes).
+        if t.count("(") != t.count(")"):
+            return True
+        # Same as "[removed]" but without the brackets — an amendment-history
+        # entry ("Removed February 7, 2021.") standing in for a real title.
+        if t.lower().startswith("removed "):
+            return True
         return False
 
-    cleaned = []
+    # cfr38_full.json carries multiple historical entries for the same DC
+    # (an amendment-history row alongside the real one, sometimes several).
+    # Without deduplication, a fixed/clean entry and a still-garbled sibling
+    # for the same DC both end up in the output. Keep one entry per DC: a
+    # clean name beats a bad one; among equally-clean entries, prefer the
+    # one with more extracted criteria rows.
+    best_by_dc = {}
     for c in conditions:
         if _bad_name(c.get("condition", "")):
             # Prefer the name pulled straight from the live eCFR.gov text
@@ -469,7 +508,11 @@ def build_chart(sections_override: list[str] | None = None):
                 c["condition"] = alt
         if _bad_name(c.get("condition", "")):
             continue
-        cleaned.append(c)
+        dc_key = c.get("diagnostic_code", "")
+        existing = best_by_dc.get(dc_key)
+        if existing is None or len(c.get("criteria", [])) > len(existing.get("criteria", [])):
+            best_by_dc[dc_key] = c
+    cleaned = list(best_by_dc.values())
 
     payload = {
         "source": "eCFR.gov (official)",
@@ -480,7 +523,7 @@ def build_chart(sections_override: list[str] | None = None):
     }
     with open(OUT_PATH, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
-    return OUT_PATH, len(conditions)
+    return OUT_PATH, len(cleaned)
 
 
 if __name__ == "__main__":
