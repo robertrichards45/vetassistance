@@ -82,6 +82,31 @@
   .calc-pill{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; border:1px solid rgba(15,23,42,.15); background:rgba(15,23,42,.04); font-weight:700; }
   .calc-pill button{ border:none; background:none; font-weight:900; cursor:pointer; }
   @media (max-width: 920px){ .calc-grid{ grid-template-columns: 1fr; } }
+
+  /* Justify panel stays reachable as a sticky bar, so it's never
+     scrolled-past-the-bottom-of-the-page out of reach. */
+  .chart-shell{ padding-bottom: 100px; }
+  .justify-sticky{
+    position: fixed; left: 50%; transform: translateX(-50%);
+    bottom: 0; width: 100%; max-width: 1352px;
+    background: #fff; border: 1px solid rgba(15,23,42,.14); border-bottom: none;
+    border-radius: 18px 18px 0 0; box-shadow: 0 -14px 40px rgba(2,8,23,.18);
+    z-index: 60; padding: 0 16px;
+  }
+  .justify-toggle{
+    width: 100%; display: flex; align-items: center; gap: 10px;
+    background: none; border: none; padding: 14px 4px; cursor: pointer;
+    font-weight: 800; font-size: 1rem; color: #0b1324; text-align: left;
+  }
+  .justify-count-badge{
+    display: none; align-items: center; justify-content: center; min-width: 22px; height: 22px;
+    padding: 0 6px; border-radius: 999px; background: #1a4c7a; color: #fff;
+    font-size: .78rem; font-weight: 800;
+  }
+  .justify-chevron{ margin-left: auto; transition: transform .2s ease; font-size: .8rem; }
+  .justify-sticky.collapsed .justify-chevron{ transform: rotate(180deg); }
+  .justify-panel{ max-height: min(60vh, 520px); overflow-y: auto; padding-bottom: 16px; }
+  .justify-sticky.collapsed .justify-panel{ display: none; }
 </style>
 
 <div class="chart-shell">
@@ -196,17 +221,23 @@
     {% endfor %}
   </div>
 
-  <div class="calc-card" id="justifyCard">
-    <div style="font-weight:800;">Write Justification</div>
-    <div class="muted" style="margin-top:6px;">Select conditions above, then draft an AI justification grounded in the live regulation text.</div>
-    <div class="calc-list" id="justifySelectedList"></div>
-    <label style="display:block; margin-top:10px; font-weight:700;">Case notes (optional, background only)</label>
-    <textarea id="justifyNotes" class="chart-input" style="width:100%; min-height:70px; margin-top:6px;" placeholder="Relevant case details for context…"></textarea>
-    <div style="margin-top:10px;">
-      <button class="btn btn-primary" id="justifyBtn" type="button" disabled>Write Justification</button>
+  <div class="justify-sticky collapsed" id="justifyCard">
+    <button type="button" class="justify-toggle" id="justifyToggle">
+      <span>Write Justification</span>
+      <span class="justify-count-badge" id="justifyCountBadge">0</span>
+      <span class="justify-chevron">&#9650;</span>
+    </button>
+    <div class="justify-panel" id="justifyPanel">
+      <div class="muted" style="margin-top:6px;">Select conditions above, then draft an AI justification grounded in the live regulation text.</div>
+      <div class="calc-list" id="justifySelectedList"></div>
+      <label style="display:block; margin-top:10px; font-weight:700;">Case notes (optional, background only)</label>
+      <textarea id="justifyNotes" class="chart-input" style="width:100%; min-height:70px; margin-top:6px;" placeholder="Relevant case details for context…"></textarea>
+      <div style="margin-top:10px;">
+        <button class="btn btn-primary" id="justifyBtn" type="button" disabled>Write Justification</button>
+      </div>
+      <p id="justifyStatus" class="muted" style="margin-top:8px;"></p>
+      <textarea id="justifyOutput" class="chart-input" style="width:100%; min-height:160px; margin-top:8px; display:none;" readonly></textarea>
     </div>
-    <p id="justifyStatus" class="muted" style="margin-top:8px;"></p>
-    <textarea id="justifyOutput" class="chart-input" style="width:100%; min-height:160px; margin-top:8px; display:none;" readonly></textarea>
   </div>
   {% endif %}
 </div>
@@ -340,6 +371,20 @@
   if (!btn) return;
   const endpoint = "{{ url_for('employee.hub_ratings_justification') }}";
 
+  const stickyCard = document.getElementById("justifyCard");
+  const toggle = document.getElementById("justifyToggle");
+  const countBadge = document.getElementById("justifyCountBadge");
+  let userCollapsed = false; // once the user manually collapses, stop auto-expanding on new adds
+
+  function setCollapsed(collapsed){
+    stickyCard.classList.toggle("collapsed", collapsed);
+  }
+  toggle.addEventListener("click", () => {
+    const collapsed = stickyCard.classList.contains("collapsed");
+    userCollapsed = !collapsed;
+    setCollapsed(!collapsed);
+  });
+
   function render(){
     list.innerHTML = "";
     selected.forEach((s, idx) => {
@@ -354,6 +399,9 @@
       list.appendChild(pill);
     });
     btn.disabled = selected.length === 0;
+    countBadge.style.display = selected.length ? "inline-flex" : "none";
+    countBadge.textContent = selected.length;
+    if (selected.length > 0 && !userCollapsed) setCollapsed(false);
   }
 
   document.querySelectorAll(".justify-add-btn").forEach((addBtn) => {
