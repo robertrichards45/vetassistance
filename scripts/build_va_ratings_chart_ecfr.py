@@ -123,6 +123,16 @@ def parse_section(identifier: str, lines: list[str], url: str) -> dict:
         # 5014 Osteomalacia"); a lone match falls through to DC_LINE_RE.
         multi = list(DC_MULTI_RE.finditer(line)) if is_listing_length else []
         if len(multi) >= 2:
+            # A formula that already has criteria rows recorded is "done" —
+            # a fresh DC listing appearing now belongs to whatever comes
+            # next, not to the formula we were previously inside. Without
+            # this, every DC and criteria row from here to the end of the
+            # section keeps getting appended to that first formula (this is
+            # exactly how section 4.104's heart-disease formula ended up
+            # absorbing the aneurysm, PAD, Raynaud's, and hypertension
+            # tables that follow it).
+            if current_formula and current_formula_lines:
+                flush_formula()
             for m in multi:
                 dc = m.group(1)
                 name = m.group(2).strip()
@@ -139,6 +149,12 @@ def parse_section(identifier: str, lines: list[str], url: str) -> dict:
 
         dc_match = DC_LINE_RE.match(line) if is_listing_length else None
         if dc_match:
+            # Same reasoning as the multi-DC branch above: a formula that
+            # already produced criteria rows has finished; this DC starts a
+            # new block (its own direct criteria, or a different upcoming
+            # formula) rather than continuing the old one.
+            if current_formula and current_formula_lines:
+                flush_formula()
             current_dc = dc_match.group(1)
             current_dc_name = dc_match.group(2).strip()
             codes.append({"dc": current_dc, "name": current_dc_name})
@@ -295,20 +311,14 @@ def build_chart(sections_override: list[str] | None = None):
             if section in section_map:
                 parsed = section_map[section]["parsed"]
                 formula_by_name = section_map[section]["formula_by_name"]
-                # Prefer criteria extracted directly under this DC's own row
-                # over a formula-name association, which can be misattributed
-                # to a later, unrelated general formula for DCs whose code
-                # only appears once near the top of a long section.
-                criteria = list(parsed.get("dc_criteria", {}).get(dc, []))
-                formula_names = parsed["formula_map"].get(dc, [])
-                if not criteria and formula_names:
-                    for fname in formula_names:
-                        criteria.extend(formula_by_name.get(fname, []))
-                if not criteria:
-                    name_l = (name or "").lower()
-                    best = None
-                    best_score = 0
-                    for fname, fcriteria in formula_by_name.items():
+
+                def _keyword_best(candidates, name_l):
+                    """Picks the single best-scoring formula by keyword overlap
+                    with the condition name — never concatenates multiple
+                    formulas together, which is how unrelated conditions'
+                    criteria end up glued onto one entry."""
+                    best, best_score = None, 0
+                    for fname, fcriteria in candidates:
                         if not fcriteria:
                             continue
                         base = fname.lower().replace("general rating formula for", "").replace("rating formula for", "")
@@ -319,8 +329,37 @@ def build_chart(sections_override: list[str] | None = None):
                         if score > best_score:
                             best_score = score
                             best = fcriteria
-                    if best and best_score > 0:
-                        criteria.extend(best)
+                    return best if best_score > 0 else None
+
+                # Prefer criteria extracted directly under this DC's own row
+                # over a formula-name association, which can be misattributed
+                # to a later, unrelated general formula for DCs whose code
+                # only appears once near the top of a long section.
+                criteria = list(parsed.get("dc_criteria", {}).get(dc, []))
+                formula_names = parsed["formula_map"].get(dc, [])
+                # Some formula_map entries are noise — e.g. a "Note" sentence
+                # that happens to mention several DC numbers alongside the
+                # words "rating formula" gets registered as if it were a
+                # formula name, but it was never built via a real formula
+                # heading, so it has no criteria. Drop those before deciding
+                # whether this DC's association is actually ambiguous.
+                real_formula_names = [f for f in formula_names if formula_by_name.get(f)]
+                if not criteria and len(real_formula_names) == 1:
+                    # A single, unambiguous association — safe to use directly.
+                    criteria.extend(formula_by_name.get(real_formula_names[0], []))
+                elif not criteria and len(real_formula_names) > 1:
+                    # Several *real* candidate formulas got associated with
+                    # this DC (a genuinely imprecise section layout) — pick
+                    # the one that actually matches the condition by keyword,
+                    # rather than concatenating all of them into one garbled
+                    # list.
+                    picked = _keyword_best([(f, formula_by_name.get(f, [])) for f in real_formula_names], (name or "").lower())
+                    if picked:
+                        criteria.extend(picked)
+                if not criteria:
+                    picked = _keyword_best(list(formula_by_name.items()), (name or "").lower())
+                    if picked:
+                        criteria.extend(picked)
                 if not criteria:
                     formulas_with_criteria = [f for f in parsed["formulas"] if f.get("criteria")]
                     if len(formulas_with_criteria) == 1:
