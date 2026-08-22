@@ -1,0 +1,29 @@
+.git/
+.env
+.env.local
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.sqlite
+*.db
+*.log
+instance/
+uploads/
+storage/
+app.db
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+node_modules/
+dist/
+build/
+tests/
+cfr_data/.va_ratings_chart_refresh_triggered_at
+38 CFR Part 4 (up to date as of 1-22-2026).pdf
+eCFR __ Title 38 of the CFR -- Pensions, Bonuses, and Veterans' Relief.pdf
+ssn encripton ky.txt

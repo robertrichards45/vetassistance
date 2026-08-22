@@ -6,7 +6,11 @@ from dotenv import load_dotenv
 
 # Project root = folder that contains 'app' package
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-load_dotenv(PROJECT_ROOT / ".env", override=True)
+# override=False (the default): a real value already set in the environment
+# — e.g. Railway's dashboard-configured OPENAI_API_KEY — must win over
+# whatever's in a local .env file. override=True previously let an empty
+# placeholder line in .env silently clobber that real value at runtime.
+load_dotenv(PROJECT_ROOT / ".env")
 
 def _default_sqlite_uri() -> str:
     db_path = PROJECT_ROOT / "instance" / "app.db"
