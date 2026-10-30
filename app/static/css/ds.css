@@ -298,3 +298,81 @@ body .nav-toggle .bar{background:var(--ink);}
 body .nav-dropmenu{border-radius:var(--r);box-shadow:var(--shadow-2);}
 @media (max-width: 860px){ body .nav{padding-top:8px;} body .nav a, body .nav .nav-dropbtn{min-height:44px;} }
 body .content-wrap{max-width:1240px;}
+
+/* =====================================================================
+   Legacy page headers -> one consistent page header (all screens)
+   Many older templates ship their own dark gradient "hero" blocks in
+   inline <style>; these rules normalize them without touching each file.
+   ===================================================================== */
+body .hub-hero, body .bf-hero, body .pay-hero, body .guide-hero, body .chart-hero,
+body .profile-hero, body .portal-hero, body .emp-hero{
+  background:transparent !important; background-image:none !important; color:var(--ink) !important;
+  border:0 !important; border-bottom:1px solid var(--line) !important; border-radius:0 !important;
+  box-shadow:none !important; padding:4px 0 18px !important; margin:0 0 20px !important; min-height:0 !important;
+}
+body .hub-hero::before, body .hub-hero::after, body .bf-hero::before, body .bf-hero::after,
+body .guide-hero::before, body .guide-hero::after, body .portal-hero::before, body .portal-hero::after,
+body .profile-hero::before, body .profile-hero::after, body .pay-hero::before, body .pay-hero::after{display:none !important;}
+body .hub-hero-inner, body .bf-hero-inner, body .guide-hero-inner, body .portal-hero-inner, body .profile-hero-inner{
+  display:flex !important; justify-content:space-between; align-items:flex-end !important; gap:16px; flex-wrap:wrap; padding:0 !important; max-width:none !important;}
+body .hub-kicker, body .bf-kicker, body .pay-kicker, body .guide-kicker, body .portal-kicker, body .profile-kicker, body .emp-kicker{
+  display:block !important; background:transparent !important; border:0 !important; padding:0 !important; border-radius:0 !important;
+  color:var(--slate) !important; font-size:14px !important; font-weight:600 !important; letter-spacing:0 !important; text-transform:none !important; margin:0 0 4px !important; box-shadow:none !important;}
+body .hub-title, body .bf-title, body .guide-title, body .portal-title, body .emp-title,
+body .hub-hero h1, body .bf-hero h1, body .pay-hero h1, body .guide-hero h1, body .chart-hero h1, body .profile-hero h1, body .portal-hero h1,
+body .hub-hero h2, body .pay-hero h2, body .chart-hero h2, body .profile-hero h2{
+  font-family:var(--display) !important; color:var(--ink) !important; font-size:clamp(26px,3vw,32px) !important; font-weight:700 !important;
+  line-height:1.1 !important; margin:0 !important; letter-spacing:-.005em !important; text-shadow:none !important;}
+body .hub-sub, body .bf-sub, body .guide-sub, body .portal-sub, body .emp-sub,
+body .hub-hero p, body .bf-hero p, body .pay-hero p, body .guide-hero p, body .chart-hero p, body .profile-hero p, body .portal-hero p{
+  color:var(--slate) !important; opacity:1 !important; margin:6px 0 0 !important; max-width:70ch;}
+body .hub-hero .muted, body .pay-hero .muted, body .profile-hero .muted, body .chart-hero .muted{color:var(--slate) !important;}
+body .hub-hero .btn-outline-light, body .bf-hero .btn-outline-light, body .guide-hero .btn-outline-light,
+body .portal-hero .btn-outline-light, body .profile-hero .btn-outline-light, body .pay-hero .btn-outline-light,
+body .hub-actions .btn:not(.btn-primary), body .guide-actions .btn:not(.btn-primary){
+  background:var(--surface) !important; border:1px solid #C6D2E1 !important; color:var(--navy) !important;}
+body .bf-badge, body .pay-badge{background:var(--navy-50) !important; color:var(--navy) !important; border:1px solid var(--line) !important; box-shadow:none !important;}
+body .bf-badge *, body .pay-badge *{color:inherit !important;}
+
+/* Old in-page headers: "row" header + section-header + doc-head */
+.app-content > .row:first-child, .app-content .section-header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;
+  padding:4px 0 18px;margin:0 0 20px;border-bottom:1px solid var(--line);}
+.app-content > .row:first-child h2, .app-content .section-header h2{font-family:var(--display);font-size:clamp(26px,3vw,32px);font-weight:700;margin:0;line-height:1.1;}
+.app-content .row-actions, .app-content .section-actions{display:flex;gap:8px;flex-wrap:wrap;}
+
+/* Generic cards and grids used by older screens */
+.app-content .card{padding:18px 20px;}
+.app-content .card h3, .app-content .card-shell h3{font-family:var(--display);font-size:1.2rem;font-weight:700;margin:0 0 6px;}
+.app-content .hub-card{padding:18px 20px;}
+.app-content .hub-grid, .app-content .grid2{gap:16px !important;}
+.app-content .mini{border:1px solid var(--line-soft);border-radius:var(--r-sm);padding:10px 12px;background:#FBFCFE;}
+.app-content .thead{background:#F7F9FC;color:var(--slate);font-weight:700;font-size:13px;border-bottom:1px solid var(--line);}
+.app-content .trow{border-bottom:1px solid var(--line-soft);}
+.app-content .trow:hover{background:#F7F9FC;}
+.app-content .pill.ready{background:var(--ok-50);color:var(--ok);border-color:transparent;}
+.app-content .pill.warn{background:var(--warn-50);color:var(--warn);border-color:transparent;}
+
+/* More legacy headers */
+body .ib-hero,body .blog-hero,body .notes-hero,body .diy-hero,body .cue-hero{background:transparent !important;background-image:none !important;color:var(--ink) !important;border:0 !important;border-bottom:1px solid var(--line) !important;border-radius:0 !important;box-shadow:none !important;padding:4px 0 18px !important;margin:0 0 20px !important;min-height:0 !important;}
+body .ib-hero::before,body .ib-hero::after,body .blog-hero::before,body .blog-hero::after,body .notes-hero::before,body .notes-hero::after,body .diy-hero::before,body .diy-hero::after,body .cue-hero::before,body .cue-hero::after{display:none !important;}
+body .ib-hero-inner,body .blog-hero-inner,body .notes-hero-inner,body .diy-hero-inner,body .cue-hero-inner{display:flex !important;justify-content:space-between;align-items:flex-end !important;gap:16px;flex-wrap:wrap;padding:0 !important;}
+body .ib-kicker,body .blog-kicker,body .notes-kicker,body .diy-kicker,body .cue-kicker{display:block !important;background:transparent !important;border:0 !important;padding:0 !important;color:var(--slate) !important;font-size:14px !important;font-weight:600 !important;letter-spacing:0 !important;text-transform:none !important;margin:0 0 4px !important;box-shadow:none !important;}
+body .ib-title,body .ib-hero h1,body .ib-hero h2,body .blog-title,body .blog-hero h1,body .blog-hero h2,body .notes-title,body .notes-hero h1,body .notes-hero h2,body .diy-title,body .diy-hero h1,body .diy-hero h2,body .cue-title,body .cue-hero h1,body .cue-hero h2{font-family:var(--display) !important;color:var(--ink) !important;font-size:clamp(26px,3vw,32px) !important;font-weight:700 !important;line-height:1.1 !important;margin:0 !important;text-shadow:none !important;opacity:1 !important;-webkit-text-fill-color:currentColor !important;background:none !important;}
+body .ib-sub,body .ib-hero p,body .ib-hero .muted,body .blog-sub,body .blog-hero p,body .blog-hero .muted,body .notes-sub,body .notes-hero p,body .notes-hero .muted,body .diy-sub,body .diy-hero p,body .diy-hero .muted,body .cue-sub,body .cue-hero p,body .cue-hero .muted{color:var(--slate) !important;opacity:1 !important;margin:6px 0 0 !important;}
+body .ib-hero .btn-outline-light,body .ib-actions .btn:not(.btn-primary),body .blog-hero .btn-outline-light,body .blog-actions .btn:not(.btn-primary),body .notes-hero .btn-outline-light,body .notes-actions .btn:not(.btn-primary),body .diy-hero .btn-outline-light,body .diy-actions .btn:not(.btn-primary),body .cue-hero .btn-outline-light,body .cue-actions .btn:not(.btn-primary){background:var(--surface) !important;border:1px solid #C6D2E1 !important;color:var(--navy) !important;}
+body .diy-hero-highlights span, body .diy-hero-highlights li{background:var(--navy-50) !important;color:var(--navy) !important;border-color:transparent !important;}
+
+/* Bare form controls inside the app (older forms without .form-control) */
+.app-content input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=hidden]):not([type=submit]):not([type=button]):not([type=range]),
+.app-content select, .app-content textarea,
+.content-wrap input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=hidden]):not([type=submit]):not([type=button]):not([type=range]),
+.content-wrap select, .content-wrap textarea{
+  min-height:40px;padding:8px 12px;border:1px solid #C9D3DF;border-radius:var(--r-sm);background:#fff;font:inherit;font-size:15px;color:var(--ink);max-width:100%;box-sizing:border-box;}
+.app-content textarea, .content-wrap textarea{min-height:96px;}
+.app-content label, .content-wrap label{font-weight:600;}
+.cmdk-input input{min-height:0 !important;border:0 !important;padding:0 !important;}
+
+/* Forms that stack label + input as siblings inside a .stack-form grid */
+.stack-form:has(> .form-label){grid-template-columns:1fr !important;gap:6px 0 !important;}
+.stack-form:has(> .form-label) > .form-label{margin-top:10px;}
+.stack-form > button, .stack-form > .btn{justify-self:start;}
