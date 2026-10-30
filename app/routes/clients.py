@@ -129,7 +129,30 @@ def view_client(client_id: int):
         .limit(25)
         .all()
     )
-    return render_template("clients/view.html", client=c, thread=thread, employees=employees, payments=payments, call_logs=call_logs, portal_user=portal_user)
+    import json as _json
+    from app.models import StaffTask
+    docs = db.query(Document).filter_by(org_id=current_user.org_id, client_id=c.id).all()
+    checklist = db.query(ClientTask).filter_by(org_id=current_user.org_id, client_id=c.id).order_by(
+        ClientTask.is_completed.asc(), ClientTask.due_date.is_(None), ClientTask.due_date.asc(), ClientTask.created_at.asc()).all()
+    todos = db.query(StaffTask).filter_by(org_id=current_user.org_id, client_id=c.id, is_done=False).order_by(
+        StaffTask.due_date.is_(None), StaffTask.due_date.asc(), StaffTask.created_at.asc()).all()
+    last_client_msg = db.query(Message).filter_by(org_id=current_user.org_id, client_id=c.id, sender_role="CLIENT").order_by(
+        Message.created_at.desc()).first()
+    review = None
+    run = db.query(AIRun).filter_by(org_id=current_user.org_id, client_id=c.id, status="COMPLETED").order_by(
+        AIRun.created_at.desc()).first()
+    if run and run.result_json:
+        try:
+            r = _json.loads(run.result_json)
+            review = {"at": run.completed_at or run.created_at, "next": r.get("recommended_next_step") or "",
+                      "conditions": [x for x in (r.get("conditions") or []) if isinstance(x, dict)][:6]}
+        except Exception:
+            review = None
+    reps = {u.id: u for u in employees}
+    return render_template("clients/view.html", client=c, thread=thread, employees=employees, payments=payments,
+                           call_logs=call_logs, portal_user=portal_user, docs=docs, checklist=checklist, todos=todos,
+                           last_client_msg=last_client_msg, review=review, reps=reps,
+                           docs_unread=sum(1 for d in docs if not d.extracted_text_path))
 
 
 @clients_bp.get("/<int:client_id>/notes")
