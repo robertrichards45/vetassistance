@@ -78,6 +78,25 @@ def seed() -> dict:
                         created_at=now - timedelta(hours=3)),
             ])
             db.commit()
+        from app.models.evidence_checklist import EvidenceChecklist, EvidenceChecklistItem
+        from app.models.claim_update import ClaimUpdate
+        marcus = db.query(Client).filter_by(org_id=org.id, first_name="Marcus").first()
+        if marcus and not db.query(EvidenceChecklist).filter_by(client_id=marcus.id).count():
+            ck = EvidenceChecklist(org_id=org.id, client_id=marcus.id, title="Knee and tinnitus claim")
+            db.add(ck); db.commit()
+            for label, cat, done in [("DD-214", "Service records", True), ("Service treatment records", "Service records", False),
+                                     ("Current knee diagnosis", "Medical evidence", True), ("Hearing test (audiogram)", "Medical evidence", False),
+                                     ("Nexus letter from doctor", "Medical evidence", False), ("Buddy statement about flight line noise", "Lay statements", False)]:
+                db.add(EvidenceChecklistItem(checklist_id=ck.id, label=label, category=cat, is_done=done))
+            db.add_all([
+                ClaimUpdate(org_id=org.id, client_id=marcus.id, status_key="intake", status_label="New intake",
+                            note="We received your information and are reviewing it.", source_role="STAFF",
+                            created_at=datetime.utcnow() - timedelta(days=9)),
+                ClaimUpdate(org_id=org.id, client_id=marcus.id, status_key="gathering", status_label="Gathering evidence",
+                            note="Your intake looks good. Next we need your service treatment records and a hearing test.",
+                            source_role="STAFF", created_at=datetime.utcnow() - timedelta(days=6)),
+            ])
+            db.commit()
         return {"org_id": org.id, "password": PASSWORD, "emails": EMAILS}
     finally:
         db.close()

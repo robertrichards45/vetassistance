@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   {% set page_title = meta_title or COMPANY_NAME %}
   {% set page_desc = meta_description or "Veteran claims guidance, evidence checklists, rating criteria, and secure tools to help veterans prepare strong VA claims." %}
   {% set endpoint = request.endpoint or '' %}
@@ -549,6 +550,24 @@
   </div>
   {% endif %}
 
+  <script>
+  /* Every POST form needs the CSRF token. Many older templates never included it,
+     which made those buttons fail with "Bad Request". Add it wherever it's missing. */
+  (function(){
+    var meta=document.querySelector('meta[name="csrf-token"]'); if(!meta) return;
+    var token=meta.getAttribute('content');
+    function patch(root){
+      (root.querySelectorAll ? root : document).querySelectorAll('form').forEach(function(f){
+        if((f.getAttribute('method')||'get').toLowerCase()!=='post') return;
+        if(f.querySelector('input[name="csrf_token"]')) return;
+        var i=document.createElement('input'); i.type='hidden'; i.name='csrf_token'; i.value=token; f.appendChild(i);
+      });
+    }
+    patch(document);
+    new MutationObserver(function(ms){ ms.forEach(function(m){ m.addedNodes.forEach(function(n){ if(n.nodeType===1) patch(n.tagName==='FORM'?n.parentNode||document:n); }); }); })
+      .observe(document.documentElement,{childList:true,subtree:true});
+  })();
+  </script>
   {% block scripts %}{% endblock %}
 
   <!--  Mobile: tap dropdowns to open/close -->

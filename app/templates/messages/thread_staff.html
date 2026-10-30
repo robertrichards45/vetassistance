@@ -1,26 +1,9 @@
 {% extends "layout.html" %}
-{% block title %}Messages - {{ client.display_name() }}{% endblock %}
+{% block title %}Messages · {{ client.display_name() }}{% endblock %}
 {% block content %}
 {% set active_tab = "messages" %}
 {% include "partials/_client_header.html" %}
-
-<div class="chat card">
-  {% for m in messages %}
-    <div class="bubble {{ 'staff' if m.sender_role != 'CLIENT' else 'client' }}">
-      <div class="meta">{{ m.sender_role }} - {{ m.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
-      <div class="body">{{ m.body }}</div>
-    </div>
-  {% else %}
-    <div class="muted">No messages yet.</div>
-  {% endfor %}
-</div>
-
-<div class="card" style="margin-top:12px;">
-  <form method="post" action="{{ url_for('messages.staff_send', client_id=client.id) }}">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <label>Send message</label>
-    <textarea name="body" rows="4" placeholder="Write clearly. Keep it actionable."></textarea>
-    <button class="btn btn-primary" style="margin-top:10px;">Send</button>
-  </form>
-</div>
+{% set viewer = 'STAFF' %}{% set send_url = url_for('messages.staff_send', client_id=client.id) %}
+{% set placeholder = 'Write clearly and say what happens next.' %}
+{% include "partials/_chat.html" %}
 {% endblock %}

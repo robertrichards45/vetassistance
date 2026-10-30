@@ -2,105 +2,103 @@
 {% block title %}Director Dashboard • {{ COMPANY_NAME }}{% endblock %}
 
 {% block content %}
-
-<section class="page-hero">
-  <div class="page-hero-inner">
-    <div>
-      <div class="page-kicker">Director</div>
-      <h1 class="page-title">Command Center</h1>
-      <p class="page-sub">Manage staff, client access, and core system settings from one place.</p>
-    </div>
-    <div class="page-actions">
-      <a class="btn btn-outline-light" href="{{ url_for('public_home') }}">View Home</a>
-      <a class="btn btn-outline-light" href="{{ url_for('director.users') }}">Manage Users</a>
-      <a class="btn btn-outline-light" href="{{ url_for('pricing.list_pricing') }}">Pricing</a>
-      <a class="btn btn-outline-light" href="{{ url_for('director.articles') }}">Articles</a>
-      <a class="btn btn-primary" href="{{ url_for('resources.resources_admin') }}">Resources</a>
-    </div>
+{% macro action_label(a) -%}
+  {%- set m = {
+    'CLIENT_ASSIGNED':'Assigned a rep', 'CLIENT_STAGE':'Moved a case', 'MESSAGE_SENT':'Sent a message',
+    'LETTER_GENERATED':'Generated a letter', 'LETTER_SHARED':'Shared a letter', 'LETTER_SENT':'Sent a letter',
+    'STAFF_UPLOAD':'Uploaded a document', 'TASK_COMPLETED':'Completed a task', 'TASK_REOPENED':'Reopened a task',
+    'USER_CREATED':'Added a team member', 'USER_TOGGLED':'Changed a user\'s access', 'USER_FORCE_RESET':'Forced a password reset',
+    'VA_PACKET_CREATED':'Built a VA forms packet', 'NEXUS_PACKET_GENERATED':'Built a nexus packet', 'CUE_GENERATED':'Generated a CUE motion',
+    'VA_CALL_LOG_CREATED':'Logged a VA call', 'SITE_CONTENT_UPDATED':'Edited the website', 'TEMPLATE_CREATED':'Created a template',
+    'TEMPLATE_UPDATED':'Edited a template', 'ARTIFACT_DOWNLOADED':'Downloaded a document'} -%}
+  {{- m.get(a.action, a.action.replace('_', ' ')|capitalize) -}}
+{%- endmacro %}
+<div class="ws-head">
+  <div>
+    <h1>Admin overview</h1>
+    <p>How the team and the caseload are doing over the last 30 days.</p>
   </div>
-</section>
-
-<div class="row g-3">
-  <div class="col-lg-4">
-    <div class="card-shell">
-      <div class="card-body-pad">
-        <div class="panel-title">Quick Actions</div>
-        <div class="d-flex gap-2 flex-wrap mt-2">
-          <a class="btn btn-outline-primary" href="{{ url_for('director.users') }}">Employees</a>
-          <a class="btn btn-outline-primary" href="{{ url_for('invites.index') }}">Invite Links</a>
-          <a class="btn btn-outline-primary" href="{{ url_for('site_admin.edit') }}">Homepage</a>
-          <a class="btn btn-outline-primary" href="{{ url_for('director.articles') }}">Articles</a>
-          <a class="btn btn-outline-primary" href="{{ url_for('director.templates') }}">Templates</a>
-          <a class="btn btn-outline-primary" href="{{ url_for('clients.list_clients') }}">Clients</a>
-          <form method="post" action="{{ url_for('director.run_backup') }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button class="btn btn-outline-primary" type="submit">Run Backup Now</button>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    <div class="card-shell" style="margin-top:12px;">
-      <div class="card-body-pad">
-        <div class="panel-title">Recent Staff</div>
-        {% if users %}
-          <div class="table">
-            <div class="thead" style="grid-template-columns: 2fr 1fr 1fr;">
-              <div>User</div><div>Role</div><div>Status</div>
-            </div>
-            {% for u in users[:6] %}
-              <div class="trow" style="grid-template-columns: 2fr 1fr 1fr;">
-                <div>
-                  <strong>{{ u.full_name or u.email }}</strong>
-                  <div class="muted small">{{ u.email }}</div>
-                </div>
-                <div class="pill ready">{{ u.role.value }}</div>
-                <div class="pill {{ 'ready' if u.is_active else 'error' }}">{{ 'ACTIVE' if u.is_active else 'DISABLED' }}</div>
-              </div>
-            {% endfor %}
-          </div>
-        {% else %}
-          <div class="muted">No users yet.</div>
-        {% endif %}
-      </div>
-    </div>
-
-    <div class="card-shell" style="margin-top:12px;">
-      <div class="card-body-pad">
-        <div class="panel-title">Templates</div>
-        <div class="muted small" style="margin-top:6px;">Create and manage your letter templates in one place.</div>
-        <a class="btn btn-outline-primary" href="{{ url_for('director.templates') }}" style="margin-top:10px;">Open Template Library</a>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-lg-8">
-    <div class="card-shell">
-      <div class="card-body-pad">
-        <div class="panel-title">Audit Trail</div>
-        {% if audits %}
-          <div class="table">
-            <div class="thead" style="grid-template-columns: 1.6fr 1fr 1fr 1fr;">
-              <div>Event</div><div>Actor</div><div>Target</div><div>When</div>
-            </div>
-            {% for a in audits %}
-              <div class="trow" style="grid-template-columns: 1.6fr 1fr 1fr 1fr;">
-                <div>
-                  <strong>{{ a.action }}</strong>
-                  {% if a.detail %}<div class="muted small">{{ a.detail }}</div>{% endif %}
-                </div>
-                <div class="muted small">{{ a.actor_user_id or "-" }}</div>
-                <div class="muted small">{{ a.entity_type }} {{ a.entity_id }}</div>
-                <div class="muted small">{{ a.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
-              </div>
-            {% endfor %}
-          </div>
-        {% else %}
-          <div class="muted">No recent audit events.</div>
-        {% endif %}
-      </div>
-    </div>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('director.users') }}">Manage team</a>
+    <form method="post" action="{{ url_for('director.run_backup') }}" style="display:inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn" type="submit">Run backup now</button>
+    </form>
   </div>
 </div>
 
+<div class="ws-metrics">
+  <a class="ws-metric" href="{{ url_for('clients.list_clients') }}"><span>Open cases</span><strong>{{ stats.open }}</strong></a>
+  <div class="ws-metric"><span>New clients (30 days)</span><strong>{{ stats.new_30 }}</strong></div>
+  <div class="ws-metric"><span>Claims filed (30 days)</span><strong>{{ stats.filed_30 }}</strong></div>
+  <div class="ws-metric{% if stats.overdue %} alert{% endif %}"><span>Overdue tasks</span><strong>{{ stats.overdue }}</strong></div>
+</div>
+
+<div class="ws-grid">
+  <div>
+    <section class="ws-card" aria-labelledby="wl-h">
+      <div class="ws-card-head"><h2 id="wl-h">Team workload</h2>{% if stats.unassigned %}<a href="{{ url_for('employee.dashboard') }}">{{ stats.unassigned }} unassigned</a>{% endif %}</div>
+      <div class="table-responsive">
+        <table class="table" style="margin:0">
+          <thead><tr><th>Team member</th><th>Role</th><th style="text-align:right">Open cases</th><th style="text-align:right">Overdue</th><th>Last login</th></tr></thead>
+          <tbody>
+          {% for row in workload %}{% set u = row.user %}
+            <tr>
+              <td><strong>{{ u.full_name or u.email }}</strong>{% if not u.is_active %} <span class="badge-dot badge-muted">Disabled</span>{% endif %}<div class="muted small">{{ u.email }}</div></td>
+              <td>{{ u.role.value|title }}</td>
+              <td style="text-align:right">{{ row.open }}</td>
+              <td style="text-align:right">{% if row.overdue %}<span class="badge-dot badge-bad">{{ row.overdue }}</span>{% else %}0{% endif %}</td>
+              <td class="muted">{{ u.last_login_at|short_date("%b %d") if u.last_login_at else 'Never' }}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="5" class="muted">No team members yet. <a href="{{ url_for('director.users') }}">Add one</a>.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="ws-card" aria-labelledby="act-h">
+      <div class="ws-card-head"><h2 id="act-h">Recent activity</h2></div>
+      {% if audits %}
+      <ul class="ws-list">
+        {% for a in audits %}{% set who = people.get(a.actor_user_id) %}
+        <li>
+          <span class="avatar" aria-hidden="true">{{ ((who.full_name or who.email)[:1] if who else 'S')|upper }}</span>
+          <div class="main"><strong>{{ (who.full_name or who.email) if who else 'System' }}</strong> <span class="muted">{{ action_label(a)|lower }}</span>
+            {% if a.entity_type == 'Client' and a.entity_id %}<div class="sub"><a href="{{ url_for('clients.view_client', client_id=a.entity_id|int) }}">Open client</a></div>{% endif %}</div>
+          <div class="meta">{{ a.created_at|short_date("%b %d, %I:%M %p") }}</div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="ws-empty"><strong>No activity yet</strong>Actions your team takes are recorded here for accountability.</div>
+      {% endif %}
+    </section>
+  </div>
+
+  <div>
+    <section class="ws-card" aria-labelledby="m30-h">
+      <div class="ws-card-head"><h2 id="m30-h">Last 30 days</h2></div>
+      <ul class="ws-list">
+        <li><div class="main">Documents uploaded</div><div class="meta"><strong>{{ stats.docs_30 }}</strong></div></li>
+        <li><div class="main">Messages exchanged</div><div class="meta"><strong>{{ stats.msgs_30 }}</strong></div></li>
+        <li><div class="main"><a href="{{ url_for('director.traffic') }}">Website traffic</a></div><div class="meta">View</div></li>
+        <li><div class="main"><a href="{{ url_for('metrics.index') }}">Staff metrics</a></div><div class="meta">View</div></li>
+      </ul>
+    </section>
+    <section class="ws-card" aria-labelledby="adm-h">
+      <div class="ws-card-head"><h2 id="adm-h">Manage</h2></div>
+      <ul class="ws-list">
+        <li><div class="main"><a href="{{ url_for('invites.index') }}">Invite links</a><div class="sub">Bring on clients and staff</div></div></li>
+        <li><div class="main"><a href="{{ url_for('director.templates') }}">Letter templates</a><div class="sub">Reusable letters and documents</div></div></li>
+        <li><div class="main"><a href="{{ url_for('director.articles') }}">Articles</a><div class="sub">Public education library</div></div></li>
+        <li><div class="main"><a href="{{ url_for('director.faq') }}">FAQ</a> &middot; <a href="{{ url_for('director.comments') }}">Comments</a></div></li>
+        <li><div class="main"><a href="{{ url_for('resources.resources_admin') }}">Resource directory</a><div class="sub">Benefits Finder listings</div></div></li>
+        <li><div class="main"><a href="{{ url_for('director.onboarding_items') }}">Staff onboarding</a></div></li>
+        <li><div class="main"><a href="{{ url_for('director.diy_users') }}">DIY toolkit users</a></div></li>
+      </ul>
+    </section>
+  </div>
+</div>
 {% endblock %}

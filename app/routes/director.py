@@ -26,8 +26,40 @@ def dashboard():
         .order_by(User.created_at.desc())
         .all()
     )
-    audits = db.query(AuditLog).filter(AuditLog.org_id == current_user.org_id).order_by(AuditLog.created_at.desc()).limit(60).all()
-    return render_template("director/dashboard.html", users=users, audits=audits)
+    audits = db.query(AuditLog).filter(AuditLog.org_id == current_user.org_id).order_by(AuditLog.created_at.desc()).limit(25).all()
+
+    from datetime import datetime, timedelta
+    from app.models import ClientTask, Message, Document
+    from app.models.claim_update import ClaimUpdate
+    from app.services.case_stages import stage_key
+    now = datetime.utcnow()
+    since = now - timedelta(days=30)
+    org = current_user.org_id
+    clients = db.query(Client).filter(Client.org_id == org, Client.is_archived == False).all()  # noqa: E712
+    open_clients = [c for c in clients if stage_key(c.status) != "closed"]
+    overdue_rows = (db.query(ClientTask.client_id).filter(ClientTask.org_id == org, ClientTask.is_completed == False,  # noqa: E712
+                    ClientTask.due_date.isnot(None), ClientTask.due_date < now).all())
+    overdue_by_client = {}
+    for (cid,) in overdue_rows:
+        overdue_by_client[cid] = overdue_by_client.get(cid, 0) + 1
+    staff = [u for u in users if u.role in (Role.DIRECTOR, Role.EMPLOYEE)]
+    workload = []
+    for u in staff:
+        mine = [c for c in open_clients if c.assigned_user_id == u.id]
+        workload.append({"user": u, "open": len(mine), "overdue": sum(overdue_by_client.get(c.id, 0) for c in mine)})
+    workload.sort(key=lambda r: r["open"], reverse=True)
+    unassigned = sum(1 for c in open_clients if not c.assigned_user_id)
+    stats = {
+        "open": len(open_clients),
+        "new_30": sum(1 for c in clients if c.created_at and c.created_at >= since),
+        "filed_30": db.query(ClaimUpdate).filter(ClaimUpdate.org_id == org, ClaimUpdate.status_key == "filed", ClaimUpdate.created_at >= since).count(),
+        "docs_30": db.query(Document).filter(Document.org_id == org, Document.created_at >= since).count(),
+        "msgs_30": db.query(Message).filter(Message.org_id == org, Message.created_at >= since).count(),
+        "overdue": len(overdue_rows),
+        "unassigned": unassigned,
+    }
+    people = {u.id: u for u in db.query(User).filter(User.org_id == org).all()}
+    return render_template("director/dashboard.html", users=users, audits=audits, stats=stats, workload=workload, people=people)
 
 @director_bp.post("/backup/run")
 @login_required

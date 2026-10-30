@@ -1,37 +1,37 @@
 {% extends "layout.html" %}
 {% block title %}Evidence Checklist{% endblock %}
 {% block content %}
-<div class="row">
+{% set done = items|selectattr('is_done')|list|length %}
+<div class="ws-head">
   <div>
-    <h2>Evidence Checklist</h2>
-    <div class="muted small">{{ client.display_name() }}</div>
+    <h1>{{ checklist.title if checklist else "Evidence checklist" }}</h1>
+    <p>{% if checklist %}The records that support your claim. Check items off as you send them to us.{% else %}A list of the records your claim needs, built by your team.{% endif %}</p>
   </div>
-  <div class="row-actions">
-    <a class="btn secondary" href="{{ url_for('portal.dashboard') }}">Back</a>
-  </div>
+  {% if checklist and not is_guest %}<div class="actions"><a class="btn btn-primary" href="{{ url_for('portal.dashboard') }}#upload">Upload documents</a></div>{% endif %}
 </div>
-
-<div class="card" style="margin-top:12px;">
-  <h3>{{ checklist.title if checklist else "Checklist" }}</h3>
-  {% if not checklist %}
-    <div class="muted">Your team has not created a checklist yet.</div>
-  {% else %}
-    {% for it in items %}
-      <div class="mini">
-        <div><strong>{{ it.label }}</strong></div>
-        <div class="muted small">{{ it.category }}</div>
-        {% if not is_guest %}
+{% if not checklist %}
+  <section class="ws-card"><div class="ws-empty"><strong>Your checklist isn't ready yet</strong>Your team builds it after reviewing your intake. Until then, see <a href="{{ url_for('portal.dashboard') }}">your next steps</a>.</div></section>
+{% else %}
+  <section class="ws-card">
+    <div class="ws-card-head"><h2>{{ done }} of {{ items|length }} collected</h2></div>
+    {% if items %}<div class="pt-bar"><span style="width:{{ ((done / items|length) * 100)|round(0) }}%"></span></div>{% endif %}
+    {% for cat, group in items|groupby('category') %}
+      <div class="ck-group">{{ cat or 'Other' }}</div>
+      <ul class="ws-list">
+        {% for it in group %}
+        <li class="ck-item{% if it.is_done %} is-done{% endif %}">
+          {% if not is_guest %}
           <form method="post" action="{{ url_for('portalx.evidence_checklist_toggle', item_id=it.id) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button class="btn btn-outline-primary btn-sm" type="submit" style="margin-top:6px;">
-              {% if it.is_done %}Complete{% else %}Mark done{% endif %}
-            </button>
+            <button class="ck-box" type="submit" aria-pressed="{{ 'true' if it.is_done else 'false' }}" aria-label="{{ 'Mark not collected' if it.is_done else 'Mark collected' }}: {{ it.label }}"></button>
           </form>
-        {% else %}
-          <div class="muted small">Verify your email to update checklist items.</div>
-        {% endif %}
-      </div>
+          {% endif %}
+          <div class="main"><strong>{{ it.label }}</strong>{% if it.is_done %}<div class="sub">Collected</div>{% endif %}</div>
+        </li>
+        {% endfor %}
+      </ul>
     {% endfor %}
-  {% endif %}
-</div>
+    {% if is_guest %}<div class="ws-empty">Verify your email to check off items.</div>{% endif %}
+  </section>
+{% endif %}
 {% endblock %}

@@ -1,52 +1,52 @@
 {% extends "layout.html" %}
 {% block title %}Claim Tracker{% endblock %}
 {% block content %}
-<div class="row">
+{% set si = stage_index(client.status) %}
+<div class="ws-head">
   <div>
-    <h2>Claim Tracker</h2>
-    <div class="muted small">{{ client.display_name() }}</div>
-  </div>
-  <div class="row-actions">
-    <a class="btn secondary" href="{{ url_for('portal.dashboard') }}">Back</a>
+    <h1>Claim updates</h1>
+    <p>Every change to your claim, newest first.{% if client.claim_number %} VA claim number {{ client.claim_number }}.{% endif %}</p>
   </div>
 </div>
-
-<div class="grid2" style="margin-top:12px;">
-  <div class="card">
-    <h3>Current status</h3>
-    {% if is_guest %}
-      <div class="muted">Verify your email to unlock updates.</div>
-    {% else %}
-      <div><strong>Status:</strong> {{ client.status or "Intake in progress" }}</div>
-      {% if client.claim_number %}
-        <div><strong>Claim #:</strong> {{ client.claim_number }}</div>
-      {% endif %}
-    {% endif %}
+<section class="ws-card" style="margin-bottom:20px">
+  <div class="ws-card-body">
+    <ol class="track" aria-label="Claim progress">
+      {% for sk, sl, _ in CASE_STAGES %}<li class="{% if loop.index0 < si %}done{% elif loop.index0 == si %}now{% endif %}"{% if loop.index0 == si %} aria-current="step"{% endif %}>{{ sl }}</li>{% endfor %}
+    </ol>
   </div>
-  <div class="card">
-    <h3>Submit an update</h3>
+</section>
+<div class="ws-grid">
+  <section class="ws-card" aria-labelledby="tl-h">
+    <div class="ws-card-head"><h2 id="tl-h">Timeline</h2></div>
     {% if is_guest %}
-      <div class="muted">Verify your email to submit updates.</div>
+      <div class="ws-empty"><strong>Updates are locked</strong>Verify your email in <a href="{{ url_for('portalx.profile') }}">your profile</a> to see claim updates.</div>
+    {% elif updates %}
+      <ol class="timeline">
+        {% for u in updates %}
+        <li class="{{ 'from-client' if u.source_role == 'CLIENT' else '' }}">
+          <div class="tl-when">{{ u.created_at|short_date("%b %d, %Y") }}</div>
+          <div class="tl-body">
+            <strong>{% if u.source_role == 'CLIENT' %}You sent an update{% else %}{{ u.status_label or 'Update from your team' }}{% endif %}</strong>
+            {% if u.note %}<p>{{ u.note }}</p>{% endif %}
+          </div>
+        </li>
+        {% endfor %}
+      </ol>
     {% else %}
-      <form method="post" action="{{ url_for('portalx.claim_tracker_post') }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <textarea name="note" rows="4" placeholder="Add a short status update or question."></textarea>
-        <button class="btn" style="margin-top:10px;">Send update</button>
-      </form>
+      <div class="ws-empty"><strong>No updates yet</strong>When your team moves your claim forward, you'll see it here and on your overview.</div>
     {% endif %}
-  </div>
-</div>
-
-<div class="card" style="margin-top:14px;">
-  <h3>Timeline</h3>
-  {% for u in updates %}
-    <div class="mini">
-      <div class="muted small">{{ u.created_at|format_et }} · {{ u.source_role }}</div>
-      <div><strong>{{ u.status_label or u.status_key or "Update" }}</strong></div>
-      {% if u.note %}<div>{{ u.note }}</div>{% endif %}
-    </div>
-  {% else %}
-    <div class="muted">No updates yet.</div>
-  {% endfor %}
+  </section>
+  {% if not is_guest %}
+  <section class="ws-card" aria-labelledby="su-h">
+    <div class="ws-card-head"><h2 id="su-h">Tell your team something</h2></div>
+    <form class="ws-card-body" method="post" action="{{ url_for('portalx.claim_tracker_post') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="form-label" for="upd">What changed?</label>
+      <textarea id="upd" class="form-control" name="note" rows="4" placeholder="For example: I got a letter from the VA scheduling my C&P exam for Nov 12."></textarea>
+      <button class="btn btn-primary" style="margin-top:10px;">Send update</button>
+      <p class="muted small" style="margin-bottom:0">For questions, <a href="{{ url_for('portal.messages') }}">send a message</a> instead.</p>
+    </form>
+  </section>
+  {% endif %}
 </div>
 {% endblock %}

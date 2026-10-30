@@ -1,0 +1,41 @@
+{# Chat thread. Needs: messages, viewer ('CLIENT' or 'STAFF'), send_url, client. Optional: placeholder. #}
+<section class="chat-wrap ws-card" aria-label="Conversation">
+  <div class="chat-log" id="chatLog" tabindex="0" aria-live="polite">
+    {% set ns = namespace(day='') %}
+    {% for m in messages %}
+      {% set day = m.created_at|short_date("%A, %B %d") %}
+      {% if day != ns.day %}{% set ns.day = day %}<div class="chat-day"><span>{{ day }}</span></div>{% endif %}
+      {% set mine = (viewer == 'CLIENT' and m.sender_role == 'CLIENT') or (viewer != 'CLIENT' and m.sender_role != 'CLIENT') %}
+      <div class="chat-msg{% if mine %} mine{% endif %}">
+        <div class="chat-bubble">{{ m.body }}</div>
+        <div class="chat-meta">
+          {% if viewer == 'CLIENT' %}{{ 'You' if m.sender_role == 'CLIENT' else 'Your team' }}
+          {% else %}{{ client.display_name() if m.sender_role == 'CLIENT' else ('You' if m.sender_user_id == current_user.id else 'Team') }}{% endif %}
+          &middot; {{ m.created_at|short_date("%I:%M %p") }}
+        </div>
+      </div>
+    {% else %}
+      <div class="ws-empty" style="text-align:center;padding:48px 18px">
+        <strong>No messages yet</strong>
+        {% if viewer == 'CLIENT' %}Ask a question or let your team know what you uploaded. Someone usually replies within one business day.{% else %}Start the conversation. The client gets the message in their portal.{% endif %}
+      </div>
+    {% endfor %}
+  </div>
+  <form class="chat-compose" method="post" action="{{ send_url }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="sr-only" for="chatBody">Message</label>
+    <textarea id="chatBody" name="body" rows="2" required placeholder="{{ placeholder or 'Write a message' }}"></textarea>
+    <div class="chat-compose-bar">
+      <span class="muted small">Press Ctrl+Enter to send</span>
+      <button class="btn btn-primary" type="submit">Send</button>
+    </div>
+  </form>
+</section>
+<script>
+(function(){
+  var log=document.getElementById('chatLog'); if(log){ log.scrollTop=log.scrollHeight; }
+  var t=document.getElementById('chatBody');
+  if(t){ t.addEventListener('keydown',function(e){ if(e.key==='Enter' && (e.ctrlKey||e.metaKey)){ e.preventDefault(); if(t.value.trim()) t.form.submit(); } });
+    t.addEventListener('input',function(){ t.style.height='auto'; t.style.height=Math.min(t.scrollHeight,220)+'px'; }); }
+})();
+</script>

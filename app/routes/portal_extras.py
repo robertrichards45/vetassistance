@@ -81,7 +81,8 @@ def checklist():
     is_guest = _is_guest_client(c)
     ensure_tasks(current_user.org_id, c.id)
     tasks = db.query(ClientTask).filter_by(org_id=current_user.org_id, client_id=c.id).order_by(ClientTask.created_at.asc()).all()
-    return render_template("portal/checklist.html", client=c, tasks=tasks, is_guest=is_guest)
+    # Next steps now live on the portal overview.
+    return redirect(url_for("portal.dashboard") + "#next-h")
 
 
 @portalx_bp.get("/intake")
