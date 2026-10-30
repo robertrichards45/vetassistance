@@ -94,3 +94,13 @@ def test_traffic_ignores_scanners(app):
     db.commit(); db.close()
     v1, u1 = counts()
     assert (v1 - v0, u1 - u0) == (2, 1)
+
+
+@pytest.mark.parametrize("slug", ["va-rating-for-tinnitus", "va-rating-for-sleep-apnea", "va-rating-for-ptsd", "va-rating-for-back-pain", "va-rating-for-knee-pain"])
+def test_condition_guides_publish(slug):
+    from app import create_app
+    app = create_app(); app.config.update(TESTING=True)
+    c = app.test_client(); h = {"X-Forwarded-Proto": "https", "Host": "www.vetassistance.org"}
+    page = c.get(f"/blog/{slug}", headers=h)
+    assert page.status_code == 200 and "not accredited by VA" in page.get_data(as_text=True)
+    assert slug in c.get("/sitemap.xml", headers=h).get_data(as_text=True)

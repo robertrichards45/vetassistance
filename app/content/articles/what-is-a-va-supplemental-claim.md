@@ -46,7 +46,7 @@ SUMMARY: How supplemental claims work and what counts as new evidence.
 
 <h2>How We Assist Veterans</h2>
 <p>We provide non-representative claim preparation support. That includes organizing evidence, helping you understand the process, and explaining what the VA is asking for in plain language.</p>
-<p>Veteran Claims Assistance provides non-representative claim preparation and educational services. We are not affiliated with the Department of Veterans Affairs and do not provide legal representation.</p>
+<p>Veteran Benefits Assistance provides non-representative claim preparation and educational services. We are not affiliated with the Department of Veterans Affairs, are not accredited by VA, and do not provide legal representation.</p>
 
 <h2>Frequently Asked Questions</h2>
 <!-- ADSENSE: ARTICLE_PRE_FAQ (Before FAQ) -->

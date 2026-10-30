@@ -20,7 +20,7 @@
     <div class="card-body-pad article-body">
       <div class="article-meta">
         <div class="article-meta-item"><strong>Last updated:</strong> {% if article.updated_at %}{{ article.updated_at.strftime('%Y-%m-%d') }}{% else %}—{% endif %}</div>
-        <div class="article-meta-item"><strong>By:</strong> Veteran Claims Assistance Team</div>
+        <div class="article-meta-item"><strong>By:</strong> {{ COMPANY_NAME }} team</div>
       </div>
       {{ article.body|safe }}
     </div>
