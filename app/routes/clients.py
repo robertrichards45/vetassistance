@@ -694,38 +694,62 @@ def reveal_ssn(client_id: int):
     audit_log(current_user.org_id, current_user.id, "CLIENT_SSN_REVEALED", "Client", c.id)
     return jsonify({"ssn": full})
 def _delete_client_cascade(db, c: Client) -> None:
-    docs = db.query(Document).filter_by(org_id=c.org_id, client_id=c.id).all()
-    for d in docs:
-        try:
-            if d.storage_path and os.path.exists(d.storage_path):
-                os.remove(d.storage_path)
-        except Exception:
-            pass
-        try:
-            if d.extracted_text_path and os.path.exists(d.extracted_text_path):
-                os.remove(d.extracted_text_path)
-        except Exception:
-            pass
-        db.delete(d)
-    artifacts = db.query(RenderedArtifact).filter_by(org_id=c.org_id, client_id=c.id).all()
-    for a in artifacts:
-        try:
-            if a.docx_path and os.path.exists(a.docx_path):
-                os.remove(a.docx_path)
-        except Exception:
-            pass
-        db.delete(a)
-    db.query(DocumentTag).filter_by(org_id=c.org_id, client_id=c.id).delete(synchronize_session=False)
-    db.query(Message).filter_by(org_id=c.org_id, client_id=c.id).delete(synchronize_session=False)
-    db.query(MessageThread).filter_by(org_id=c.org_id, client_id=c.id).delete(synchronize_session=False)
-    db.query(Letter).filter_by(org_id=c.org_id, client_id=c.id).delete(synchronize_session=False)
-    db.query(ClientTask).filter_by(org_id=c.org_id, client_id=c.id).delete(synchronize_session=False)
-    db.query(FormData).filter_by(org_id=c.org_id, client_id=c.id).delete(synchronize_session=False)
-    db.query(Agreement).filter_by(org_id=c.org_id, client_id=c.id).delete(synchronize_session=False)
-    db.query(AIRun).filter_by(org_id=c.org_id, client_id=c.id).delete(synchronize_session=False)
-    db.delete(c)
+    """Permanently delete a client and everything that belongs to them.
 
+    Walks the schema instead of a hand-kept list, so new tables can never block a
+    delete again: every table with a client_id column is cleared, and rows in
+    tables that point at those rows (tags -> documents, items -> checklists,
+    messages -> threads, ...) are removed first.
+    """
+    from sqlalchemy import delete as sa_delete, select
+    from app.models import Base
 
+    # 1. Remove stored files while we still know where they are.
+    paths = []
+    for d in db.query(Document).filter_by(client_id=c.id).all():
+        paths += [d.storage_path, d.extracted_text_path]
+    for art in db.query(RenderedArtifact).filter_by(client_id=c.id).all():
+        paths += [getattr(art, "docx_path", ""), getattr(art, "pdf_path", "")]
+    for pth in paths:
+        try:
+            if pth and os.path.exists(pth):
+                os.remove(pth)
+        except Exception:
+            pass
+
+    tables = {t.name: t for t in Base.metadata.sorted_tables}
+    children = {}
+    for t in tables.values():
+        for fk in t.foreign_keys:
+            parent = fk.column.table
+            if parent.name != t.name:
+                children.setdefault(parent.name, []).append((t, fk.parent, fk.column))
+
+    def purge(table, where, depth=0):
+        if depth > 6:
+            return
+        for child, child_col, parent_col in children.get(table.name, []):
+            if child.name == "users":
+                continue
+            sub = select(parent_col).where(where)
+            if child.name == "clients":
+                continue
+            purge(child, child_col.in_(sub), depth + 1)
+        db.execute(sa_delete(table).where(where))
+
+    db.flush()
+    for t in tables.values():
+        if t.name != "clients" and "client_id" in t.c:
+            purge(t, t.c.client_id == c.id)
+
+    # 2. Turn off the client's portal login (the user row is kept for the audit trail).
+    if c.portal_user_id:
+        u = db.get(User, c.portal_user_id)
+        if u and u.role == Role.CLIENT:
+            u.is_active = False
+    cid = c.id
+    db.expunge(c)
+    db.execute(sa_delete(tables["clients"]).where(tables["clients"].c.id == cid))
 
 
 @clients_bp.get("/<int:client_id>/activity")

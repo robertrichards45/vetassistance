@@ -118,3 +118,59 @@ def test_activity_feed(app):
     html = d.get(f"/clients/{cid}/activity", headers=H).get_data(as_text=True)
     assert "uploaded a document" in html and "requested a document" in html and "set a deadline" in html
     assert d.get(f"/clients/{cid}/activity?only=message", headers=H).status_code == 200
+
+
+def test_delete_client_with_everything_attached(app):
+    """Regression: deleting a client with notes, tags, scans, to-dos, etc. returned a server error."""
+    from datetime import datetime
+    from app.models import (Document, DocumentTag, ClientNote, VACallLog, Message, MessageThread)
+    from app.models.claim_update import ClaimUpdate
+    from app.models.evidence_checklist import EvidenceChecklist, EvidenceChecklistItem
+    db = SessionLocal()
+    org = db.query(Client).first().org_id
+    c = Client(org_id=org, first_name="Delete", last_name="Me", email="delete.me@example.com")
+    db.add(c); db.commit()
+    doc = Document(org_id=org, client_id=c.id, filename="x.pdf", storage_path="/nonexistent/x.pdf")
+    db.add(doc); db.commit()
+    th = MessageThread(org_id=org, client_id=c.id); db.add(th); db.commit()
+    ck = EvidenceChecklist(org_id=org, client_id=c.id); db.add(ck); db.commit()
+    db.add_all([
+        DocumentTag(org_id=org, client_id=c.id, document_id=doc.id, category="Condition", tag="PTSD"),
+        ClientNote(org_id=org, client_id=c.id, body="note"),
+        VACallLog(org_id=org, client_id=c.id),
+        Message(org_id=org, thread_id=th.id, client_id=c.id, sender_role="STAFF", body="hi"),
+        ClaimUpdate(org_id=org, client_id=c.id, status_key="filed"),
+        EvidenceChecklistItem(checklist_id=ck.id, label="DD-214"),
+        ClientTask(org_id=org, client_id=c.id, title="t"),
+        StaffTask(org_id=org, client_id=c.id, title="todo"),
+    ])
+    db.commit(); cid = c.id; db.close()
+
+    d, _ = login(app, "director")
+    tok = token(d, "/clients")
+    r = d.post(f"/clients/{cid}/delete", data={"csrf_token": tok}, headers=H)
+    assert r.status_code in (302, 303), r.status_code
+    db = SessionLocal()
+    try:
+        assert db.get(Client, cid) is None
+        assert db.query(ClientNote).filter_by(client_id=cid).count() == 0
+    finally:
+        db.close()
+
+
+def test_bulk_delete_clients(app):
+    db = SessionLocal()
+    org = db.query(Client).first().org_id
+    a1 = Client(org_id=org, first_name="Bulk", last_name="One"); a2 = Client(org_id=org, first_name="Bulk", last_name="Two")
+    db.add_all([a1, a2]); db.commit()
+    ids = [a1.id, a2.id]
+    db.add(StaffTask(org_id=org, client_id=a1.id, title="x")); db.commit(); db.close()
+    d, _ = login(app, "director")
+    tok = token(d, "/clients")
+    r = d.post("/clients/bulk/delete", data={"csrf_token": tok, "client_ids": [str(i) for i in ids]}, headers=H)
+    assert r.status_code in (302, 303), r.status_code
+    db = SessionLocal()
+    try:
+        assert db.query(Client).filter(Client.id.in_(ids)).count() == 0
+    finally:
+        db.close()

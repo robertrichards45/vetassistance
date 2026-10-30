@@ -39,6 +39,16 @@ def init_db(app):
     db_url = app.config["SQLALCHEMY_DATABASE_URI"]
     if db_url.startswith("sqlite"):
         engine = create_engine(db_url, future=True, pool_pre_ping=True, poolclass=NullPool)
+        import os as _os
+        if _os.environ.get("SQLITE_FOREIGN_KEYS") == "1":
+            # Enforce foreign keys like Postgres does in production (used by the tests).
+            from sqlalchemy import event
+
+            @event.listens_for(engine, "connect")
+            def _fk_on(dbapi_conn, _rec):
+                cur = dbapi_conn.cursor()
+                cur.execute("PRAGMA foreign_keys=ON")
+                cur.close()
     else:
         engine = create_engine(db_url, future=True, pool_pre_ping=True, pool_size=20, max_overflow=30, pool_timeout=30)
     SessionLocal.configure(bind=engine)
