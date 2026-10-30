@@ -42,6 +42,36 @@ def test_notify_search_engines(app, monkeypatch):
     assert all(u.startswith("https://") for u in sent["urls"])
 
 
+def test_traffic_counts_only_people(app):
+    import re
+    from app.extensions import SessionLocal
+    from app.models import HumanVisit
+    from app.routes.visits import page_token
+    ua_h = {"User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0) Mobile Safari/604.1"}
+    c = app.test_client()
+    html = c.get("/").get_data(as_text=True)
+    assert "/v" in html and "sendBeacon" in html, "anonymous pages carry the people counter"
+    with app.test_request_context():
+        tok = page_token("/faq")
+    before = SessionLocal().query(HumanVisit).count()
+    # No interaction signal, a bad token, and a bot user agent are all ignored.
+    c.post("/v", data={"t": tok, "s": "", "d": "5"}, headers=ua_h)
+    c.post("/v", data={"t": "forged", "s": "scroll", "d": "5"}, headers=ua_h)
+    c.post("/v", data={"t": tok, "s": "scroll", "d": "5"}, headers={"User-Agent": "Googlebot/2.1"})
+    assert SessionLocal().query(HumanVisit).count() == before
+    r = c.post("/v", data={"t": tok, "s": "scroll", "d": "12", "r": "https://www.google.com/"}, headers=ua_h)
+    assert r.status_code == 204
+    c.post("/v", data={"t": tok, "s": "scroll", "d": "12"}, headers=ua_h)  # duplicate within 30s
+    db = SessionLocal()
+    rows = db.query(HumanVisit).all()
+    assert len(rows) == before + 1 and rows[-1].path == "/faq" and rows[-1].device == "mobile" and rows[-1].referrer_host == "www.google.com"
+    db.close()
+    d, _ = login(app, "director")
+    page = d.get("/director/traffic", headers=H).get_data(as_text=True)
+    assert re.search(r"People, last 30 days</span><strong>\s*1\s*<", page) and "Google" in page
+    assert "sendBeacon" not in page, "staff pages never count"
+
+
 def test_traffic_ignores_scanners(app):
     import re
     from datetime import datetime
@@ -51,8 +81,8 @@ def test_traffic_ignores_scanners(app):
 
     def counts():
         html = d.get("/director/traffic", headers=H).get_data(as_text=True)
-        v = int(re.search(r"Page views</span><strong>([\d,]+)", html).group(1).replace(",", ""))
-        u = int(re.search(r"Unique visitors</span><strong>([\d,]+)", html).group(1).replace(",", ""))
+        v = int(re.search(r"<dt>Page loads</dt><dd>([\d,]+)", html).group(1).replace(",", ""))
+        u = int(re.search(r"<dt>Different devices</dt><dd>([\d,]+)", html).group(1).replace(",", ""))
         return v, u
     v0, u0 = counts()
     db = SessionLocal()

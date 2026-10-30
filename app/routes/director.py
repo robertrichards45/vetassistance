@@ -199,12 +199,51 @@ def traffic():
         )
     finally:
         db.close()
+    from app.models import HumanVisit
+    hdb = SessionLocal()
+    try:
+        hq = hdb.query(HumanVisit).filter(HumanVisit.created_at >= since)
+        h_views = hq.count()
+        h_people = hdb.query(func.count(distinct(HumanVisit.ip_hash))).filter(HumanVisit.created_at >= since).scalar() or 0
+        h_daily = (hdb.query(func.date(HumanVisit.created_at), func.count(distinct(HumanVisit.ip_hash)))
+                   .filter(HumanVisit.created_at >= since).group_by(func.date(HumanVisit.created_at))
+                   .order_by(func.date(HumanVisit.created_at)).all())
+        h_pages = (hdb.query(HumanVisit.path, func.count(HumanVisit.id)).filter(HumanVisit.created_at >= since)
+                   .group_by(HumanVisit.path).order_by(func.count(HumanVisit.id).desc()).limit(15).all())
+        h_refs = (hdb.query(HumanVisit.referrer_host, func.count(distinct(HumanVisit.ip_hash))).filter(HumanVisit.created_at >= since)
+                  .group_by(HumanVisit.referrer_host).order_by(func.count(distinct(HumanVisit.ip_hash)).desc()).limit(10).all())
+        h_mobile = (hdb.query(func.count(distinct(HumanVisit.ip_hash))).filter(HumanVisit.created_at >= since,
+                                                                              HumanVisit.device == "mobile").scalar() or 0)
+        h_since = hdb.query(func.min(HumanVisit.created_at)).scalar()
+        today = datetime.utcnow().date()
+        h_today = (hdb.query(func.count(distinct(HumanVisit.ip_hash)))
+                   .filter(HumanVisit.created_at >= datetime(today.year, today.month, today.day)).scalar() or 0)
+    finally:
+        hdb.close()
+
+    def source(host):
+        h = (host or "").lower()
+        if not h:
+            return "Typed the address or bookmark"
+        for key, name in (("google", "Google"), ("bing", "Bing"), ("duckduckgo", "DuckDuckGo"), ("yahoo", "Yahoo"),
+                          ("facebook", "Facebook"), ("instagram", "Instagram"), ("reddit", "Reddit"), ("chatgpt", "ChatGPT"),
+                          ("openai", "ChatGPT"), ("copilot", "Copilot"), ("resumebuilder", "Your résumé site"),
+                          ("createdocuments", "CreateDocuments")):
+            if key in h:
+                return name
+        return h
+    refs = {}
+    for host, n in h_refs:
+        refs[source(host)] = refs.get(source(host), 0) + int(n or 0)
     return render_template(
         "director/traffic.html",
         total=total,
         unique=unique,
         top_paths=top_paths,
         daily=[(str(d)[:10], int(c or 0)) for d, c in daily],
+        h_views=h_views, h_people=h_people, h_today=h_today, h_mobile=h_mobile, h_since=h_since,
+        h_daily=[(str(d)[:10], int(c or 0)) for d, c in h_daily], h_pages=h_pages,
+        h_refs=sorted(refs.items(), key=lambda kv: -kv[1]),
     )
 
 def _ping_search(urls: list[str]) -> None:

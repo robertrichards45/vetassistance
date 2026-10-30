@@ -2,35 +2,55 @@
 {% block title %}Website traffic{% endblock %}
 {% block content %}
 <div class="ws-head">
-  <div><h1>Website traffic</h1><p>Real visitors over the last 30 days. Your team and known bots are left out.</p></div>
+  <div><h1>Website traffic</h1><p>Real people only: someone counts after their browser runs the page and they scroll, tap, click, or type. Bots, scanners, and your own team are never counted.</p></div>
   <div class="actions"><form method="post" action="{{ url_for('director.search_ping') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn" type="submit" title="Sends every public page in the sitemap to Bing and other IndexNow search engines">Notify search engines</button></form></div>
 </div>
-{% set days = daily|list %}{% set peak = (days|map(attribute=1)|max) if days else 0 %}
+
+{% if h_since %}
+<p class="muted small" style="margin:-8px 0 16px;">Real-person counting started {{ h_since|short_date('%b %d, %Y') }}. Numbers grow from there.</p>
+{% endif %}
+{% set hd = h_daily %}{% set hpeak = (hd|map(attribute=1)|max) if hd else 0 %}
 <div class="ws-metrics">
-  <div class="ws-metric"><span>Page views</span><strong>{{ '{:,}'.format(total) }}</strong></div>
-  <div class="ws-metric"><span>Unique visitors</span><strong>{{ '{:,}'.format(unique) }}</strong></div>
-  <div class="ws-metric"><span>Busiest day</span><strong class="sm">{% if days %}{% for d, c in days if c == peak %}{% if loop.first %}{{ d }}{% endif %}{% endfor %}{% else %}—{% endif %}</strong><small class="muted">{{ peak }} visitor{{ 's' if peak != 1 }}</small></div>
-  <div class="ws-metric"><span>Views per visitor</span><strong>{{ '%.1f'|format(total / unique) if unique else '—' }}</strong></div>
+  <div class="ws-metric"><span>People, last 30 days</span><strong>{{ '{:,}'.format(h_people) }}</strong></div>
+  <div class="ws-metric"><span>People today</span><strong>{{ h_today }}</strong></div>
+  <div class="ws-metric"><span>Pages they read</span><strong>{{ '{:,}'.format(h_views) }}</strong><small class="muted">{{ ('%.1f per person'|format(h_views / h_people)) if h_people else '' }}</small></div>
+  <div class="ws-metric"><span>On phones</span><strong>{{ ((h_mobile / h_people * 100)|round|int ~ '%') if h_people else '—' }}</strong></div>
 </div>
+
 <div class="ws-grid">
-  <section class="ws-card">
-    <div class="ws-card-head"><h2>Visitors per day</h2></div>
-    <div class="ws-card-body">
-      {% if days %}
-      <div class="bars" role="img" aria-label="Unique visitors per day, last 30 days">
-        {% for d, c in days %}<div class="bar" style="--h:{{ (c / peak * 100) if peak else 0 }}%" title="{{ d }}: {{ c }}"><i></i><span>{{ d[-5:] }}</span></div>{% endfor %}
+  <div>
+    <section class="ws-card">
+      <div class="ws-card-head"><h2>People per day</h2></div>
+      <div class="ws-card-body">
+        {% if hd %}
+        <div class="bars" role="img" aria-label="Real people per day">
+          {% for d, c in hd %}<div class="bar" style="--h:{{ (c / hpeak * 100) if hpeak else 0 }}%" title="{{ d }}: {{ c }}"><i></i><span>{{ d[-5:] }}</span></div>{% endfor %}
+        </div>
+        {% else %}<div class="ws-empty" style="padding:0;"><strong>No confirmed people yet</strong>Counting just started. Check back after a few visitors have come by.</div>{% endif %}
       </div>
-      {% else %}<div class="ws-empty" style="padding:0;">No visits recorded yet.</div>{% endif %}
-    </div>
-  </section>
-  <section class="ws-card">
-    <div class="ws-card-head"><h2>Top pages</h2></div>
-    {% set tp = top_paths|list %}{% set tmax = (tp|map(attribute=1)|max) if tp else 0 %}
-    {% if tp %}
-    <ul class="ws-list hbars">
-      {% for path, cnt in tp %}<li><div class="main"><div class="ttl mono">{{ path }}</div><i style="width:{{ (cnt / tmax * 100) if tmax else 0 }}%"></i></div><div class="meta">{{ cnt }}</div></li>{% endfor %}
-    </ul>
-    {% else %}<div class="ws-empty">No data yet.</div>{% endif %}
-  </section>
+    </section>
+    <section class="ws-card">
+      <div class="ws-card-head"><h2>Pages people read</h2></div>
+      {% set tmax = (h_pages|map(attribute=1)|max) if h_pages else 0 %}
+      {% if h_pages %}
+      <ul class="ws-list hbars">{% for path, cnt in h_pages %}<li><div class="main"><div class="ttl mono">{{ path }}</div><i style="width:{{ (cnt / tmax * 100) if tmax else 0 }}%"></i></div><div class="meta">{{ cnt }}</div></li>{% endfor %}</ul>
+      {% else %}<div class="ws-empty">Nothing yet.</div>{% endif %}
+    </section>
+  </div>
+  <div>
+    <section class="ws-card">
+      <div class="ws-card-head"><h2>Where they came from</h2></div>
+      {% if h_refs %}
+      <ul class="ws-list">{% for name, n in h_refs %}<li><div class="main"><div class="ttl">{{ name }}</div></div><div class="meta">{{ n }} {{ 'person' if n == 1 else 'people' }}</div></li>{% endfor %}</ul>
+      {% else %}<div class="ws-empty">Nothing yet.</div>{% endif %}
+    </section>
+    <details class="ws-card raw-traffic">
+      <summary class="ws-card-head"><h2>Raw server count</h2><span class="muted small">before filtering for people</span></summary>
+      <div class="ws-card-body">
+        <p class="muted small" style="margin-top:0;">Every page load the server saw in 30 days after removing hacking scanners and bots that name themselves. It still includes crawlers that pretend to be browsers, so it's always higher than the real number.</p>
+        <dl class="kv"><dt>Page loads</dt><dd>{{ '{:,}'.format(total) }}</dd><dt>Different devices</dt><dd>{{ '{:,}'.format(unique) }}</dd></dl>
+      </div>
+    </details>
+  </div>
 </div>
 {% endblock %}

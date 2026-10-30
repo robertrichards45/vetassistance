@@ -48,3 +48,4 @@ from .va_call_log import VACallLog
 from .staff_task import StaffTask
 from .condition_guide import ConditionGuide
 from .claim_packet import ClaimPacket
+from .human_visit import HumanVisit

@@ -309,6 +309,9 @@ def create_app():
     app.register_blueprint(library_bp)
     from app.routes.claim_builder import claims_bp
     app.register_blueprint(claims_bp)
+    from app.routes.visits import visits_bp, page_token
+    app.register_blueprint(visits_bp)
+    app.jinja_env.globals["visit_token"] = page_token
 
     def safe_url_for(endpoint: str, **values) -> str:
         aliases = {

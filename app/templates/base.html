@@ -618,5 +618,27 @@
     });
   })();
   </script>
+{% if not current_user.is_authenticated and request.endpoint and not request.path.startswith('/static') %}
+<script>
+(function(){
+  /* Count a real person: JavaScript ran, the page was on screen 2+ seconds, and someone interacted. */
+  var t="{{ visit_token(request.path) }}", start=Date.now(), sent=false, seen=0, pending=false;
+  function vis(){ return !document.hidden; }
+  function send(kind){
+    if(sent || !vis()) return;
+    var wait=2000-(Date.now()-start);
+    if(wait>0){ if(!pending){ pending=true; setTimeout(function(){ pending=false; send(kind); }, wait+50); } return; }
+    sent=true;
+    var f=new FormData(); f.append('t',t); f.append('s',kind); f.append('d',Math.round((Date.now()-start)/1000)); f.append('r',document.referrer||'');
+    if(navigator.sendBeacon){ navigator.sendBeacon('{{ url_for("visits.beacon") }}', f); }
+    else { fetch('{{ url_for("visits.beacon") }}',{method:'POST',body:f,keepalive:true,credentials:'same-origin'}); }
+    off();
+  }
+  var evs={scroll:'scroll',pointermove:'pointer',touchstart:'touch',keydown:'key',click:'click'}, hs={};
+  Object.keys(evs).forEach(function(e){ hs[e]=function(){ if(e==='pointermove' && ++seen<3) return; send(evs[e]); }; window.addEventListener(e,hs[e],{passive:true}); });
+  function off(){ Object.keys(hs).forEach(function(e){ window.removeEventListener(e,hs[e]); }); }
+})();
+</script>
+{% endif %}
 </body>
 </html>
