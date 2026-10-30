@@ -13,6 +13,7 @@ class ClientTask(Base):
     instructions: Mapped[str] = mapped_column(Text, default="")
     due_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     is_required: Mapped[bool] = mapped_column(Boolean, default=True)
+    kind: Mapped[str] = mapped_column(String(40), default="task")  # task | document
     is_completed: Mapped[bool] = mapped_column(Boolean, default=False)
     completed_by_user_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

@@ -45,3 +45,4 @@ from .reminder import Reminder
 from .diy import DIYAccount, DIYSubscription, DIYDocument, DIYDocumentScan, DIYChecklistItem, DIYClaimUpdate
 from .public_comment import PublicComment
 from .va_call_log import VACallLog
+from .staff_task import StaffTask

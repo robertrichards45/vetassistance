@@ -515,11 +515,37 @@ def set_stage(client_id: int):
         return redirect(url_for("clients.view_client", client_id=c.id))
     c.status = STAGE_LABELS[key]
     note = (request.form.get("note") or "").strip() or STAGE_CLIENT_TEXT[key]
+    deadline_msg = ""
+    raw_dec = (request.form.get("decision_date") or "").strip()
+    if key == "decision" and raw_dec:
+        from datetime import datetime as _dt, timedelta as _td
+        from app.models import StaffTask
+        try:
+            dec = _dt.strptime(raw_dec, "%Y-%m-%d").replace(hour=17)
+        except ValueError:
+            dec = None
+        if dec:
+            owner = c.assigned_user_id or current_user.id
+            db.add_all([
+                StaffTask(org_id=c.org_id, client_id=c.id, assigned_user_id=owner, created_by_user_id=current_user.id,
+                          title=f"Review the VA decision with {c.display_name()}", due_date=dec + _td(days=30),
+                          notes="Walk through the decision and decide whether to file a supplemental claim, higher-level review, or Board appeal."),
+                StaffTask(org_id=c.org_id, client_id=c.id, assigned_user_id=owner, created_by_user_id=current_user.id,
+                          kind="deadline", title=f"Appeal window closes for {c.display_name()}", due_date=dec + _td(days=365),
+                          notes=f"One year from the decision dated {dec:%B %d, %Y}. File a review or appeal before this date to protect the effective date."),
+            ])
+            deadline_msg = f" Appeal deadline set for {(dec + _td(days=365)):%B %d, %Y}."
     db.add(ClaimUpdate(org_id=c.org_id, client_id=c.id, status_key=key, status_label=STAGE_LABELS[key],
                        note=note, source_role="STAFF", created_by_user_id=current_user.id))
     db.commit()
     audit_log(current_user.org_id, current_user.id, "CLIENT_STAGE", "Client", c.id, detail=key)
-    flash(f"Moved to \u201c{STAGE_LABELS[key]}\u201d. The client will see this update in their portal.", "success")
+    try:
+        from app.services.notify import notify_client
+        notify_client(c, f"Your claim moved to: {STAGE_LABELS[key]}", note, url_for("portalx.claim_tracker"),
+                      kind="stage", cta="See your claim", actor_user_id=current_user.id)
+    except Exception:
+        pass
+    flash(f"Moved to \u201c{STAGE_LABELS[key]}\u201d. The client will see this update in their portal." + deadline_msg, "success")
     return redirect(url_for("clients.view_client", client_id=c.id))
 
 
@@ -700,3 +726,56 @@ def _delete_client_cascade(db, c: Client) -> None:
     db.delete(c)
 
 
+
+
+@clients_bp.get("/<int:client_id>/activity")
+@login_required
+@require_roles(Role.DIRECTOR, Role.EMPLOYEE)
+def activity(client_id: int):
+    """Everything that happened on a case, newest first."""
+    from app.models.claim_update import ClaimUpdate
+    from app.models import StaffTask
+    db = SessionLocal()
+    c = db.get(Client, client_id)
+    if not c or c.org_id != current_user.org_id:
+        return "Not found", 404
+    people = {u.id: (u.full_name or u.email) for u in db.query(User).filter(User.org_id == c.org_id).all()}
+    who = lambda uid, default="Team": people.get(uid, default)  # noqa: E731
+    ev = []
+    for m in db.query(Message).filter_by(org_id=c.org_id, client_id=c.id).all():
+        mine = m.sender_role == "CLIENT"
+        ev.append(dict(at=m.created_at, icon="inbox", kind="message", who=c.display_name() if mine else who(m.sender_user_id),
+                       what="sent a message", detail=m.body, link=url_for("messages.staff_thread", client_id=c.id)))
+    for d in db.query(Document).filter_by(org_id=c.org_id, client_id=c.id).all():
+        by_client = d.uploaded_by_user_id and d.uploaded_by_user_id == c.portal_user_id
+        ev.append(dict(at=d.created_at, icon="tray", kind="document", who=c.display_name() if by_client else who(d.uploaded_by_user_id),
+                       what="uploaded a document", detail=f"{d.filename} ({d.category or 'Uncategorized'})",
+                       link=url_for("documents.client_documents", client_id=c.id)))
+    for u in db.query(ClaimUpdate).filter_by(org_id=c.org_id, client_id=c.id).all():
+        if u.source_role == "CLIENT":
+            ev.append(dict(at=u.created_at, icon="route", kind="update", who=c.display_name(), what="posted a claim update", detail=u.note, link=""))
+        else:
+            ev.append(dict(at=u.created_at, icon="route", kind="stage", who=who(u.created_by_user_id),
+                           what=f"moved the case to {u.status_label}" if u.status_key else "posted an update", detail=u.note, link=""))
+    for t in db.query(ClientTask).filter_by(org_id=c.org_id, client_id=c.id).all():
+        label = "requested a document" if t.kind == "document" else "added a step"
+        ev.append(dict(at=t.created_at, icon="check", kind="task", who="Team", what=label, detail=t.title, link=url_for("tasks.staff_tasks", client_id=c.id)))
+        if t.is_completed and t.completed_at:
+            by_client = t.completed_by_user_id and t.completed_by_user_id == c.portal_user_id
+            ev.append(dict(at=t.completed_at, icon="check", kind="done", who=c.display_name() if by_client else who(t.completed_by_user_id),
+                           what="completed a step", detail=t.title, link=url_for("tasks.staff_tasks", client_id=c.id)))
+    for n in db.query(ClientNote).filter_by(org_id=c.org_id, client_id=c.id).all():
+        ev.append(dict(at=n.created_at, icon="note", kind="note", who=who(n.created_by_user_id), what="added a note", detail=n.body,
+                       link=url_for("clients.client_notes", client_id=c.id)))
+    for t in db.query(StaffTask).filter_by(org_id=c.org_id, client_id=c.id).all():
+        ev.append(dict(at=t.created_at, icon="today", kind="todo", who=who(t.created_by_user_id),
+                       what="set a deadline" if t.kind == "deadline" else "added a team to-do",
+                       detail=t.title + (f" (due {t.due_date:%b %d, %Y})" if t.due_date else ""), link=""))
+    ev = [e for e in ev if e["at"]]
+    ev.sort(key=lambda e: e["at"], reverse=True)
+    kinds = {"message": "Messages", "document": "Documents", "stage": "Stage changes", "task": "Steps", "note": "Notes"}
+    f = request.args.get("only") or ""
+    if f in kinds:
+        ev = [e for e in ev if e["kind"] == f or (f == "task" and e["kind"] in ("task", "done")) or (f == "stage" and e["kind"] == "update")]
+    portal_user = db.get(User, c.portal_user_id) if c.portal_user_id else None
+    return render_template("clients/activity.html", client=c, events=ev[:300], kinds=kinds, only=f, portal_user=portal_user)

@@ -58,14 +58,18 @@
         {% for t in open_tasks %}
         <li class="pt-task">
           <div class="main">
-            <strong>{{ t.title }}</strong>
+            <strong>{{ t.title }}</strong>{% if t.kind == 'document' %} <span class="badge-dot">Document</span>{% endif %}
             {% if t.instructions %}<div class="sub" style="white-space:normal">{{ t.instructions }}</div>{% endif %}
             {% if t.due_date %}<div class="sub">Due {{ t.due_date|short_date("%B %d") }}</div>{% endif %}
           </div>
+          {% if t.kind == 'document' and not is_guest %}
+          <a class="btn btn-sm btn-primary" href="{{ url_for('portal.dashboard', **{'for': t.id}) }}#upload">Upload</a>
+          {% else %}
           <form method="post" action="{{ url_for('portal.complete_task', task_id=t.id) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button class="btn btn-sm" type="submit">Mark done</button>
           </form>
+          {% endif %}
         </li>
         {% endfor %}
       </ul>
@@ -90,6 +94,14 @@
             <input id="clientFiles" class="file-input-overlay" type="file" name="file" multiple accept=".pdf,.png,.jpg,.jpeg,.docx,.mp3,.wav,.m4a,.mp4,.mov,.webm,.ogg">
             <div class="muted small" style="margin-top:8px">PDF, photos, Word, audio, or video. Several at once is fine.</div>
           </div>
+          {% set doc_requests = open_tasks|selectattr('kind', 'equalto', 'document')|list %}
+          {% if doc_requests %}
+          <label class="form-label" for="forTask" style="margin-top:12px">This upload is for</label>
+          <select id="forTask" class="form-control" name="task_id">
+            <option value="">General upload</option>
+            {% for t in doc_requests %}<option value="{{ t.id }}"{% if request.args.get('for') == t.id|string %} selected{% endif %}>{{ t.title }}</option>{% endfor %}
+          </select>
+          {% endif %}
           <div id="clientQueue" class="queue"></div>
           <button class="btn btn-primary" id="clientUploadBtn" style="margin-top:12px;">Upload</button>
           <div id="clientUploadStatus" class="muted small" style="margin-top:8px; display:none;">Uploading...</div>

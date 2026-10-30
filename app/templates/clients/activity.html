@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Activity · {{ client.display_name() }}{% endblock %}
+{% block content %}
+{% set active_tab = "activity" %}
+{% include "partials/_client_header.html" %}
+<nav class="chip-row" aria-label="Filter activity">
+  <a href="{{ url_for('clients.activity', client_id=client.id) }}"{% if not only %} aria-current="page"{% endif %}>Everything</a>
+  {% for k, label in kinds.items() %}<a href="{{ url_for('clients.activity', client_id=client.id, only=k) }}"{% if only == k %} aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
+</nav>
+<section class="ws-card">
+  {% if events %}
+  <ul class="ws-list feed">
+    {% set ns = namespace(day='') %}
+    {% for e in events %}
+      {% set day = e.at|short_date("%A, %B %d, %Y") %}
+      {% if day != ns.day %}{% set ns.day = day %}<li class="feed-day">{{ day }}</li>{% endif %}
+      <li>
+        <span class="feed-icon k-{{ e.kind }}" aria-hidden="true"><svg><use href="#i-{{ e.icon }}"/></svg></span>
+        <div class="main">
+          <div><strong>{{ e.who }}</strong> {{ e.what }}</div>
+          {% if e.detail %}<div class="sub" style="white-space:normal">{{ e.detail|truncate(220) }}</div>{% endif %}
+        </div>
+        <div class="meta">{{ e.at|short_date("%I:%M %p") }}{% if e.link %}<a href="{{ e.link }}">Open</a>{% endif %}</div>
+      </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="ws-empty"><strong>No activity yet</strong>Messages, uploads, stage changes, steps, and notes for this client will show up here.</div>
+  {% endif %}
+</section>
+{% endblock %}

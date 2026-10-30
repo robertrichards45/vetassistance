@@ -11,6 +11,7 @@ class Alert(Base):
     source_key: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
     title: Mapped[str] = mapped_column(String(255), default="", nullable=False)
     body: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    link: Mapped[str] = mapped_column(Text, default="", nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     read_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     dismissed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

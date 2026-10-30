@@ -61,16 +61,12 @@ def staff_send(client_id: int):
     db.add(m); db.commit()
     thread.last_staff_seen_at = datetime.utcnow()
     db.commit()
-    # Email notify client if possible
-    if c.email:
-        try:
-            from app.services.email_service import send_email_html
-            subject = f"New portal message from {current_user.full_name or current_user.email}"
-            body_text = "You have a new portal message. Log in to view and reply."
-            body_html = "<p>You have a new portal message. Log in to view and reply.</p>"
-            send_email_html(c.email.strip().lower(), subject, body_text, body_html, context="MESSAGE_NOTIFY", org_id=current_user.org_id, actor_user_id=current_user.id)
-        except Exception:
-            pass
+    try:
+        from app.services.notify import notify_client
+        notify_client(c, "New message from your claims team", "Sign in to read it and reply.",
+                      url_for("portal.messages"), kind="message", cta="Read message", actor_user_id=current_user.id)
+    except Exception:
+        pass
     audit_log(current_user.org_id, current_user.id, "MESSAGE_SENT", "Client", c.id, detail="staff->client")
     flash("Message sent.", "success")
     return redirect(url_for("messages.staff_thread", client_id=c.id))

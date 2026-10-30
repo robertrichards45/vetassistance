@@ -570,14 +570,26 @@ def upload():
             pass
         audit_log(current_user.org_id, current_user.id, 'CLIENT_UPLOAD', 'Document', doc.id, detail=saved_name)
         count += 1
-    # enqueue best-effort text extraction (PDF)
+    # Uploading against a document request completes it.
+    fulfilled = None
+    tid = (request.form.get("task_id") or "").strip()
+    if tid.isdigit():
+        t = db.get(ClientTask, int(tid))
+        if t and t.client_id == c.id and t.org_id == c.org_id and not t.is_completed:
+            t.is_completed = True
+            t.completed_at = datetime.utcnow()
+            t.completed_by_user_id = current_user.id
+            db.commit()
+            fulfilled = t.title
     try:
-        q = get_queue('docs')
-        q.enqueue(extract_document_text, doc.id)
+        from app.services.notify import notify_team_for_client
+        what = f"for \u201c{fulfilled}\u201d" if fulfilled else ""
+        notify_team_for_client(c, f"{c.display_name()} uploaded {count} file{'s' if count != 1 else ''} {what}".strip(),
+                               "New documents are in the client's file.", url_for("documents.client_documents", client_id=c.id),
+                               kind="upload", cta="Review documents", actor_user_id=current_user.id)
     except Exception:
         pass
-    audit_log(current_user.org_id, current_user.id, "CLIENT_UPLOAD", "Document", doc.id, detail=saved_name)
-    flash(f"Uploaded {count} file(s) successfully.", "success")
+    flash(f"Uploaded {count} file{'s' if count != 1 else ''}." + (f" Request \u201c{fulfilled}\u201d is complete." if fulfilled else ""), "success")
     return redirect(url_for("portal.dashboard"))
 
 
@@ -646,38 +658,14 @@ def send_message():
     m = Message(org_id=current_user.org_id, thread_id=thread.id, client_id=c.id, sender_user_id=current_user.id, sender_role="CLIENT", body=body)
     db.add(m); db.commit()
     audit_log(current_user.org_id, current_user.id, "MESSAGE_SENT", "Client", c.id, detail="client->staff")
-    # Alerts for staff (deduped)
-    recipients = []
-    if c.assigned_user_id:
-        rep = db.get(User, c.assigned_user_id)
-        if rep:
-            recipients.append(rep.id)
-    # always notify directors
-    directors = db.query(User).filter(User.org_id == current_user.org_id, User.role == Role.DIRECTOR).all()
-    recipients.extend([d.id for d in directors])
-    recipients = list({r for r in recipients if r})
-    for rid in recipients:
-        create_alert(
-            user_id=rid,
-            alert_type="message",
-            source_key=f"message_thread:{thread.id}",
-            title=f"New message from {c.display_name()}",
-            body=body[:240],
-        )
-    # Email notify staff if possible
-    if recipients:
-        try:
-            from app.services.email_service import send_email_html
-            subject = f"New client message: {c.display_name()}"
-            body_text = "You have a new portal message. Log in to view and reply."
-            body_html = "<p>You have a new portal message. Log in to view and reply.</p>"
-            staff_emails = db.query(User).filter(User.id.in_(recipients)).all()
-            for u in staff_emails:
-                if not u.email:
-                    continue
-                send_email_html(u.email.strip().lower(), subject, body_text, body_html, context="MESSAGE_NOTIFY", org_id=current_user.org_id, actor_user_id=current_user.id)
-        except Exception:
-            pass
+    # Notify the assigned rep (or directors when unassigned): bell + email.
+    try:
+        from app.services.notify import notify_team_for_client
+        notify_team_for_client(c, f"New message from {c.display_name()}", body[:240],
+                               url_for("messages.staff_thread", client_id=c.id), kind="message", cta="Reply",
+                               actor_user_id=current_user.id)
+    except Exception:
+        pass
     flash("Message sent.", "success")
     return redirect(url_for("portal.messages"))
 
@@ -695,8 +683,17 @@ def complete_task(task_id: int):
     if not task or task.org_id != current_user.org_id or task.client_id != c.id:
         return "Not found", 404
     task.is_completed = True
+    task.completed_at = datetime.utcnow()
+    task.completed_by_user_id = current_user.id
     db.commit()
-    flash("Task marked complete.", "success")
+    try:
+        from app.services.notify import notify_team_for_client
+        notify_team_for_client(c, f"{c.display_name()} finished a step", task.title,
+                               url_for("tasks.staff_tasks", client_id=c.id), kind="task", email=False,
+                               actor_user_id=current_user.id)
+    except Exception:
+        pass
+    flash("Nice work. Your team will see that this step is done.", "success")
     return redirect(url_for("portal.dashboard"))
 
 

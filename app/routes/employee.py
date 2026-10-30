@@ -103,6 +103,13 @@ def dashboard():
         )
     recent = sorted(clients, key=lambda c: c.created_at or now, reverse=True)[:6]
     reps = {u.id: u for u in db.query(User).filter(User.org_id == current_user.org_id).all()}
+    from app.models import StaffTask
+    tq = db.query(StaffTask).filter(StaffTask.org_id == current_user.org_id, StaffTask.is_done == False)  # noqa: E712
+    if not is_director:
+        tq = tq.filter(StaffTask.assigned_user_id == current_user.id)
+    todos = tq.order_by(StaffTask.due_date.is_(None), StaffTask.due_date.asc(), StaffTask.created_at.asc()).limit(12).all()
+    todo_clients = {c.id: c for c in db.query(Client).filter(Client.id.in_([t.client_id for t in todos if t.client_id] or [0])).all()}
+    staff_users = [u for u in reps.values() if u.role in (Role.DIRECTOR, Role.EMPLOYEE) and u.is_active] if is_director else []
     hour = (datetime.now().hour)
     greeting = "Good morning" if hour < 12 else ("Good afternoon" if hour < 17 else "Good evening")
     return render_template(
@@ -123,6 +130,11 @@ def dashboard():
         reps=reps,
         stage_key=stage_key,
         now=now,
+        todos=todos,
+        todo_clients=todo_clients,
+        staff_users=staff_users,
+        my_clients=sorted(clients, key=lambda c: (c.last_name or "", c.first_name or "")),
+        soon=now + timedelta(days=3),
     )
 
 
@@ -1263,3 +1275,71 @@ def guidance():
         Client.is_archived == False,  # noqa: E712
     ).order_by(Client.created_at.desc()).all()
     return render_template("employee/dashboard.html", assigned=assigned, guidance=guidance_text, question=question)
+
+
+def _parse_date(raw: str):
+    raw = (raw or "").strip()
+    if not raw:
+        return None
+    try:
+        return datetime.strptime(raw, "%Y-%m-%d").replace(hour=17)
+    except ValueError:
+        return None
+
+
+@employee_bp.post("/todos/add")
+@login_required
+@require_roles(Role.DIRECTOR, Role.EMPLOYEE)
+def todo_add():
+    from app.models import StaffTask, User
+    from app.services.notify import notify_user
+    db = SessionLocal()
+    title = (request.form.get("title") or "").strip()[:255]
+    back = request.form.get("next") or url_for("employee.dashboard")
+    if not back.startswith("/"):
+        back = url_for("employee.dashboard")
+    if not title:
+        flash("Give the to-do a title.", "error")
+        return redirect(back)
+    assignee_id = current_user.id
+    raw_assignee = request.form.get("assigned_user_id") or ""
+    if raw_assignee.isdigit() and current_user.role == Role.DIRECTOR:
+        u = db.get(User, int(raw_assignee))
+        if u and u.org_id == current_user.org_id and u.role in (Role.DIRECTOR, Role.EMPLOYEE):
+            assignee_id = u.id
+    client_id = None
+    raw_client = request.form.get("client_id") or ""
+    if raw_client.isdigit():
+        c = db.get(Client, int(raw_client))
+        if c and c.org_id == current_user.org_id:
+            client_id = c.id
+    t = StaffTask(org_id=current_user.org_id, title=title, notes=(request.form.get("notes") or "").strip()[:2000],
+                  assigned_user_id=assignee_id, created_by_user_id=current_user.id, client_id=client_id,
+                  due_date=_parse_date(request.form.get("due_date")))
+    db.add(t)
+    db.commit()
+    if assignee_id != current_user.id:
+        assignee = db.get(User, assignee_id)
+        notify_user(assignee_id, f"{current_user.full_name or current_user.email} assigned you a to-do", title,
+                    url_for("employee.dashboard") + "#todos", kind="todo", email=assignee.email if assignee else None,
+                    cta="Open Today", org_id=current_user.org_id, actor_user_id=current_user.id)
+    flash("To-do added.", "success")
+    return redirect(back)
+
+
+@employee_bp.post("/todos/<int:todo_id>/toggle")
+@login_required
+@require_roles(Role.DIRECTOR, Role.EMPLOYEE)
+def todo_toggle(todo_id: int):
+    from app.models import StaffTask
+    db = SessionLocal()
+    t = db.get(StaffTask, todo_id)
+    if not t or t.org_id != current_user.org_id:
+        return "Not found", 404
+    if t.assigned_user_id != current_user.id and current_user.role != Role.DIRECTOR:
+        return "Forbidden", 403
+    t.is_done = not t.is_done
+    t.done_at = datetime.utcnow() if t.is_done else None
+    db.commit()
+    back = request.form.get("next") or url_for("employee.dashboard")
+    return redirect(back if back.startswith("/") else url_for("employee.dashboard"))

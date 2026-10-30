@@ -3,32 +3,51 @@
 {% block content %}
 {% set active_tab = "tasks" %}
 {% include "partials/_client_header.html" %}
+{% set open_ = tasks|rejectattr('is_completed')|list %}{% set done_ = tasks|selectattr('is_completed')|list %}
+<div class="ws-grid">
+  <section class="ws-card" aria-labelledby="cs-h">
+    <div class="ws-card-head"><h2 id="cs-h">Client's next steps</h2><span class="muted small">{{ done_|length }} of {{ tasks|length }} done &middot; visible to the client</span></div>
+    {% if tasks %}
+    <ul class="ws-list">
+      {% for t in open_ + done_ %}
+      <li class="ck-item{% if t.is_completed %} is-done{% endif %}">
+        <div class="main">
+          <strong>{{ t.title }}</strong>
+          <div class="sub">
+            {% if t.kind == 'document' %}<span class="badge-dot">Document request</span>{% endif %}
+            {% if t.is_completed %}Done{% if t.completed_at %} {{ t.completed_at|short_date }}{% endif %}{% elif t.due_date %}Due {{ t.due_date|short_date }}{% endif %}
+            {% if t.instructions %} &middot; {{ t.instructions }}{% endif %}
+          </div>
+        </div>
+        {% if not t.is_completed %}
+        <form method="post" action="{{ url_for('tasks.complete', task_id=t.id) }}"><button class="btn btn-sm">Mark done</button></form>
+        {% else %}
+        <form method="post" action="{{ url_for('tasks.reopen', task_id=t.id) }}"><button class="btn btn-sm">Reopen</button></form>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="ws-empty"><strong>No steps yet</strong>Add the first thing this client needs to do.</div>
+    {% endif %}
+  </section>
 
-<div class="card">
-  <h3>Onboarding Tasks</h3>
-  <div class="muted small">These tasks keep cases disciplined. Mark items complete as evidence arrives.</div>
-  <div style="margin-top:10px;">
-    {% for t in tasks %}
-      <div class="mini" style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
-        <div>
-          <div><strong>{{ t.title }}</strong></div>
-          <div class="muted small">{{ "REQUIRED" if t.is_required else "OPTIONAL" }} • {{ "DONE" if t.is_completed else "OPEN" }}</div>
-        </div>
-        <div class="actions">
-          {% if not t.is_completed %}
-          <form method="post" action="{{ url_for('tasks.complete', task_id=t.id) }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button class="btn tiny">Complete</button>
-          </form>
-          {% else %}
-          <form method="post" action="{{ url_for('tasks.reopen', task_id=t.id) }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button class="btn tiny secondary">Reopen</button>
-          </form>
-          {% endif %}
-        </div>
-      </div>
-    {% endfor %}
-  </div>
+  <section class="ws-card" aria-labelledby="add-h">
+    <div class="ws-card-head"><h2 id="add-h">Ask the client for something</h2></div>
+    <form class="ws-card-body" method="post" action="{{ url_for('tasks.add', client_id=client.id) }}">
+      <fieldset class="seg" aria-label="Type">
+        <label><input type="radio" name="kind" value="document" checked> Request a document</label>
+        <label><input type="radio" name="kind" value="task"> Other step</label>
+      </fieldset>
+      <label class="form-label" for="tt">What do they need to do?</label>
+      <input id="tt" class="form-control" name="title" required maxlength="255" placeholder="e.g. Upload your most recent hearing test">
+      <label class="form-label" for="ti" style="margin-top:10px">Instructions (optional)</label>
+      <textarea id="ti" class="form-control" name="instructions" rows="3" placeholder="Where to get it, what it should show"></textarea>
+      <label class="form-label" for="td" style="margin-top:10px">Due date (optional)</label>
+      <input id="td" class="form-control" type="date" name="due_date" style="max-width:220px">
+      <button class="btn btn-primary" type="submit" style="margin-top:14px">Send to client</button>
+      <p class="muted small" style="margin-bottom:0">They'll see it under "Your next steps" and get an email.</p>
+    </form>
+  </section>
 </div>
 {% endblock %}

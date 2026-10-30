@@ -52,9 +52,11 @@
     <select id="stageSel" name="stage" class="form-control">
       {% for sk, sl, _ in CASE_STAGES %}<option value="{{ sk }}"{% if sk == k %} selected{% endif %}>{{ sl }}</option>{% endfor %}
     </select>
+    <span class="decision-date" hidden><label for="decDate">VA decision date</label> <input id="decDate" class="form-control" type="date" name="decision_date" style="max-width:170px"></span>
     <input class="form-control" name="note" placeholder="Note for the client (optional)" maxlength="400">
     <button class="btn btn-primary" type="submit">Update stage</button>
   </form>
+  <script>(function(){var sel=document.getElementById('stageSel'),box=document.querySelector('.decision-date');if(!sel||!box)return;function f(){box.hidden=sel.value!=='decision';}sel.addEventListener('change',f);f();})();</script>
 </section>
 
 {% set tab = active_tab if active_tab is defined else 'overview' %}
@@ -65,4 +67,5 @@
   <a href="{{ url_for('messages.staff_thread', client_id=client.id) }}"{% if tab == 'messages' %} aria-current="page"{% endif %}>Messages</a>
   <a href="{{ url_for('clients.client_notes', client_id=client.id) }}"{% if tab == 'notes' %} aria-current="page"{% endif %}>Notes</a>
   <a href="{{ safe_url_for('letters.staff_letters', client_id=client.id) }}"{% if tab == 'letters' %} aria-current="page"{% endif %}>Letters</a>
+  <a href="{{ url_for('clients.activity', client_id=client.id) }}"{% if tab == 'activity' %} aria-current="page"{% endif %}>Activity</a>
 </nav>

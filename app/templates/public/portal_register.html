@@ -1,18 +1,14 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block title %}Get Started With Your VA Claim - {{ COMPANY_NAME }}{% endblock %}
 {% block content %}
-<section class="bf-hero">
-  <div class="bf-hero-inner">
-    <div>
-      <div class="bf-kicker">Client Portal</div>
-      <h1 class="bf-title">Get Started With Your VA Claim</h1>
-      <p class="bf-sub">Begin your intake, explore benefits, and see what you may qualify for.</p>
-    </div>
-    <div class="bf-badge">Private - Secure access</div>
-  </div>
-</section>
+<div class="auth">
+  {% include "partials/_auth_aside.html" %}
+  <section class="auth-card auth-legacy" aria-labelledby="ah">
+    <h1 id="ah">Create your client account</h1>
+    <p class="auth-sub">Free to set up. Start your intake, track your claim, and message your team.</p>
 
-<section class="bf-card" style="max-width:600px;">
+
+<div>
   <form method="post" action="{{ url_for('portal.portal_register_post') }}">
     {% if csrf_token is defined %}
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -90,7 +86,10 @@
   <div class="muted small" style="margin-top:10px;">
     Veteran Benefits Assistance is not affiliated with the Department of Veterans Affairs. Information provided is used to help identify potential benefits and does not guarantee outcomes.
   </div>
-</section>
+</div>
+
+  </section>
+</div>
 {% endblock %}
 
 

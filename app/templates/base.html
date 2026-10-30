@@ -316,6 +316,7 @@
         <button class="app-menu-btn" type="button" id="appMenuBtn" aria-controls="appSide" aria-expanded="false"><svg aria-hidden="true"><use href="#i-menu"/></svg><span class="sr-only">Open menu</span></button>
         <button class="app-search" type="button" onclick="window.openCommandPalette && window.openCommandPalette()"><svg aria-hidden="true"><use href="#i-search"/></svg><span>{% if current_user.role and current_user.role.value in ['DIRECTOR','EMPLOYEE'] %}Search clients and pages{% else %}Search{% endif %}</span><kbd>Ctrl K</kbd></button>
         <div class="app-top-actions">
+          <a class="app-icon-btn" href="{{ url_for('notifications.index') }}" title="Notifications"><svg aria-hidden="true"><use href="#i-bell"/></svg>{% if NOTIF_COUNT %}<span class="dot">{{ NOTIF_COUNT if NOTIF_COUNT < 100 else '99+' }}</span>{% endif %}<span class="sr-only">Notifications{% if NOTIF_COUNT %}, {{ NOTIF_COUNT }} unread{% endif %}</span></a>
           {% if current_user.role and current_user.role.value in ['DIRECTOR','EMPLOYEE'] %}
           <a class="app-icon-btn" href="{{ safe_url_for('messages.inbox') }}" title="Messages"><svg aria-hidden="true"><use href="#i-inbox"/></svg>{% if UNREAD_MESSAGES %}<span class="dot">{{ UNREAD_MESSAGES }}</span>{% endif %}<span class="sr-only">Messages</span></a>
           {% elif current_user.role and current_user.role.value == 'CLIENT' %}

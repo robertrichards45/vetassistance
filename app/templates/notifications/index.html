@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Notifications | {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+{% set unread = rows|rejectattr('read_at')|list|length %}
+<div class="ws-head">
+  <div>
+    <h1>Notifications</h1>
+    <p>{% if unread %}{{ unread }} unread.{% else %}You're all caught up.{% endif %}</p>
+  </div>
+  {% if unread %}
+  <div class="actions">
+    <form method="post" action="{{ url_for('notifications.read_all') }}"><button class="btn" type="submit">Mark all as read</button></form>
+  </div>
+  {% endif %}
+</div>
+<section class="ws-card">
+  {% if rows %}
+  <ul class="ws-list notif-list">
+    {% for a in rows %}
+    <li class="{% if not a.read_at %}is-unread{% endif %}">
+      <span class="notif-dot" aria-hidden="true"></span>
+      <div class="main">
+        <a href="{{ url_for('notifications.open_', alert_id=a.id) }}">{{ a.title }}</a>
+        {% if a.body %}<div class="sub">{{ a.body }}</div>{% endif %}
+      </div>
+      <div class="meta">{{ a.created_at|short_date("%b %d, %I:%M %p") }}</div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="ws-empty"><strong>No notifications yet</strong>{% if current_user.role.value == 'CLIENT' %}You'll be notified here and by email when your team messages you, asks for a document, or moves your claim forward.{% else %}You'll be notified when clients message you, upload documents, or finish a step, and when a team to-do is assigned to you.{% endif %}</div>
+  {% endif %}
+</section>
+{% endblock %}

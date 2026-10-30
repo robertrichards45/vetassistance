@@ -89,6 +89,8 @@ def create_app():
     _ensure_column("va_call_logs", "topic", "TEXT DEFAULT ''")
     _ensure_column("rendered_artifacts", "pdf_path", "TEXT DEFAULT ''")
     _ensure_column("client_notes", "tags", "TEXT DEFAULT ''")
+    _ensure_column("client_tasks", "kind", "TEXT DEFAULT 'task'")
+    _ensure_column("alerts", "link", "TEXT DEFAULT ''")
 
     try:
         Base.metadata.create_all(bind=engine)
@@ -268,6 +270,9 @@ def create_app():
     from app.routes.search import search_bp
     app.register_blueprint(search_bp)
 
+    from app.routes.notifications import notifications_bp
+    app.register_blueprint(notifications_bp)
+
     def safe_url_for(endpoint: str, **values) -> str:
         aliases = {
             "public_home": "public.home",
@@ -288,6 +293,16 @@ def create_app():
             return url_for(target, **values)
         except BuildError:
             return "#"
+
+    def _notif_count() -> int:
+        try:
+            if not current_user.is_authenticated:
+                return 0
+            from app.models import Alert
+            return SessionLocal().query(Alert).filter(Alert.user_id == current_user.id, Alert.read_at.is_(None),
+                                                      Alert.dismissed_at.is_(None)).count()
+        except Exception:
+            return 0
 
     @app.context_processor
     def inject_globals():
@@ -350,6 +365,7 @@ def create_app():
             "HAS_SKIN": os.path.exists(os.path.join(app.root_path, "static", "css", "skin.css")),
             "safe_url_for": safe_url_for,
             "UNREAD_MESSAGES": unread_messages,
+            "NOTIF_COUNT": _notif_count(),
         }
 
     from app.services.case_stages import STAGES, stage_key, stage_index, stage_label
