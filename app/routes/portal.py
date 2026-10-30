@@ -343,7 +343,14 @@ def portal_reset_post(token: str):
             flash("Account not found.", "error")
             return redirect(url_for("portal.portal_home"))
         user.set_password(password)
+        user.must_reset_password = False
         row.used_at = datetime.utcnow()
+        if user.role == Role.CLIENT:
+            linked = db.query(Client).filter_by(org_id=user.org_id, portal_user_id=user.id).first()
+            if linked and linked.email.strip().lower() == user.email.strip().lower():
+                linked.email_verified = True
+                linked.email_verified_at = datetime.utcnow()
+                linked.account_type = "verified"
         db.commit()
         flash("Password updated. You can log in now.", "success")
         return redirect(url_for("portal.portal_home"))
