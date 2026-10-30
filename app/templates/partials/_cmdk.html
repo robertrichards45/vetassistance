@@ -16,7 +16,8 @@
   var searchUrl = "{{ safe_url_for('search.api_search') }}";
   var actions = isStaff ? [
     {label:"Add a new client", href:"{{ safe_url_for('clients.new_client') }}", hint:"Action"},
-    {label:"Open intake queue", href:"{{ safe_url_for('intakes.queue') }}", hint:"Action"}
+    {label:"Open intake queue", href:"{{ safe_url_for('intakes.queue') }}", hint:"Action"}{% if current_user.is_director %},
+    {label:"Website traffic (visitors)", href:"{{ safe_url_for('director.traffic') }}", hint:"Admin"}{% endif %}
   ] : [];
   var box = document.getElementById('cmdk'), input = document.getElementById('cmdkInput'), list = document.getElementById('cmdkList');
   var pages = Array.prototype.map.call(document.querySelectorAll('.app-nav a'), function(a){
