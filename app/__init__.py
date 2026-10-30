@@ -456,4 +456,6 @@ def create_app():
 
     from app.services.error_alerts import install as _error_alerts
     _error_alerts(app)
+    from app.services.uptime_watch import start as _uptime_watch
+    _uptime_watch(app)
     return app
