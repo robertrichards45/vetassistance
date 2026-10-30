@@ -1,65 +1,45 @@
 ﻿{% extends "base.html" %}
+{% block title %}Billing{% endblock %}
 {% block content %}
-<section class="page-hero">
-  <div class="page-hero-inner">
-    <div>
-      <div class="page-kicker">Director</div>
-      <h1 class="page-title">Billing</h1>
-      <p class="page-sub">Manage subscription status and access Stripe portal.</p>
-    </div>
-  </div>
-</section>
-
-{% if request.args.get('success') %}
-  <div class="alert alert-success">Subscription activated.</div>
-{% endif %}
-{% if request.args.get('canceled') %}
-  <div class="alert alert-warning">Checkout canceled.</div>
-{% endif %}
-
-<div class="card-shell">
-  <div class="card-body-pad">
-    <div class="row g-3">
-      <div class="col-md-4">
-        <div class="mini">
-          <div class="muted small">Status</div>
-          <div style="font-weight:900;">{{ billing.status if billing else "not set" }}</div>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="mini">
-          <div class="muted small">Customer</div>
-          <div style="font-weight:900;">{{ billing.stripe_customer_id if billing else "" }}</div>
-        </div>
-      </div>
-      <div class="col-md-4">
-        <div class="mini">
-          <div class="muted small">Subscription</div>
-          <div style="font-weight:900;">{{ billing.stripe_subscription_id if billing else "" }}</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="d-flex gap-2 flex-wrap" style="margin-top:14px;">
-      {% if price_id %}
-      <form method="post" action="{{ url_for('billing.checkout') }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button class="btn btn-primary" type="submit">Start Subscription</button>
-      </form>
-      {% else %}
-        <div class="muted small" style="align-self:center;">Director subscription is not configured.</div>
-      {% endif %}
-      {% if billing and billing.stripe_customer_id %}
-      <form method="post" action="{{ url_for('billing.portal') }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button class="btn btn-outline-primary" type="submit">Open Billing Portal</button>
-      </form>
-      {% endif %}
-    </div>
-
-    <div class="small muted" style="margin-top:12px;">
-      Webhook endpoint: <code>/billing/webhook</code>
-    </div>
-  </div>
+<div class="ws-head">
+  <div><h1>Billing</h1><p>Client payments, invoices, and pay links. Request a payment from any client's file.</p></div>
+  {% if billing and billing.stripe_customer_id %}
+  <div class="actions"><form method="post" action="{{ url_for('billing.portal') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn" type="submit">Stripe billing portal</button></form></div>
+  {% endif %}
 </div>
+
+{% if not stripe_ok %}
+<div class="callout warn" style="margin-bottom:20px;"><strong>Payments aren't connected</strong>To send invoices and pay links, add <code>STRIPE_SECRET_KEY</code> in Railway's Variables. Pricing is hidden from the public site either way.</div>
+{% endif %}
+
+<div class="ws-metrics">
+  <div class="ws-metric"><span>Collected, last 30 days</span><strong>${{ '{:,.2f}'.format(stats.month / 100) }}</strong></div>
+  <div class="ws-metric"><span>Collected, all time</span><strong>${{ '{:,.2f}'.format(stats.total / 100) }}</strong></div>
+  <div class="ws-metric{{ ' alert-soft' if stats.open }}"><span>Open invoices and links</span><strong>{{ stats.open|length }}</strong></div>
+  <div class="ws-metric"><span>Payments recorded</span><strong>{{ payments|length }}</strong></div>
+</div>
+
+<section class="ws-card">
+  <div class="ws-card-head"><h2>Recent payments</h2></div>
+  {% if payments %}
+  <div class="table-responsive">
+    <table class="table doc-tbl">
+      <thead><tr><th>Client</th><th>Amount</th><th>Status</th><th>Date</th><th class="text-end">Link</th></tr></thead>
+      <tbody>
+      {% for p in payments %}{% set c = pay_clients.get(p.client_id) %}{% set st = (p.status or 'paid')|lower %}
+        <tr>
+          <td>{% if c %}<a href="{{ url_for('clients.view_client', client_id=c.id) }}"><strong>{{ c.display_name() }}</strong></a>{% else %}<span class="muted">Deleted client</span>{% endif %}</td>
+          <td><strong>${{ '{:,.2f}'.format((p.amount_cents or 0) / 100) }}</strong></td>
+          <td><span class="badge-dot{{ ' badge-ok' if st in ('paid','succeeded','complete','completed') else ' badge-warn' }}">{{ st|capitalize }}</span></td>
+          <td class="muted nowrap">{{ p.created_at|short_date('%b %d, %Y') }}</td>
+          <td class="text-end">{% if p.receipt_url %}<a href="{{ p.receipt_url }}" target="_blank" rel="noopener">Receipt</a>{% elif p.invoice_url %}<a href="{{ p.invoice_url }}" target="_blank" rel="noopener">Invoice</a>{% else %}<span class="muted">—</span>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="ws-empty"><strong>No payments yet</strong>Open a client's file and use <em>Request a payment</em> to email an invoice or create a pay link.</div>
+  {% endif %}
+</section>
 {% endblock %}

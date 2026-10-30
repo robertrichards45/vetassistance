@@ -53,9 +53,20 @@ def overview():
             return "Client not found", 404
         return render_template("billing/client_checkout.html", client=c)
     row = db.query(OrgBilling).filter(OrgBilling.org_id == current_user.org_id).first()
+    from datetime import datetime, timedelta
+    pays = db.query(ClientPayment).filter(ClientPayment.org_id == current_user.org_id).order_by(ClientPayment.created_at.desc()).limit(200).all()
+    clients = {c.id: c for c in db.query(Client).filter(Client.org_id == current_user.org_id).all()}
+    paid = [p for p in pays if (p.status or "").lower() in ("paid", "succeeded", "complete", "completed")]
+    since = datetime.utcnow() - timedelta(days=30)
+    stats = {
+        "month": sum(p.amount_cents or 0 for p in paid if p.created_at and p.created_at >= since),
+        "total": sum(p.amount_cents or 0 for p in paid),
+        "open": [p for p in pays if p not in paid],
+    }
     return render_template(
         "billing/overview.html",
-        billing=row,
+        billing=row, payments=pays, pay_clients=clients, stats=stats,
+        stripe_ok=bool(os.environ.get("STRIPE_SECRET_KEY", "").strip()),
         publishable_key=os.environ.get("STRIPE_PUBLISHABLE_KEY",""),
         price_id=os.environ.get("STRIPE_PRICE_ID","").strip(),
     )
