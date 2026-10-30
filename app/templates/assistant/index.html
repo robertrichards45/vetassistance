@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Ask AI | {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<div class="ws-head">
+  <div>
+    <h1>Ask AI</h1>
+    <p>Your claims assistant: evidence to gather, which form or review lane fits, how rating criteria apply, deadlines. Always verify before you act.</p>
+  </div>
+  {% if history %}<div class="actions"><form method="post" action="{{ url_for('assistant.clear') }}"><button class="btn" type="submit">New conversation</button></form></div>{% endif %}
+</div>
+{% if not configured %}<div class="callout warn" style="margin-bottom:16px"><strong>Ask AI isn't set up</strong>Add OPENAI_API_KEY in Railway → your service → Variables, then redeploy.</div>{% endif %}
+
+<section class="ws-card asst">
+  <div class="chat-log asst-log" id="asstLog" aria-live="polite">
+    {% for m in history %}
+      <div class="chat-msg{% if m.role == 'user' %} mine{% endif %}"><div class="chat-bubble{% if m.role != 'user' %} md{% endif %}">{{ m.content }}</div></div>
+    {% else %}
+      <div class="asst-empty" id="asstEmpty">
+        <strong>What can I help with?</strong>
+        <div class="chip-row" style="justify-content:center;margin-top:12px">
+          {% for q in ["What evidence does a tinnitus claim need?", "Supplemental claim or higher-level review after a denial for lack of nexus?", "How is knee range of motion rated under DC 5260 and 5261?", "What are the PACT Act presumptive conditions for Gulf War veterans?", "Draft a buddy statement outline for flight line noise exposure", "When is the deadline to appeal a VA decision?"] %}
+            <button type="button" class="chip asst-suggest">{{ q }}</button>
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+    <span id="end"></span>
+  </div>
+  <form class="chat-compose" id="asstForm" method="post" action="{{ url_for('assistant.ask') }}" data-stream="{{ url_for('assistant.stream') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="asst-ctx">
+      <label for="asstClient">About</label>
+      <select id="asstClient" name="client_id" class="form-control">
+        <option value="">No specific client</option>
+        {% for c in clients %}<option value="{{ c.id }}"{% if selected_client == c.id|string %} selected{% endif %}>{{ c.display_name() }}</option>{% endfor %}
+      </select>
+      <span class="hint" style="margin:0">Sends branch, service dates, stage, rating, and intake notes. Never SSNs or contact details.</span>
+    </div>
+    <label class="sr-only" for="asstQ">Question</label>
+    <textarea id="asstQ" name="question" rows="2" required placeholder="Ask anything about a claim, the rating schedule, or the VA process"></textarea>
+    <div class="chat-compose-bar"><span class="muted small">Enter to send &middot; Shift+Enter for a new line</span><button class="btn btn-primary" type="submit" id="asstSend">Ask</button></div>
+  </form>
+</section>
+<p class="muted small" style="margin-top:10px">Answers can be wrong. Check against VA.gov, the eCFR, and M21-1 before giving guidance to a veteran.</p>
+
+<script>
+(function(){
+  var log=document.getElementById('asstLog'), form=document.getElementById('asstForm'), q=document.getElementById('asstQ'), send=document.getElementById('asstSend');
+  var url=form.getAttribute('data-stream');
+  function esc(s){return s.replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
+  function md(s){ // tiny, safe markdown: escape first, then bold, code, bullets, numbered lists
+    var h=esc(s).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/`([^`]+)`/g,'<code>$1</code>');
+    var out=[], list=null;
+    h.split('\n').forEach(function(line){
+      var b=line.match(/^\s*[-*•]\s+(.*)/), n=line.match(/^\s*\d+[.)]\s+(.*)/), hd=line.match(/^#{1,4}\s+(.*)/);
+      if(b||n){ var t=b?'ul':'ol'; if(list!==t){ if(list) out.push('</'+list+'>'); out.push('<'+t+'>'); list=t; } out.push('<li>'+(b||n)[1]+'</li>'); return; }
+      if(list){ out.push('</'+list+'>'); list=null; }
+      if(hd){ out.push('<p><strong>'+hd[1]+'</strong></p>'); } else if(line.trim()){ out.push('<p>'+line+'</p>'); }
+    });
+    if(list) out.push('</'+list+'>');
+    return out.join('');
+  }
+  log.querySelectorAll('.chat-bubble.md').forEach(function(b){ b.innerHTML=md(b.textContent); });
+  log.scrollTop=log.scrollHeight;
+  function add(mine,text){ var e=document.getElementById('asstEmpty'); if(e) e.remove();
+    var w=document.createElement('div'); w.className='chat-msg'+(mine?' mine':''); var b=document.createElement('div'); b.className='chat-bubble'+(mine?'':' md');
+    b.textContent=text; w.appendChild(b); log.insertBefore(w, document.getElementById('end')); log.scrollTop=log.scrollHeight; return b; }
+  document.querySelectorAll('.asst-suggest').forEach(function(btn){ btn.addEventListener('click',function(){ q.value=btn.textContent; q.focus(); }); });
+  q.addEventListener('keydown',function(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); form.requestSubmit(); } });
+  form.addEventListener('submit',function(e){
+    var text=q.value.trim(); if(!text){ e.preventDefault(); return; }
+    if(!window.fetch||!window.ReadableStream) return; // fall back to normal post
+    e.preventDefault(); var fd=new FormData(form); add(true,text); var out=add(false,'Thinking…'); q.value=''; send.disabled=true; var acc='', first=true;
+    fetch(url,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){
+      if(!r.ok||!r.body){ out.textContent='The request failed ('+r.status+'). Try again.'; send.disabled=false; return; }
+      var rd=r.body.getReader(), dec=new TextDecoder();
+      (function pump(){ rd.read().then(function(x){ if(x.done){ send.disabled=false; return; } acc+=dec.decode(x.value,{stream:true}); if(first){first=false;} out.innerHTML=md(acc); log.scrollTop=log.scrollHeight; pump(); }); })();
+    }).catch(function(){ out.textContent='The request failed. Check your connection and try again.'; send.disabled=false; });
+  });
+})();
+</script>
+{% endblock %}

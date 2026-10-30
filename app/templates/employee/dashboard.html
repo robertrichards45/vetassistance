@@ -15,6 +15,14 @@
   </div>
 </div>
 
+<form class="ws-card ask-bar" method="post" action="{{ url_for('assistant.ask') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <svg aria-hidden="true"><use href="#i-spark"/></svg>
+  <label class="sr-only" for="quickAsk">Ask AI</label>
+  <input id="quickAsk" name="question" required placeholder="Ask AI: e.g. What evidence does a sleep apnea secondary-to-PTSD claim need?">
+  <button class="btn btn-primary" type="submit">Ask</button>
+</form>
+
 <div class="ws-metrics">
   <a class="ws-metric" href="{{ safe_url_for('clients.list_clients') }}"><span>Open cases</span><strong>{{ open_cases }}</strong></a>
   <a class="ws-metric{% if overdue %} alert{% endif %}" href="#tasks"><span>Overdue tasks</span><strong>{{ overdue }}</strong></a>

@@ -1235,46 +1235,9 @@ def update_notes():
 @login_required
 @require_roles(Role.DIRECTOR, Role.EMPLOYEE)
 def guidance():
-    question = (request.form.get("question") or "").strip()
-    if not question:
-        flash("Enter a question for AI guidance.", "error")
-        return redirect(url_for("employee.dashboard"))
-
-    api_key = current_app.config.get("OPENAI_API_KEY") or current_app.config.get("OPENAI_KEY")
-    if not api_key:
-        flash("OPENAI_API_KEY is missing in .env", "error")
-        return redirect(url_for("employee.dashboard"))
-
-    guidance_text = ""
-    try:
-        from openai import OpenAI
-        client = OpenAI(api_key=api_key)
-        model = current_app.config.get("OPENAI_MODEL", "gpt-4.1-mini")
-        prompt = (
-            "You are a veteran claims support assistant. Provide practical, safe guidance "
-            "for the next steps in a client's claim. Do not guarantee outcomes or provide legal advice.\n\n"
-            f"Question: {question}"
-        )
-        resp = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": "Provide concise, action-oriented guidance with bullet points."},
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0.2,
-        )
-        guidance_text = (resp.choices[0].message.content or "").strip()
-    except Exception as exc:
-        flash(f"AI guidance failed: {exc}", "error")
-        return redirect(url_for("employee.dashboard"))
-
-    db = SessionLocal()
-    assigned = db.query(Client).filter(
-        Client.org_id == current_user.org_id,
-        Client.assigned_user_id == current_user.id,
-        Client.is_archived == False,  # noqa: E712
-    ).order_by(Client.created_at.desc()).all()
-    return render_template("employee/dashboard.html", assigned=assigned, guidance=guidance_text, question=question)
+    # The dashboard AI box now lives on the Ask AI page; keep old forms and bookmarks working.
+    from app.routes.assistant import ask
+    return ask()
 
 
 def _parse_date(raw: str):

@@ -26,6 +26,7 @@
     <details class="menu">
       <summary class="btn">Build a document</summary>
       <div class="menu-list" role="menu">
+        <a href="{{ url_for('assistant.index', client_id=client.id) }}">Ask AI about this client</a>
         <a href="{{ safe_url_for('forms.intake', client_id=client.id) }}">Intake form</a>
         <a href="{{ safe_url_for('forms.va_packet', client_id=client.id) }}">VA forms packet</a>
         <a href="{{ safe_url_for('nexus.builder', client_id=client.id) }}">Nexus letter builder</a>

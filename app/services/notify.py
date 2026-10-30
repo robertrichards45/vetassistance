@@ -65,7 +65,7 @@ def notify_user(user_id: int | None, title: str, body: str = "", link: str = "",
             from app.services.email_service import send_email_html
             send_email_html(email.strip().lower(), title, f"{body}\n\n{_abs(link)}".strip(),
                             _email_html(title, body, _abs(link), cta), context=f"NOTIFY_{kind.upper()}",
-                            org_id=org_id, actor_user_id=actor_user_id)
+                            org_id=org_id, actor_user_id=actor_user_id, background=True)
         except Exception as exc:  # pragma: no cover
             log.warning("notify: email failed: %s", exc)
 

@@ -273,6 +273,9 @@ def create_app():
     from app.routes.notifications import notifications_bp
     app.register_blueprint(notifications_bp)
 
+    from app.routes.assistant import assistant_bp
+    app.register_blueprint(assistant_bp)
+
     def safe_url_for(endpoint: str, **values) -> str:
         aliases = {
             "public_home": "public.home",

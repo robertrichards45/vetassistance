@@ -1,58 +1,66 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block content %}
-<section class="page-hero">
-  <div class="page-hero-inner">
-    <div>
-      <div class="page-kicker">Comms</div>
-      <h1 class="page-title">Email Logs</h1>
-      <p class="page-sub">Track outbound messages and delivery status.</p>
-    </div>
-  </div>
-</section>
+<div class="ws-head"><div><h1>Email</h1><p>How the site sends email, whether it's working, and every message it tried to send.</p></div></div>
 
-<div class="card-shell mb-3">
-  <div class="card-body-pad">
-    <form method="get" class="d-flex gap-2 flex-wrap">
-      <input class="form-control" name="q" placeholder="Search to/subject/context" value="{{ request.args.get('q','') }}" style="min-width:320px;">
-      <button class="btn btn-primary" type="submit">Search</button>
+{% set working = st.provider and last and last.ok %}
+<div class="ws-grid" style="margin-bottom:20px">
+  <section class="ws-card">
+    <div class="ws-card-head"><h2>Status</h2>
+      {% if not st.provider %}<span class="badge-dot badge-bad">Not set up</span>
+      {% elif last and not last.ok %}<span class="badge-dot badge-bad">Failing</span>
+      {% elif working %}<span class="badge-dot badge-ok">Working</span>
+      {% else %}<span class="badge-dot badge-warn">Not tested</span>{% endif %}</div>
+    <ul class="ws-list">
+      <li><div class="main">Sending with</div><div class="meta"><strong>{{ st.provider or 'Nothing configured' }}</strong></div></li>
+      <li><div class="main">From address</div><div class="meta"><strong>{{ st.sender or 'Not set' }}</strong></div></li>
+      {% if st.provider == 'SMTP' %}<li><div class="main">SMTP server</div><div class="meta">{{ st.smtp_host }}:{{ st.smtp_port }}</div></li>{% endif %}
+      {% if last %}<li><div class="main">Last attempt</div><div class="meta">{{ last.created_at|short_date("%b %d, %I:%M %p") }} &middot; {{ 'sent' if last.ok else 'failed' }}</div></li>{% endif %}
+    </ul>
+    {% if last_fail and (not last or not last.ok) %}<div class="sec"><div class="callout bad"><strong>Last error</strong>{{ last_fail.error }}</div></div>{% endif %}
+    {% if st.provider == 'SMTP' and st.on_railway %}<div class="sec"><div class="callout warn"><strong>SMTP on Railway</strong>Railway blocks outbound SMTP unless the project is on the Pro plan. If tests fail with a connection timeout, switch to Resend (steps on the right).</div></div>{% endif %}
+    {% if current_user.is_director %}
+    <form class="sec" method="post" action="{{ url_for('email_logs.send_test') }}" style="display:flex;gap:8px;flex-wrap:wrap">
+      <label class="sr-only" for="testTo">Send test to</label>
+      <input id="testTo" class="form-control" type="email" name="to" value="{{ current_user.email }}" style="flex:1;min-width:220px">
+      <button class="btn btn-primary" type="submit">Send test email</button>
     </form>
-  </div>
+    {% endif %}
+  </section>
+
+  <section class="ws-card">
+    <div class="ws-card-head"><h2>Set up email (about 5 minutes)</h2></div>
+    <div class="ws-card-body setup-steps">
+      <p style="margin-top:0">Recommended: <strong>Resend</strong>. It's free for up to 3,000 emails a month and works on every Railway plan.</p>
+      <ol>
+        <li>Create a free account at <a href="https://resend.com" target="_blank" rel="noopener">resend.com</a>.</li>
+        <li>Under <em>Domains</em>, add <code>vetassistance.org</code> and add the DNS records it shows you at your domain registrar. This lets you send from your own address.</li>
+        <li>Under <em>API Keys</em>, create a key.</li>
+        <li>In Railway, open your service &rarr; <em>Variables</em> and add:<br>
+          <code>RESEND_API_KEY</code> = the key<br>
+          <code>EMAIL_FROM</code> = <code>Veteran Benefits Assistance &lt;support@vetassistance.org&gt;</code></li>
+        <li>Railway redeploys automatically. Come back here and press <em>Send test email</em>.</li>
+      </ol>
+      <p class="muted small" style="margin-bottom:0">Already have Gmail SMTP set up? It keeps working if your Railway project is on Pro: set <code>SMTP_HOST=smtp.gmail.com</code>, <code>SMTP_PORT=587</code>, <code>SMTP_USER</code>, and <code>SMTP_PASS</code> to a Gmail <em>App Password</em>.</p>
+    </div>
+  </section>
 </div>
 
-<div class="card-shell">
-  <div class="card-body-pad">
-    <div class="table-responsive">
-      <table class="table align-middle premium-table">
-        <thead>
-          <tr>
-            <th>When</th>
-            <th>To</th>
-            <th>Subject</th>
-            <th>Context</th>
-            <th>OK</th>
-            <th>Error</th>
-          </tr>
-        </thead>
-        <tbody>
-        {% for r in rows %}
-          <tr>
-            <td>{{ r.created_at }}</td>
-            <td style="font-weight:900;color:var(--heading);">{{ r.to_email }}</td>
-            <td>{{ r.subject }}</td>
-            <td><span class="pill">{{ r.context }}</span></td>
-            <td>
-              {% if r.ok %}
-                <span class="pill pill-good">YES</span>
-              {% else %}
-                <span class="pill pill-bad">NO</span>
-              {% endif %}
-            </td>
-            <td style="max-width:360px; white-space:pre-wrap;" class="small text-muted">{{ r.error }}</td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
+<section class="ws-card">
+  <div class="ws-card-head"><h2>Sent and failed</h2>
+    <form method="get" class="ws-filter" role="search" style="margin:0"><label class="sr-only" for="eq">Search</label><input id="eq" class="form-control" name="q" placeholder="Search recipient or subject" value="{{ request.args.get('q','') }}" style="min-width:220px"><button class="btn btn-sm" type="submit">Search</button></form></div>
+  {% if rows %}
+  <div class="table-responsive"><table class="table" style="margin:0">
+    <thead><tr><th>When</th><th>To</th><th>Subject</th><th>Result</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr><td class="muted" style="white-space:nowrap">{{ r.created_at|short_date("%b %d, %I:%M %p") }}</td>
+        <td><strong>{{ r.to_email }}</strong></td>
+        <td>{{ r.subject }}<div class="muted small">{{ (r.context or '').replace('_',' ')|lower|capitalize }}</div></td>
+        <td>{% if r.ok %}<span class="badge-dot badge-ok">Sent</span>{% else %}<span class="badge-dot badge-bad">Failed</span><div class="muted small" style="max-width:360px;white-space:normal">{{ r.error }}</div>{% endif %}</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+  {% else %}
+  <div class="ws-empty"><strong>No emails yet</strong>Invites, notifications, letters, and receipts will be listed here with their delivery result.</div>
+  {% endif %}
+</section>
 {% endblock %}

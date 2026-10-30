@@ -21,6 +21,7 @@
   {{ navlink('clients.list_clients', 'Clients', 'users', match=['clients.', 'employee.client_detail', 'employee.client_files', 'employee.client_letters', 'documents.', 'letters.', 'nexus.', 'ai.']) }}
   {{ navlink('messages.inbox', 'Messages', 'inbox', match=['messages.'], count=UNREAD_MESSAGES) }}
   {{ navlink('intakes.queue', 'Intake queue', 'tray', match=['intakes.']) }}
+  {{ navlink('assistant.index', 'Ask AI', 'spark', match=['assistant.']) }}
   {{ navlink('cue.staff_list', 'CUE motions', 'scale', match=['cue.']) }}
 
   <div class="app-nav-label">Tools</div>
@@ -38,7 +39,7 @@
   {{ navlink('metrics.index', 'Metrics', 'chart', match=['metrics.', 'director.traffic']) }}
   {{ navlink('site_admin.edit', 'Website', 'globe', match=['site_admin.', 'director.articles', 'director.faq', 'director.comments', 'resources.resources_admin', 'pricing.']) }}
   {{ navlink('director.templates', 'Templates', 'file', match=['director.templates', 'templates.']) }}
-  {{ navlink('email_logs.index', 'Email log', 'inbox', match=['email_logs.']) }}
+  {{ navlink('email_logs.index', 'Email', 'inbox', match=['email_logs.']) }}
   {% endif %}
 
 {% elif role == 'CLIENT' %}
