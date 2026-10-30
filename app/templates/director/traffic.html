@@ -23,8 +23,8 @@
       <div class="ws-card-head"><h2>People per day</h2></div>
       <div class="ws-card-body">
         {% if hd %}
-        <div class="bars" role="img" aria-label="Real people per day">
-          {% for d, c in hd %}<div class="bar" style="--h:{{ (c / hpeak * 100) if hpeak else 0 }}%" title="{{ d }}: {{ c }}"><i></i><span>{{ d[-5:] }}</span></div>{% endfor %}
+        <div class="tbars" role="img" aria-label="Real people per day">
+          {% for d, c in hd %}<div class="tbar" style="--h:{{ (c / hpeak * 100) if hpeak else 0 }}%" title="{{ d }}: {{ c }}"><i></i><span>{{ d[-5:] }}</span></div>{% endfor %}
         </div>
         {% else %}<div class="ws-empty" style="padding:0;"><strong>No confirmed people yet</strong>Counting just started. Check back after a few visitors have come by.</div>{% endif %}
       </div>
