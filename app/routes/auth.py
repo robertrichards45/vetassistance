@@ -57,7 +57,7 @@ def login_post():
     finally:
         db.close()
 
-    if not user or not user.check_password(password):
+    if not user or not user.is_active or not user.check_password(password):
         flash("Invalid email or Client ID or password.", "danger")
         return redirect(url_for("auth.login"))
 
@@ -71,6 +71,11 @@ def login_post():
             db.commit()
     finally:
         db.close()
+
+    # Staff-issued temporary credentials must be changed before using the portal.
+    if user.must_reset_password:
+        flash("Please set a new password before continuing.", "warning")
+        return redirect(url_for("auth.change_password"))
 
     # Safe redirect
     if next_url and _is_safe_url(next_url):
@@ -108,6 +113,9 @@ def change_password_post():
     if new_password != confirm_password:
         flash("New passwords do not match.", "danger")
         return redirect(url_for("auth.change_password"))
+    if len(new_password) < 8:
+        flash("New password must contain at least 8 characters.", "danger")
+        return redirect(url_for("auth.change_password"))
 
     db = SessionLocal()
     try:
@@ -116,8 +124,11 @@ def change_password_post():
             flash("Old password is incorrect.", "danger")
             return redirect(url_for("auth.change_password"))
         user.set_password(new_password)
+        user.must_reset_password = False
         db.commit()
         flash("Password updated.", "success")
+        if user.role == Role.CLIENT:
+            return redirect(url_for("portal.dashboard"))
         return redirect(url_for("public.home"))
     finally:
         db.close()
