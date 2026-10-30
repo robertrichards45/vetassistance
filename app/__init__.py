@@ -315,6 +315,11 @@ def create_app():
             return 0
 
     @app.context_processor
+    def inject_email_status():
+        from app.services.email_service import email_status
+        return {"EMAIL_STATUS": email_status()}
+
+    @app.context_processor
     def inject_globals():
         from flask_login import current_user as _current_user
         site = SimpleNamespace(

@@ -18,11 +18,11 @@
   </div>
 </section>
 
-{% if not config.get('SMTP_HOST') %}
+{% if not EMAIL_STATUS.provider or EMAIL_STATUS.missing_sender %}
   <div class="card-shell" style="margin-bottom:12px;">
     <div class="card-body-pad">
       <div class="panel-title">Email not configured</div>
-      <div class="muted">SMTP is not configured, so invite emails and message notifications will not send yet. Add SMTP settings in `.env` to enable email delivery.</div>
+      <div class="muted">Email delivery needs a provider and sender address. <a href="{{ url_for('email_logs.index') }}">Open Email settings</a> to check the configuration and send a test.</div>
     </div>
   </div>
 {% endif %}

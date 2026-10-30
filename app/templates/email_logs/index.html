@@ -2,11 +2,12 @@
 {% block content %}
 <div class="ws-head"><div><h1>Email</h1><p>How the site sends email, whether it's working, and every message it tried to send.</p></div></div>
 
-{% set working = st.provider and last and last.ok %}
+{% set working = st.provider and not st.missing_sender and last and last.ok %}
 <div class="ws-grid" style="margin-bottom:20px">
   <section class="ws-card">
     <div class="ws-card-head"><h2>Status</h2>
       {% if not st.provider %}<span class="badge-dot badge-bad">Not set up</span>
+      {% elif st.missing_sender %}<span class="badge-dot badge-bad">Sender missing</span>
       {% elif last and not last.ok %}<span class="badge-dot badge-bad">Failing</span>
       {% elif working %}<span class="badge-dot badge-ok">Working</span>
       {% else %}<span class="badge-dot badge-warn">Not tested</span>{% endif %}</div>
@@ -20,6 +21,7 @@
     {% if st.provider == 'SMTP' and st.on_railway %}<div class="sec"><div class="callout warn"><strong>SMTP on Railway</strong>Railway blocks outbound SMTP unless the project is on the Pro plan. If tests fail with a connection timeout, switch to Resend (steps on the right).</div></div>{% endif %}
     {% if current_user.is_director %}
     <form class="sec" method="post" action="{{ url_for('email_logs.send_test') }}" style="display:flex;gap:8px;flex-wrap:wrap">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <label class="sr-only" for="testTo">Send test to</label>
       <input id="testTo" class="form-control" type="email" name="to" value="{{ current_user.email }}" style="flex:1;min-width:220px">
       <button class="btn btn-primary" type="submit">Send test email</button>
