@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Verify your email | {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<div class="ws-head"><div>
+  <h1>Verify your email to activate your portal</h1>
+  <p>Before showing VA documents, claim updates, or private messages, we need to confirm this email address belongs to you.</p>
+</div></div>
+<section class="ws-card" style="max-width:680px">
+  <div class="ws-card-body">
+    <p>We sent a verification link to <strong>{{ email }}</strong>. Open the email and follow the link. It expires in 24 hours.</p>
+    <p class="muted">If you do not see it, check your spam or promotions folder. You can request a new link below.</p>
+    <form method="post" action="{{ url_for('portal.resend_verification') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-primary">Resend verification email</button>
+    </form>
+    <p class="muted small" style="margin-top:18px">Your case and document uploads will become available after you verify your email.</p>
+  </div>
+</section>
+{% endblock %}
