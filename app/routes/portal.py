@@ -67,6 +67,11 @@ def portal_register():
 @portal_bp.post("/register")
 @limiter.limit("10 per minute; 40 per hour")
 def portal_register_post():
+    from app.services.bot_guard import looks_like_bot
+    if looks_like_bot():
+        # Don't tell bots they were caught.
+        flash("Thanks. If that information is valid, you can sign in now.", "info")
+        return redirect(url_for("portal.portal_home"))
     email = (request.form.get("email") or "").strip().lower()
     full_name = (request.form.get("full_name") or "").strip()
     phone = (request.form.get("phone") or "").strip()

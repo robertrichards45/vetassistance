@@ -10,6 +10,8 @@
 
 <div>
   <form method="post" action="{{ url_for('portal.portal_register_post') }}">
+    <div class="hp" aria-hidden="true"><label>Website <input name="website" tabindex="-1" autocomplete="off"></label></div>
+    <input type="hidden" name="form_ts" value="{{ bot_token() }}">
     {% if csrf_token is defined %}
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     {% endif %}

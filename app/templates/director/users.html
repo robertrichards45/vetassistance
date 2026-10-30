@@ -1,91 +1,84 @@
 {% extends "base.html" %}
 {% block title %}Director • Users{% endblock %}
 {% block content %}
-
-<section class="page-hero">
-  <div class="page-hero-inner">
-    <div>
-      <div class="page-kicker">Director</div>
-      <h1 class="page-title">Users</h1>
-      <p class="page-sub">Create, disable, and force‑reset staff accounts.</p>
-    </div>
-    <div class="page-actions">
-      <a class="btn btn-outline-light" href="{{ url_for('director.dashboard') }}">Back</a>
-      <a class="btn btn-outline-light" href="{{ url_for('invites.index') }}">Invite Links</a>
-    </div>
-  </div>
-</section>
-
-<div class="admin-wrap">
-  <div class="admin-grid">
-    <div class="card-shell">
-      <div class="card-body-pad">
-        <div class="panel-title">Create User</div>
-        <form method="post" action="{{ url_for('director.create_user') }}" class="stack-form single mt-2">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-          <label class="form-label">Email</label>
-          <input class="form-control" name="email" type="email" required>
-
-          <label class="form-label">Full name</label>
-          <input class="form-control" name="full_name">
-
-          <label class="form-label">Role</label>
-          <select class="form-control" name="role">
-            <option value="EMPLOYEE">Employee</option>
-            <option value="DIRECTOR">Director</option>
-          </select>
-
-          <label class="form-label">Temp password</label>
-          <input class="form-control" name="password" placeholder="ChangeMe123!">
-
-          <div class="d-flex gap-2 flex-wrap mt-3">
-            <button class="btn btn-primary" type="submit">Create User</button>
-            <div class="muted small">New users are forced to reset on first login.</div>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <div class="card-shell">
-      <div class="card-body-pad">
-        <div class="panel-title">All Users</div>
-        <div class="table">
-          <div class="thead" style="grid-template-columns: 2fr 1fr 1fr auto auto;">
-            <div>Email / Name</div><div>Role</div><div>Status</div><div></div><div></div>
-          </div>
-          {% for u in users %}
-            <div class="trow" style="grid-template-columns: 2fr 1fr 1fr auto auto;">
-              <div>
-                <strong>{{ u.email }}</strong>
-                <div class="muted small">{{ u.full_name or "" }}</div>
-              </div>
-              <div class="pill ready">{{ u.role.value }}</div>
-              <div class="pill {{ 'ready' if u.is_active else 'error' }}">{{ 'ACTIVE' if u.is_active else 'DISABLED' }}</div>
-              <div>
-                <form method="post" action="{{ url_for('director.force_reset', user_id=u.id) }}" style="display:inline;" onsubmit="return confirm('Force password reset for this user?');">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button class="btn btn-sm btn-outline-primary" type="submit">Force reset</button>
-                </form>
-              </div>
-              <div>
-                {% if u.id != current_user.id %}
-                  <form method="post" action="{{ url_for('director.toggle_user', user_id=u.id) }}" style="display:inline;" onsubmit="return confirm('Toggle this user?');">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button class="btn btn-sm btn-outline-secondary" type="submit">{{ 'Disable' if u.is_active else 'Enable' }}</button>
-                  </form>
-                {% else %}
-                  <span class="muted small">You</span>
-                {% endif %}
-              </div>
-            </div>
-          {% else %}
-            <div class="muted" style="padding:16px;">No users found.</div>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
-  </div>
+<div class="ws-head">
+  <div><h1>Team and logins</h1><p>Who can sign in: your team and every client portal login.</p></div>
+  <div class="actions"><a class="btn" href="{{ url_for('invites.index') }}">Invite links</a></div>
 </div>
+<nav class="ws-tabs" aria-label="User type">
+  <a href="{{ url_for('director.users', tab='team') }}"{% if tab != 'clients' %} aria-current="page"{% endif %}>Team <span>{{ team|length }}</span></a>
+  <a href="{{ url_for('director.users', tab='clients') }}"{% if tab == 'clients' %} aria-current="page"{% endif %}>Client logins <span>{{ all_logins|length }}</span></a>
+</nav>
 
+{% if tab != 'clients' %}
+<div class="ws-grid">
+  <section class="ws-card">
+    <div class="table-responsive"><table class="table" style="margin:0">
+      <thead><tr><th>Name</th><th>Role</th><th style="text-align:right">Open cases</th><th>Last sign-in</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+      {% for u in team %}
+        <tr>
+          <td><strong>{{ u.full_name or u.email }}</strong><div class="muted small">{{ u.email }}</div></td>
+          <td>{{ u.role.value|title }}</td>
+          <td style="text-align:right">{{ open_by_rep.get(u.id, 0) }}</td>
+          <td class="muted">{{ u.last_login_at|short_date("%b %d, %Y") if u.last_login_at else 'Never' }}</td>
+          <td>{% if u.is_active %}<span class="badge-dot badge-ok">Active</span>{% else %}<span class="badge-dot badge-muted">Disabled</span>{% endif %}{% if u.must_reset_password %} <span class="badge-dot badge-warn">Reset pending</span>{% endif %}</td>
+          <td style="text-align:right">
+            <details class="menu row-menu"><summary class="btn btn-sm" aria-label="Actions for {{ u.email }}">&middot;&middot;&middot;</summary>
+              <div class="menu-list">
+                <form method="post" action="{{ url_for('director.force_reset', user_id=u.id) }}"><button type="submit">Require new password</button></form>
+                {% if u.id != current_user.id %}<form method="post" action="{{ url_for('director.toggle_user', user_id=u.id) }}" onsubmit="return confirm('{{ 'Disable' if u.is_active else 'Enable' }} {{ u.email }}?');"><button type="submit" class="{{ 'danger' if u.is_active else '' }}">{{ 'Disable sign-in' if u.is_active else 'Enable sign-in' }}</button></form>{% endif %}
+              </div></details>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody></table></div>
+  </section>
+  <section class="ws-card">
+    <div class="ws-card-head"><h2>Add a team member</h2></div>
+    <form class="ws-card-body" method="post" action="{{ url_for('director.create_user') }}">
+      <label class="form-label" for="nuName">Full name</label><input id="nuName" class="form-control" name="full_name" required>
+      <label class="form-label" for="nuEmail" style="margin-top:10px">Email</label><input id="nuEmail" class="form-control" name="email" type="email" required>
+      <label class="form-label" for="nuRole" style="margin-top:10px">Role</label>
+      <select id="nuRole" class="form-control" name="role"><option value="EMPLOYEE">Employee (their assigned clients)</option><option value="DIRECTOR">Director (everything, including admin)</option></select>
+      <label class="form-label" for="nuPw" style="margin-top:10px">Temporary password</label>
+      <input id="nuPw" class="form-control" name="password" placeholder="Leave blank to generate a strong one" autocomplete="new-password">
+      <p class="hint">They'll set their own password at first sign-in.</p>
+      <button class="btn btn-primary" type="submit" style="margin-top:8px">Add team member</button>
+    </form>
+  </section>
+</div>
+{% else %}
+{% if spam_count %}
+<div class="callout warn" style="margin-bottom:14px"><strong>{{ spam_count }} login{{ 's' if spam_count != 1 }} look like bot sign-ups</strong>
+  Random names, never used, and no documents or messages. <a href="{{ url_for('director.users', tab='clients', spam='1') }}">Show only these</a>. Sign-ups are now protected against bots, so new ones should stop.</div>
+{% endif %}
+<form method="post" action="{{ url_for('director.bulk_disable_users') }}" id="loginsForm">
+  <div class="bulk-bar">
+    <label><input type="checkbox" id="selAll"> Select all shown</label>
+    <label><input type="checkbox" name="archive_clients" value="1" checked> Also archive their empty client records</label>
+    <button class="btn btn-sm danger" type="submit" onclick="return document.querySelectorAll('.usel:checked').length ? confirm('Disable the selected logins?') : (alert('Select at least one login.'), false)">Disable selected</button>
+    {% if only_spam %}<a class="btn btn-sm" href="{{ url_for('director.users', tab='clients') }}">Show all</a>{% endif %}
+  </div>
+  <section class="ws-card">
+    <div class="table-responsive"><table class="table" style="margin:0">
+      <thead><tr><th style="width:36px"></th><th>Login</th><th>Client record</th><th>Joined</th><th>Last sign-in</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for u in logins %}{% set i = info[u.id] %}
+        <tr>
+          <td><input type="checkbox" class="usel" name="user_ids" value="{{ u.id }}" aria-label="Select {{ u.email }}"></td>
+          <td><strong>{{ u.email }}</strong><div class="muted small">{{ u.full_name }}</div></td>
+          <td>{% if i.client %}<a href="{{ url_for('clients.view_client', client_id=i.client.id) }}">{{ i.client.display_name() }}</a>{% if i.engaged %} <span class="badge-dot badge-ok">Active file</span>{% endif %}{% else %}<span class="muted">None</span>{% endif %}</td>
+          <td class="muted">{{ u.created_at|short_date("%b %d, %Y") if u.created_at else '' }}</td>
+          <td class="muted">{{ u.last_login_at|short_date("%b %d, %Y") if u.last_login_at else 'Never' }}</td>
+          <td>{% if not u.is_active %}<span class="badge-dot badge-muted">Disabled</span>{% elif i.spam %}<span class="badge-dot badge-bad">Possible bot</span>{% else %}<span class="badge-dot badge-ok">Active</span>{% endif %}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6"><div class="ws-empty" style="padding:12px 0"><strong>No client logins</strong>{% if only_spam %}Nothing looks like a bot.{% else %}Clients get a login when they create a portal account or you send an invite.{% endif %}</div></td></tr>
+      {% endfor %}
+      </tbody></table></div>
+  </section>
+</form>
+<script>document.getElementById('selAll').addEventListener('change',function(e){document.querySelectorAll('.usel').forEach(function(c){c.checked=e.target.checked;});});</script>
+{% endif %}
 {% endblock %}

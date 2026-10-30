@@ -53,14 +53,10 @@
             <th>Stage</th>
             <th>Rep</th>
             <th><button type="button" class="sort-btn" data-sort="email">Email</button></th>
-            <th><button type="button" class="sort-btn" data-sort="account">Account</button></th>
             <th><button type="button" class="sort-btn" data-sort="portal">Portal</button></th>
             <th><button type="button" class="sort-btn" data-sort="crsc">CRSC</button></th>
             <th><button type="button" class="sort-btn" data-sort="last_login">Last Login</button></th>
-            {% if current_user.is_director %}
-            <th class="text-end">Delete</th>
-            {% endif %}
-            <th class="text-end">Actions</th>
+            <th class="text-end"><span class="sr-only">Actions</span></th>
           </tr>
         </thead>
         <tbody>
@@ -81,59 +77,42 @@
             <td class="text-muted">{% set r = reps.get(c.assigned_user_id) %}{{ (r.full_name or r.email) if r else 'Unassigned' }}</td>
             <td class="text-muted">{{ c.email }}</td>
             <td>
-              {% if (c.account_type and c.account_type.lower() == "guest") or (not c.email) or (c.email_verified is false) %}
-                <span class="pill pill-bad">Guest Account</span>
-                <span class="pill">Restricted</span>
-              {% else %}
-                <span class="pill pill-good">Verified Account</span>
-              {% endif %}
-            </td>
-            <td>
-              <span class="pill {{ 'pill-good' if c.portal_enabled else 'pill-bad' }}">
-                {{ 'ENABLED' if c.portal_enabled else 'OFF' }}
-              </span>
+              {% if (c.account_type and c.account_type.lower() == "guest") or (not c.email) or (c.email_verified is false) %}<span class="badge-dot badge-warn">Guest</span>
+              {% elif c.portal_enabled %}<span class="badge-dot badge-ok">On</span>
+              {% else %}<span class="badge-dot badge-muted">Off</span>{% endif %}
             </td>
             <td>
               {% set cr = crsc_map.get(c.id) if crsc_map is defined else None %}
-              {% if cr %}
-                <span class="{{ cr.class }}">{{ cr.label }}</span>
-              {% else %}
-                <span class="pill">Not started</span>
-              {% endif %}
+              {% if cr and cr.sort == 'ready' %}<span class="badge-dot badge-ok">Ready</span>
+              {% elif cr and cr.sort in ('in_progress', 'not_started') %}<span class="badge-dot badge-warn">{{ cr.label }}</span>
+              {% else %}<span class="muted small">&mdash;</span>{% endif %}
             </td>
             <td class="text-muted">
               {% set u = user_map.get(c.portal_user_id) if user_map is defined else None %}
               {% if u and u.last_login_at %}
-                {{ u.last_login_at.strftime('%Y-%m-%d %H:%M') }}
+                {{ u.last_login_at|short_date('%b %d, %Y') }}
               {% else %}
-                —
+                Never
               {% endif %}
             </td>
-            {% if current_user.is_director %}
             <td class="text-end">
-              <form method="post" action="{{ url_for('clients.delete_client', client_id=c.id) }}" onsubmit="return confirm('Permanently delete this client and all related data?');">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="btn btn-sm btn-outline-primary" type="submit">Delete</button>
-              </form>
-            </td>
-            {% endif %}
-            <td class="text-end">
-              {% if not c.is_archived %}
-              <form method="post" action="{{ url_for('clients.archive_client', client_id=c.id) }}" style="display:inline-block;" onsubmit="return confirm('Archive this client?');">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="btn btn-sm btn-outline-primary" type="submit">Archive</button>
-              </form>
-              {% else %}
-              <form method="post" action="{{ url_for('clients.restore_client', client_id=c.id) }}" style="display:inline-block;">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="btn btn-sm btn-outline-primary" type="submit">Restore</button>
-              </form>
-              {% endif %}
-              <a class="btn btn-sm btn-outline-primary" href="{{ url_for('clients.view_client', client_id=c.id) }}">Open</a>
+              <details class="menu row-menu"><summary class="btn btn-sm" aria-label="Actions for {{ c.display_name() }}">&middot;&middot;&middot;</summary>
+                <div class="menu-list">
+                  <a href="{{ url_for('clients.view_client', client_id=c.id) }}">Open</a>
+                  <a href="{{ url_for('messages.staff_thread', client_id=c.id) }}">Message</a>
+                  {% if not c.is_archived %}
+                  <form method="post" action="{{ url_for('clients.archive_client', client_id=c.id) }}"><button type="submit">Archive</button></form>
+                  {% else %}
+                  <form method="post" action="{{ url_for('clients.restore_client', client_id=c.id) }}"><button type="submit">Restore</button></form>
+                  {% endif %}
+                  {% if current_user.is_director %}
+                  <form method="post" action="{{ url_for('clients.delete_client', client_id=c.id) }}" onsubmit="return confirm('Permanently delete {{ c.display_name()|e }} and every document, message, and note in their file? This cannot be undone.');"><button type="submit" class="danger">Delete permanently</button></form>
+                  {% endif %}
+                </div></details>
             </td>
           </tr>
         {% else %}
-          <tr><td colspan="{{ 11 if current_user.is_director else 10 }}" class="text-muted">No clients match. Try another stage or search.</td></tr>
+          <tr><td colspan="9" class="text-muted">No clients match. Try another stage or search.</td></tr>
         {% endfor %}
         </tbody>
       </table>

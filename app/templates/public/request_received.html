@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Request received | {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<section class="ws-card" style="max-width:640px;margin:40px auto;padding:36px 32px;text-align:center">
+  <img src="{{ url_for('static', filename='brand/logo.svg') }}" alt="" width="52" height="52">
+  <h1 style="margin:14px 0 6px">Thanks, {{ first }}. We got your request.</h1>
+  <p class="muted" style="margin:0 auto;max-width:46ch">A member of our team will reach out within one business day. We sent a confirmation to <strong>{{ email }}</strong>.</p>
+  <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px">
+    <a class="btn btn-primary" href="{{ url_for('portal.portal_register') }}">Create your portal account</a>
+    <a class="btn" href="{{ url_for('resources.benefits_finder') }}">Explore the Benefits Finder</a>
+  </div>
+  <p class="muted small" style="margin-top:22px">In crisis right now? Call 988 and press 1, or text 838255.</p>
+</section>
+{% endblock %}

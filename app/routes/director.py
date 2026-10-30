@@ -86,9 +86,52 @@ def run_backup():
 @login_required
 @require_roles(Role.DIRECTOR)
 def users():
+    from app.services.bot_guard import gibberish_name
+    from app.models import Document, Message
     db = SessionLocal()
-    users = db.query(User).filter_by(org_id=current_user.org_id).order_by(User.created_at.desc()).all()
-    return render_template("director/users.html", users=users)
+    tab = request.args.get("tab") or "team"
+    rows = db.query(User).filter_by(org_id=current_user.org_id).order_by(User.created_at.desc()).all()
+    team = [u for u in rows if u.role in (Role.DIRECTOR, Role.EMPLOYEE)]
+    logins = [u for u in rows if u.role == Role.CLIENT]
+    clients_by_user = {c.portal_user_id: c for c in db.query(Client).filter(Client.org_id == current_user.org_id,
+                                                                           Client.portal_user_id.isnot(None)).all()}
+    active_clients = {cid for (cid,) in db.query(Document.client_id).distinct().all()} | \
+                     {cid for (cid,) in db.query(Message.client_id).filter(Message.sender_role == "CLIENT").distinct().all()}
+    info = {}
+    for u in logins:
+        c = clients_by_user.get(u.id)
+        engaged = bool(c and c.id in active_clients)
+        spam = (not u.last_login_at or u.last_login_at == u.created_at) and not engaged and (
+            gibberish_name(u.full_name or "") or gibberish_name((u.email or "").split("@")[0]))
+        info[u.id] = {"client": c, "engaged": engaged, "spam": spam}
+    open_by_rep = {}
+    for c in db.query(Client).filter(Client.org_id == current_user.org_id, Client.is_archived == False).all():  # noqa: E712
+        if c.assigned_user_id:
+            open_by_rep[c.assigned_user_id] = open_by_rep.get(c.assigned_user_id, 0) + 1
+    only_spam = request.args.get("spam") == "1"
+    shown = [u for u in logins if info[u.id]["spam"]] if only_spam else logins
+    return render_template("director/users.html", tab=tab, team=team, logins=shown, all_logins=logins, info=info,
+                           spam_count=sum(1 for u in logins if info[u.id]["spam"]), only_spam=only_spam,
+                           open_by_rep=open_by_rep, new_password=request.args.get("new"))
+
+
+@director_bp.post("/users/bulk-disable")
+@login_required
+@require_roles(Role.DIRECTOR)
+def bulk_disable_users():
+    """Disable client logins in bulk (e.g. bot sign-ups); optionally archive their empty client records."""
+    ids = [int(i) for i in request.form.getlist("user_ids") if i.isdigit()]
+    db = SessionLocal()
+    rows = db.query(User).filter(User.org_id == current_user.org_id, User.id.in_(ids or [0]), User.role == Role.CLIENT).all()
+    for u in rows:
+        u.is_active = False
+        if request.form.get("archive_clients") == "1":
+            for c in db.query(Client).filter(Client.portal_user_id == u.id).all():
+                c.is_archived = True
+    db.commit()
+    audit_log(current_user.org_id, current_user.id, "USERS_DISABLED_BULK", "User", "bulk", detail=f"count={len(rows)}")
+    flash(f"Disabled {len(rows)} login{'s' if len(rows) != 1 else ''}." + (" Their client records were archived." if request.form.get("archive_clients") == "1" else ""), "success")
+    return redirect(url_for("director.users", tab="clients"))
 
 
 @director_bp.get("/traffic")
@@ -153,16 +196,22 @@ def create_user():
     email = (request.form.get("email") or "").strip().lower()
     full_name = request.form.get("full_name") or ""
     role = request.form.get("role") or "EMPLOYEE"
-    password = request.form.get("password") or "ChangeMe123!"
+    if role not in ("EMPLOYEE", "DIRECTOR"):
+        role = "EMPLOYEE"
+    import secrets as _secrets
+    password = (request.form.get("password") or "").strip() or _secrets.token_urlsafe(9)
+    if not email or "@" not in email:
+        flash("Enter a valid email.", "error")
+        return redirect(url_for("director.users"))
     if db.query(User).filter(User.email == email).first():
-        flash("User already exists.", "error")
-        return redirect(url_for("director.dashboard"))
+        flash("A user with that email already exists.", "error")
+        return redirect(url_for("director.users"))
     u = User(org_id=current_user.org_id, email=email, full_name=full_name, role=Role(role), is_active=True, must_reset_password=True)
     u.set_password(password)
     db.add(u); db.commit()
     audit_log(current_user.org_id, current_user.id, "USER_CREATED", "User", u.id, detail=f"role={role}, email={email}")
-    flash("User created (forced reset on first login).", "success")
-    return redirect(url_for("director.dashboard"))
+    flash(f"Added {email}. Temporary password: {password} (they'll choose a new one at first sign-in). Share it privately.", "success")
+    return redirect(url_for("director.users"))
 
 @director_bp.post("/users/<int:user_id>/toggle")
 @login_required
@@ -176,8 +225,13 @@ def toggle_user(user_id: int):
     u.is_active = not u.is_active
     db.commit()
     audit_log(current_user.org_id, current_user.id, "USER_TOGGLED", "User", u.id, detail=f"is_active={u.is_active}")
-    flash("User status updated.", "success")
-    return redirect(url_for("director.dashboard"))
+    if u.id == current_user.id and not u.is_active:
+        u.is_active = True
+        db.commit()
+        flash("You can't disable your own account.", "error")
+        return redirect(url_for("director.users"))
+    flash(f"{u.email} is now {'active' if u.is_active else 'disabled'}.", "success")
+    return redirect(request.referrer or url_for("director.users"))
 
 @director_bp.post("/users/<int:user_id>/force-reset")
 @login_required
@@ -191,8 +245,8 @@ def force_reset(user_id: int):
     u.must_reset_password = True
     db.commit()
     audit_log(current_user.org_id, current_user.id, "USER_FORCE_RESET", "User", u.id)
-    flash("Forced password reset on next login.", "success")
-    return redirect(url_for("director.dashboard"))
+    flash(f"{u.email} will be asked to set a new password at next sign-in.", "success")
+    return redirect(request.referrer or url_for("director.users"))
 
 @director_bp.post("/templates/seed-defaults")
 @login_required

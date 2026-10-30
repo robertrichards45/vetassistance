@@ -12,6 +12,8 @@
     <div class="card vca-card">
       <div class="card-body p-4">
         <form method="post">
+          <div class="hp" aria-hidden="true"><label>Website <input name="website" tabindex="-1" autocomplete="off"></label></div>
+          <input type="hidden" name="form_ts" value="{{ bot_token() }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="row g-3">
             <div class="col-md-6">
