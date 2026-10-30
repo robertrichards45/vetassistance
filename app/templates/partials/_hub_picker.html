@@ -1,0 +1,33 @@
+{# Client picker for single-client tools. Needs: clients, selected_client. #}
+{% if selected_client %}
+<div class="picker-bar">
+  <span class="avatar" aria-hidden="true">{{ ((selected_client.first_name or '?')[:1] ~ (selected_client.last_name or '')[:1])|upper }}</span>
+  <div class="pb-main"><span class="muted small">Working on</span><strong>{{ selected_client.display_name() }}</strong></div>
+  <span class="badge-dot">{{ stage_label(selected_client.status) }}</span>
+  <span class="grow"></span>
+  <a class="btn btn-sm" href="{{ url_for('clients.view_client', client_id=selected_client.id) }}">Open client file</a>
+  <a class="btn btn-sm" href="{{ request.path }}">Change client</a>
+</div>
+{% else %}
+<section class="ws-card picker">
+  <div class="ws-card-head"><h2>Choose a client</h2><span class="muted small">{{ clients|length }} client{{ 's' if clients|length != 1 }}</span></div>
+  {% if clients %}
+  <div class="ws-card-body">
+    <label class="sr-only" for="pickQ">Search clients</label>
+    <input id="pickQ" class="form-control" type="search" placeholder="Search by name" autocomplete="off" autofocus>
+    <ul class="pick-list" id="pickList">
+      {% for c in clients if not c.is_archived %}
+        <li data-n="{{ c.display_name()|lower }}"><a href="{{ request.path }}?client_id={{ c.id }}">
+          <span class="avatar" aria-hidden="true">{{ ((c.first_name or '?')[:1] ~ (c.last_name or '')[:1])|upper }}</span>
+          <span class="pl-main"><strong>{{ c.display_name() }}</strong><span class="muted small">{{ stage_label(c.status) }}{% if c.service_branch %} · {{ c.service_branch }}{% endif %}</span></span>
+        </a></li>
+      {% endfor %}
+    </ul>
+    <p class="muted small" id="pickNone" hidden>No client matches that name.</p>
+  </div>
+  <script>(function(){var q=document.getElementById('pickQ'),li=[].slice.call(document.querySelectorAll('#pickList li')),none=document.getElementById('pickNone');q.addEventListener('input',function(){var v=q.value.toLowerCase().trim(),n=0;li.forEach(function(l){var ok=!v||l.dataset.n.indexOf(v)>=0;l.hidden=!ok;if(ok)n++;});none.hidden=n>0;});})();</script>
+  {% else %}
+  <div class="ws-empty"><strong>No clients yet</strong><a href="{{ url_for('clients.new_client') }}">Add your first client</a>.</div>
+  {% endif %}
+</section>
+{% endif %}

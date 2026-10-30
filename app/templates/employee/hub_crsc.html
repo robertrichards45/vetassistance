@@ -16,23 +16,7 @@
 </section>
 
 <div class="admin-wrap">
-  <div class="card-shell">
-    <div class="card-body-pad">
-      <div class="panel-title">Select Client</div>
-      <form method="get" class="row" style="gap:12px;align-items:end;">
-        <div style="min-width:260px;">
-          <label class="form-label">Client</label>
-          <select class="form-control" name="client_id">
-            <option value="">Select client...</option>
-            {% for c in clients %}
-              <option value="{{ c.id }}" {{ "selected" if selected_client and selected_client.id == c.id else "" }}>{{ c.display_name() }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <button class="btn btn-primary" type="submit">Load</button>
-      </form>
-    </div>
-  </div>
+  {% include "partials/_hub_picker.html" %}
 
   {% if selected_client %}
   <div class="card-shell" style="margin-top:12px;">

@@ -405,9 +405,14 @@ def _scan_document(doc: Document) -> tuple[int, list[dict], str]:
 @login_required
 @require_roles(Role.DIRECTOR, Role.EMPLOYEE)
 def hub_claim_review():
+    """Claim review now lives in the AI case review; this page just picks the client."""
+    cid = request.args.get("client_id") or ""
+    if cid.isdigit():
+        return redirect(url_for("ai.client_ai", client_id=int(cid)))
     db = SessionLocal()
-    clients = db.query(Client).filter_by(org_id=current_user.org_id).order_by(Client.created_at.desc()).all()
-    return render_template("employee/hub_claim_review.html", clients=clients)
+    clients = db.query(Client).filter_by(org_id=current_user.org_id).order_by(Client.last_name, Client.first_name).all()
+    return render_template("employee/hub_pick.html", clients=clients, selected_client=None,
+                           title="AI case review", sub="Pick a client. The review reads every document and maps each condition to what the VA needs.")
 
 
 @employee_bp.post("/hub/claim-review")

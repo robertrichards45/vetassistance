@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="ws-head"><div><h1>{{ title }}</h1><p>{{ sub }}</p></div>
+  <div class="actions"><a class="btn" href="{{ url_for('employee.hub') }}">Team playbook</a></div></div>
+{% include "partials/_hub_picker.html" %}
+{% endblock %}

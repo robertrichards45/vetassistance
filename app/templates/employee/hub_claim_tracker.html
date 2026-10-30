@@ -15,24 +15,7 @@
 </section>
 
 <div class="admin-wrap">
-  <div class="card-shell">
-    <div class="card-body-pad">
-      <form method="get" class="row" style="gap:12px;align-items:end;">
-        <div style="min-width:240px;">
-          <label>Client</label>
-          <select name="client_id">
-            <option value="">Select a client</option>
-            {% for c in clients %}
-              <option value="{{ c.id }}" {% if selected_client and c.id == selected_client.id %}selected{% endif %}>{{ c.display_name() }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div>
-          <button class="btn btn-primary">Open</button>
-        </div>
-      </form>
-    </div>
-  </div>
+  {% include "partials/_hub_picker.html" %}
 
   {% if selected_client %}
   <div class="admin-grid split-40">
