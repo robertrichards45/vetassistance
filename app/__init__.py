@@ -454,4 +454,6 @@ def create_app():
     _add_alias("/become-client", "become_client", "onboard.become_client", methods=["GET"])
     _add_alias("/client-portal", "client_portal", "root.client_portal_redirect", methods=["GET"])
 
+    from app.services.error_alerts import install as _error_alerts
+    _error_alerts(app)
     return app
