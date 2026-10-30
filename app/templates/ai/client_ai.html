@@ -1,97 +1,148 @@
 {% extends "layout.html" %}
 {% block title %}AI Guidance • {{ client.display_name() }}{% endblock %}
 {% block content %}
-{% set tool_title = "AI guidance" %}
+{% set tool_title = "AI case review" %}
 {% include "partials/_client_header.html" %}
-{% set done = latest and latest.status == 'COMPLETED' %}
+{% macro el(e, label) -%}
+  {%- set st = (e.status if e else 'missing') or 'missing' -%}
+  <div class="cm-el st-{{ st }}" title="{{ label }}: {{ st|replace('_',' ') }}">
+    <span class="cm-dot" aria-hidden="true"></span><span class="cm-lbl">{{ label }}</span>
+  </div>
+{%- endmacro %}
+{% set v2 = parsed and parsed.schema == 2 %}
 <div class="tool-head">
   <div>
-    <h2>AI guidance</h2>
-    <p>Software reads this client's documents and suggests evidence strength, gaps, and next steps. A person must review every suggestion before acting on it.</p>
+    <h2>AI case review</h2>
+    <p>Reads every document in the file, maps each condition against what the VA needs, and builds an action plan. A person must check every finding before acting on it.</p>
   </div>
   <div class="actions">
-    {% if done %}
-      <a class="btn" href="{{ url_for('ai.export_cfr_report', client_id=client.id) }}">Download Word report</a>
-      <form method="post" action="{{ url_for('ai.email_ai_results', client_id=client.id) }}"><button class="btn" type="submit">Email results</button></form>
-    {% endif %}
-    <form method="post" action="{{ url_for('ai.run_ai', client_id=client.id) }}"><button class="btn btn-primary" type="submit">{{ 'Run again' if latest else 'Run analysis' }}</button></form>
+    {% if shown and shown.status == 'COMPLETED' %}<a class="btn" href="{{ url_for('ai.export_cfr_report', client_id=client.id) }}">Word report</a>{% endif %}
+    <form method="post" action="{{ url_for('ai.run_ai', client_id=client.id) }}"><button class="btn btn-primary" type="submit"{% if running or not ai_ok %} disabled{% endif %}>{{ 'Review running…' if running else ('Run new review' if shown else 'Run case review') }}</button></form>
+  </div>
+</div>
+{% if not ai_ok %}<div class="callout warn" style="margin-bottom:16px"><strong>AI isn't set up</strong>Add OPENAI_API_KEY in Railway → your service → Variables.</div>{% endif %}
+
+<div class="cr-strip">
+  <div><span>Documents in file</span><strong>{{ docs|length }}</strong></div>
+  <div><span>Readable by AI</span><strong{% if docs and docs_read < docs|length %} class="warn"{% endif %}>{{ docs_read }}</strong></div>
+  <div><span>Last review</span><strong class="sm">{{ shown.completed_at|short_date("%b %d, %I:%M %p") if shown and shown.completed_at else 'Never' }}</strong></div>
+  <div class="cr-strip-actions">
+    {% if docs and docs_read < docs|length %}<form method="post" action="{{ url_for('ai.read_documents', client_id=client.id) }}"><button class="btn btn-sm" type="submit">Read {{ docs|length - docs_read }} unread document{{ 's' if docs|length - docs_read != 1 }}</button></form>{% endif %}
+    <a class="btn btn-sm" href="{{ url_for('documents.client_documents', client_id=client.id) }}">Manage documents</a>
   </div>
 </div>
 
-<div class="ws-grid">
+{% if running %}
+<section class="ws-card cr-running" id="crRunning" data-status-url="{{ url_for('ai.run_status', client_id=client.id) }}">
+  <div class="spinner" aria-hidden="true"></div>
+  <div><strong id="crPhase">{{ 'Reading documents (OCR)…' if latest.status == 'READING' else ('Analyzing the file…' if latest.status == 'RUNNING' else 'Starting…') }}</strong>
+    <div class="muted small" id="crDocs">{{ docs_read }} of {{ docs|length }} documents read</div>
+    <div class="muted small">This page updates by itself. You can leave and come back.</div></div>
+</section>
+{% elif latest and latest.status == 'FAILED' %}
+<div class="callout bad" style="margin-bottom:16px"><strong>The last review didn't finish</strong>{{ latest.error or 'Unknown error.' }}</div>
+{% endif %}
+
+<div class="ws-grid cr-grid">
   <div>
-    <section class="ws-card" aria-labelledby="res-h">
-      <div class="ws-card-head">
-        <h2 id="res-h">Analysis</h2>
-        {% if latest %}<span class="badge-dot{% if done %} badge-ok{% elif latest.status == 'FAILED' %} badge-bad{% else %} badge-warn{% endif %}">{{ latest.status|title }}{% if latest.completed_at %} &middot; {{ latest.completed_at|short_date("%b %d, %I:%M %p") }}{% elif latest.created_at %} &middot; started {{ latest.created_at|short_date("%I:%M %p") }}{% endif %}</span>{% endif %}
-      </div>
-      {% if not latest %}
-        <div class="ws-empty"><strong>No analysis yet</strong>Upload decision letters, C&amp;P exams, and treatment records first, then run the analysis. It takes about a minute.</div>
-      {% elif latest.error %}
-        <div class="sec"><div class="callout bad"><strong>The analysis didn't finish</strong>{{ latest.error }}</div></div>
-      {% elif done and parsed %}
-        {% if parsed.next_actions and parsed.next_actions|length %}
-        <div class="sec"><div class="callout"><strong>Recommended next step</strong>{{ parsed.next_actions[0] }}</div></div>
-        {% endif %}
-        {% if parsed.summary %}<div class="sec"><h3>Case summary</h3><p style="margin:0">{{ parsed.summary }}</p></div>{% endif %}
-        {% if parsed.conditions %}
-        <div class="sec">
-          <h3>Evidence strength by condition</h3>
-          <div class="table-responsive"><table class="table" style="margin:0">
-            <thead><tr><th>Condition</th><th style="width:190px">Strength</th><th>Why</th></tr></thead>
-            <tbody>
-            {% for cnd in parsed.conditions %}{% set sc = (cnd.score or 0)|int %}
-              <tr><td><strong>{{ cnd.name }}</strong></td>
-                  <td><div class="score{% if sc >= 75 %} high{% elif sc >= 50 %} mid{% endif %}"><div class="score-bar"><span style="width:{{ sc }}%"></span></div><b>{{ sc }}</b></div></td>
-                  <td class="muted">{{ cnd.rationale }}</td></tr>
+  {% if not shown %}
+    <section class="ws-card"><div class="ws-empty" style="padding:40px 20px;text-align:center">
+      <strong style="font-size:20px">No review yet</strong>
+      Upload decision letters, service treatment records, medical records, and C&amp;P exams, then run the review.
+      It finds each condition, checks diagnosis, in-service event, nexus, and severity, and tells you what's missing.
+    </div></section>
+  {% elif v2 %}
+    {% if parsed.recommended_next_step %}<div class="callout" style="margin-bottom:16px"><strong>Do this next</strong>{{ parsed.recommended_next_step }}</div>{% endif %}
+    {% if parsed.summary %}<section class="ws-card"><div class="ws-card-head"><h2>Summary</h2><span class="muted small">{{ (parsed.documents_reviewed or [])|length }} of {{ parsed.document_count or docs|length }} documents read</span></div><div class="ws-card-body"><p style="margin:0">{{ parsed.summary }}</p>
+      {% if parsed.unreadable_files %}<p class="muted small" style="margin:8px 0 0">Couldn't read: {{ parsed.unreadable_files|join(', ') }}. Re-upload clearer copies if they matter.</p>{% endif %}</div></section>{% endif %}
+
+    <section class="ws-card" aria-labelledby="cm-h">
+      <div class="ws-card-head"><h2 id="cm-h">Claim map</h2>
+        <span class="cm-legend"><span class="st-met"><i></i>In the file</span><span class="st-partial"><i></i>Partial</span><span class="st-missing"><i></i>Missing</span></span></div>
+      {% for cnd in parsed.conditions or [] %}{% set sc = cnd.strength or 0 %}{% set e = cnd.elements or {} %}
+      <details class="cm-row"{% if loop.first %} open{% endif %}>
+        <summary>
+          <div class="cm-name"><strong>{{ cnd.name }}</strong>
+            <span class="muted small">{% if cnd.diagnostic_code %}<a href="{{ url_for('cfr.ratings_chart') }}#dc-{{ cnd.diagnostic_code }}" onclick="event.stopPropagation()">DC {{ cnd.diagnostic_code }}</a> &middot; {% endif %}{{ (cnd.claim_type or '')|capitalize }}{% if cnd.secondary_to %} to {{ cnd.secondary_to }}{% endif %}</span></div>
+          <div class="cm-els">{{ el(e.diagnosis, 'Diagnosis') }}{{ el(e.in_service, 'In service') }}{{ el(e.nexus, 'Nexus') }}{{ el(e.severity, 'Severity') }}</div>
+          <div class="score{% if sc >= 75 %} high{% elif sc >= 50 %} mid{% endif %}"><div class="score-bar"><span style="width:{{ sc }}%"></span></div><b>{{ sc }}</b></div>
+          <div class="cm-rate">{% if cnd.supported_rating is not none and cnd.supported_rating != '' %}<strong>{{ cnd.supported_rating }}%</strong><span>supported</span>{% else %}<span class="muted small">Rating unclear</span>{% endif %}</div>
+        </summary>
+        <div class="cm-body">
+          <dl class="cm-ev">
+            {% for key, label in [('diagnosis','Diagnosis'), ('in_service','In-service event'), ('nexus','Nexus'), ('severity','Current severity')] %}{% set x = e[key] if e[key] is defined else none %}
+            <div class="st-{{ (x.status if x else 'missing') }}"><dt>{{ label }}</dt><dd>{{ x.evidence if x and x.evidence else 'Nothing in the file.' }}</dd></div>
             {% endfor %}
-            </tbody></table></div>
-        </div>
-        {% endif %}
-        {% if (parsed.gaps and parsed.gaps|length) or (parsed.conflicts and parsed.conflicts|length) %}
-        <div class="sec two-col">
-          {% if parsed.gaps and parsed.gaps|length %}<div><h3>Gaps to close</h3><ul>{% for g in parsed.gaps %}<li>{{ g }}</li>{% endfor %}</ul></div>{% endif %}
-          {% if parsed.conflicts and parsed.conflicts|length %}<div><h3>Conflicts to resolve</h3><ul>{% for g in parsed.conflicts %}<li>{{ g }}</li>{% endfor %}</ul></div>{% endif %}
-        </div>
-        {% endif %}
-        {% if parsed.next_actions and parsed.next_actions|length > 1 %}
-        <div class="sec"><h3>All suggested actions</h3><ol style="margin:0;padding-left:20px;line-height:1.7">{% for x in parsed.next_actions %}<li>{{ x }}</li>{% endfor %}</ol>
-          <p class="muted small" style="margin:8px 0 0">Turn any of these into a client step on the <a href="{{ url_for('tasks.staff_tasks', client_id=client.id) }}">Checklist tab</a>.</p></div>
-        {% endif %}
-        {% set pr = parsed.presumptive %}
-        {% if pr %}
-        <details class="acc" {% if pr.conditions and pr.conditions|length %}open{% endif %}>
-          <summary>Presumptive conditions{% if pr.conditions %} ({{ pr.conditions|length }}){% endif %}</summary>
-          <div>
-            {% if pr.conditions and pr.conditions|length %}
-            <div class="table-responsive"><table class="table"><thead><tr><th>Condition</th><th>Authority</th><th>Summary</th></tr></thead><tbody>
-              {% for x in pr.conditions %}<tr><td><strong>{{ x.name }}</strong><div class="muted small">{{ x.category }}</div></td><td class="muted">{{ x.authority }}</td><td class="muted">{{ x.claim_summary }}</td></tr>{% endfor %}
-            </tbody></table></div>
-            {% else %}<p class="muted" style="margin:0">None identified yet.</p>{% endif %}
-            {% if pr.secondary_conditions %}<h3 style="margin-top:14px">Secondary conditions to consider</h3><ul>{% for x in pr.secondary_conditions %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
-            {% if pr.evidence_needed %}<h3 style="margin-top:14px">Evidence still needed</h3><ul>{% for x in pr.evidence_needed %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
-            {% if pr.strategy %}<h3 style="margin-top:14px">Suggested strategy</h3><ul>{% for x in pr.strategy %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
-            {% if pr.disclaimer %}<p class="muted small" style="margin-top:12px">{{ pr.disclaimer }}</p>{% endif %}
+          </dl>
+          {% if cnd.rating_reasoning %}<h4>Rating</h4><p>{{ cnd.rating_reasoning }}</p>{% endif %}
+          {% if cnd.criteria %}<details class="acc cm-crit"><summary>Official criteria for DC {{ cnd.diagnostic_code }}</summary><div><ol class="rx-ladder">{% for r in cnd.criteria %}<li style="grid-template-columns:62px 1fr"><span class="pct">{{ r.percent }}%</span><span class="txt">{{ r.text }}</span></li>{% endfor %}</ol></div></details>{% endif %}
+          <div class="two-col">
+            {% if cnd.missing_evidence %}<div><h4>Still needed</h4><ul class="cm-needs">{% for m in cnd.missing_evidence %}<li><span>{{ m }}</span>
+              {% if m|lower not in open_titles %}<form method="post" action="{{ url_for('tasks.add', client_id=client.id) }}"><input type="hidden" name="title" value="{{ m[:250] }}"><input type="hidden" name="kind" value="document"><input type="hidden" name="next" value="{{ url_for('ai.client_ai', client_id=client.id) }}"><button class="btn btn-sm" type="submit">Request</button></form>{% else %}<span class="badge-dot badge-ok">Requested</span>{% endif %}</li>{% endfor %}</ul></div>{% endif %}
+            {% if cnd.exam_tips %}<div><h4>For the C&amp;P exam</h4><ul>{% for t in cnd.exam_tips %}<li>{{ t }}</li>{% endfor %}</ul></div>{% endif %}
           </div>
-        </details>
-        {% if pr.conditions and pr.conditions|length %}
-        <details class="acc"><summary>Draft claim language</summary><div>
-          {% for x in pr.conditions %}<p style="margin:0 0 10px"><strong>{{ x.name }}.</strong> <span class="muted">{{ x.claim_language }}</span></p>{% endfor %}
-        </div></details>
-        {% endif %}
-        {% endif %}
-        <details class="acc"><summary>Raw output</summary><div><pre class="raw">{{ latest.result_json }}</pre></div></details>
-      {% elif latest.result_json %}
-        <div class="sec"><pre class="raw">{{ latest.result_json }}</pre></div>
+        </div>
+      </details>
       {% else %}
-        <div class="ws-empty"><strong>Working on it</strong>The analysis is running. Refresh this page in a minute.</div>
-      {% endif %}
+      <div class="ws-empty"><strong>No conditions identified</strong>The documents didn't name a condition. Check that the right files were uploaded and are readable.</div>
+      {% endfor %}
     </section>
+
+    {% if parsed.action_plan %}
+    <section class="ws-card" aria-labelledby="ap-h">
+      <div class="ws-card-head"><h2 id="ap-h">Action plan</h2></div>
+      <ul class="ws-list">
+        {% for a in parsed.action_plan %}
+        <li>
+          <span class="badge-dot{% if a.priority == 'high' %} badge-bad{% elif a.priority == 'medium' %} badge-warn{% else %} badge-muted{% endif %}">{{ (a.priority or 'normal')|capitalize }}</span>
+          <div class="main"><strong>{{ a.title }}</strong><div class="sub" style="white-space:normal">{{ a.why }}</div></div>
+          {% if a.title|lower in open_titles %}<span class="badge-dot badge-ok">Added</span>
+          {% elif a.owner == 'client' %}
+            <form method="post" action="{{ url_for('tasks.add', client_id=client.id) }}"><input type="hidden" name="title" value="{{ a.title[:250] }}"><input type="hidden" name="instructions" value="{{ (a.why or '')[:500] }}"><input type="hidden" name="kind" value="{{ 'document' if a.kind == 'request_document' else 'task' }}"><input type="hidden" name="next" value="{{ url_for('ai.client_ai', client_id=client.id) }}"><button class="btn btn-sm" type="submit">Send to client</button></form>
+          {% else %}
+            <form method="post" action="{{ url_for('employee.todo_add') }}"><input type="hidden" name="title" value="{{ a.title[:250] }}"><input type="hidden" name="notes" value="{{ (a.why or '')[:500] }}"><input type="hidden" name="client_id" value="{{ client.id }}"><input type="hidden" name="next" value="{{ url_for('ai.client_ai', client_id=client.id) }}"><button class="btn btn-sm" type="submit">Add to-do</button></form>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+
+    {% if parsed.deadlines or parsed.conflicts or parsed.gaps %}
+    <section class="ws-card"><div class="sec two-col">
+      {% if parsed.deadlines %}<div><h3>Dates and deadlines</h3><ul>{% for x in parsed.deadlines %}<li>{{ x }}</li>{% endfor %}</ul></div>{% endif %}
+      {% if parsed.conflicts %}<div><h3>Conflicts to resolve</h3><ul>{% for x in parsed.conflicts %}<li>{{ x }}</li>{% endfor %}</ul></div>{% endif %}
+      {% if parsed.gaps %}<div><h3>Other gaps</h3><ul>{% for x in parsed.gaps %}<li>{{ x }}</li>{% endfor %}</ul></div>{% endif %}
+    </div></section>
+    {% endif %}
+
+    {% set pr = parsed.presumptive %}
+    {% if pr and (pr.conditions or pr.evidence_needed) %}
+    <section class="ws-card"><details class="acc" open style="border:0"><summary>Presumptive conditions{% if pr.conditions %} ({{ pr.conditions|length }}){% endif %}</summary><div>
+      {% for x in pr.conditions or [] %}<p style="margin:0 0 8px"><strong>{{ x.name }}</strong> <span class="muted">&middot; {{ x.authority }}</span><br><span class="muted">{{ x.claim_summary }}</span></p>{% endfor %}
+      {% if pr.evidence_needed %}<h4>Evidence needed</h4><ul>{% for x in pr.evidence_needed %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+      {% if pr.disclaimer %}<p class="muted small">{{ pr.disclaimer }}</p>{% endif %}
+    </div></details></section>
+    {% endif %}
+  {% else %}
+    {# Reviews saved before the upgrade #}
+    <section class="ws-card"><div class="ws-card-head"><h2>Earlier review</h2><span class="muted small">Run a new review for the claim map and action plan.</span></div>
+      {% if parsed and parsed.summary %}<div class="sec"><p style="margin:0">{{ parsed.summary }}</p></div>{% endif %}
+      {% if parsed and parsed.next_actions %}<div class="sec"><h3>Suggested actions</h3><ol style="margin:0;padding-left:20px">{% for x in parsed.next_actions %}<li>{{ x }}</li>{% endfor %}</ol></div>{% endif %}
+      {% if parsed and parsed.conditions %}<div class="sec"><h3>Conditions</h3><ul>{% for x in parsed.conditions %}<li><strong>{{ x.name }}</strong> ({{ x.score }}): {{ x.rationale }}</li>{% endfor %}</ul></div>{% endif %}
+    </section>
+  {% endif %}
+
+  {% if runs|length > 1 %}
+  <details class="acc ws-card" style="margin-top:20px"><summary>Review history ({{ runs|length }})</summary><div><ul class="ws-list">
+    {% for r in runs %}<li><div class="main">{{ r.created_at|short_date("%b %d, %Y %I:%M %p") }}</div><span class="badge-dot{% if r.status == 'COMPLETED' %} badge-ok{% elif r.status == 'FAILED' %} badge-bad{% else %} badge-warn{% endif %}">{{ r.status|title }}</span></li>{% endfor %}
+  </ul></div></details>
+  {% endif %}
   </div>
 
   <div>
     <section class="ws-card" aria-labelledby="ask-h">
-      <div class="ws-card-head"><h2 id="ask-h">Ask about the documents</h2>
+      <div class="ws-card-head"><h2 id="ask-h">Ask about the file</h2>
         {% if qa_messages and qa_messages|length %}<form method="post" action="{{ url_for('ai.clear_ai_chat', client_id=client.id) }}"><button class="btn btn-sm" type="submit">Clear</button></form>{% endif %}</div>
       <div class="chat-log ai-log" id="aiChatThread">
         {% for m in qa_messages or [] %}
@@ -99,9 +150,7 @@
         {% else %}
           <p class="muted small ai-hint" style="margin:0">Try: "What does the C&amp;P exam say about range of motion?" or "Is there an in-service event for tinnitus?"</p>
         {% endfor %}
-        {% if qa_answer %}<div class="chat-msg"><div class="chat-bubble">{{ qa_answer }}</div><div class="chat-meta">{{ qa_doc.filename if qa_doc else '' }}</div></div>{% endif %}
       </div>
-      {% if qa_error %}<div class="sec"><div class="callout bad">{{ qa_error }}</div></div>{% endif %}
       <form class="chat-compose" method="post" action="{{ url_for('ai.ask_ai', client_id=client.id) }}" id="aiChatForm" data-stream-url="{{ url_for('ai.ask_ai_stream', client_id=client.id) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label class="sr-only" for="aiDoc">Document</label>
@@ -110,27 +159,38 @@
           {% for d in docs %}<option value="{{ d.id }}" {{ "selected" if qa_doc_id == d.id|string else "" }}>{{ d.filename }}</option>{% endfor %}
         </select>
         <label class="sr-only" for="aiChatInput">Question</label>
-        <textarea name="question" rows="2" id="aiChatInput" required placeholder="Ask a question about this client's file">{{ qa_question or "" }}</textarea>
-        <div class="chat-compose-bar"><span class="muted small">Answers come only from uploaded documents.</span><button class="btn btn-primary" type="submit">Ask</button></div>
+        <textarea name="question" rows="2" id="aiChatInput" required placeholder="Ask a question about this client's documents"></textarea>
+        <div class="chat-compose-bar"><a class="muted small" href="{{ url_for('assistant.index', client_id=client.id) }}">General question? Use Ask AI</a><button class="btn btn-primary" type="submit">Ask</button></div>
       </form>
     </section>
 
     <section class="ws-card" aria-labelledby="docs-h">
-      <div class="ws-card-head"><h2 id="docs-h">Documents the AI can read</h2><a href="{{ url_for('documents.client_documents', client_id=client.id) }}">Manage</a></div>
+      <div class="ws-card-head"><h2 id="docs-h">Documents</h2></div>
       {% if docs %}
       <ul class="ws-list">
         {% for d in docs %}
         <li><div class="main"><strong>{{ d.filename }}</strong><div class="sub">{{ d.category or 'Uncategorized' }}</div></div>
-          {% if d.extracted_text_path %}<span class="badge-dot badge-ok">Text ready</span>{% elif d.status == 'ERROR' %}<span class="badge-dot badge-bad">Error</span>{% else %}<span class="badge-dot badge-warn">{{ (d.status or 'Pending')|title }}</span>{% endif %}</li>
+          {% if d.extracted_text_path %}<span class="badge-dot badge-ok">Read</span>{% elif d.status == 'PROCESSING' %}<span class="badge-dot badge-warn">Reading</span>{% elif d.status in ('FAILED','ERROR') %}<span class="badge-dot badge-bad">Unreadable</span>{% else %}<span class="badge-dot badge-muted">Not read</span>{% endif %}</li>
         {% endfor %}
       </ul>
       {% else %}
-      <div class="ws-empty"><strong>No documents yet</strong>The analysis works best with decision letters, C&amp;P exams, and treatment records. <a href="{{ url_for('tasks.staff_tasks', client_id=client.id) }}">Request them from the client</a>.</div>
+      <div class="ws-empty"><strong>No documents yet</strong><a href="{{ url_for('tasks.staff_tasks', client_id=client.id) }}">Request records from the client</a>.</div>
       {% endif %}
     </section>
   </div>
 </div>
 
+<script>
+(function(){
+  var box=document.getElementById('crRunning'); if(!box) return;
+  var url=box.dataset.statusUrl, phase=document.getElementById('crPhase'), docs=document.getElementById('crDocs');
+  var labels={QUEUED:'Starting…', READING:'Reading documents (OCR)…', RUNNING:'Analyzing the file…'};
+  (function poll(){ fetch(url,{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+    if(labels[d.status]){ phase.textContent=labels[d.status]; docs.textContent=d.docs_read+' of '+d.docs+' documents read'; setTimeout(poll,3000); }
+    else location.reload();
+  }).catch(function(){ setTimeout(poll,6000); }); })();
+})();
+</script>
 <script>
 (function(){
   var form=document.getElementById('aiChatForm'), input=document.getElementById('aiChatInput'), log=document.getElementById('aiChatThread');

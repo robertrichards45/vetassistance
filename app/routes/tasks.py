@@ -89,4 +89,5 @@ def add(client_id: int):
         notify_client(c, "You have a new step on your claim", title + (f" (due {due:%B %d})" if due else ""),
                       url_for("portal.dashboard") + "#next-h", kind="task", cta="See your next steps", actor_user_id=current_user.id)
     flash("Added. The client was notified." if c.portal_enabled else "Added. The client will see it once their portal is turned on.", "success")
-    return redirect(url_for("tasks.staff_tasks", client_id=c.id))
+    nxt = request.form.get("next") or ""
+    return redirect(nxt if nxt.startswith("/") and not nxt.startswith("//") else url_for("tasks.staff_tasks", client_id=c.id))

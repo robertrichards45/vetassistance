@@ -23,7 +23,7 @@ def _payload(age_days):
 
 def test_fresh_data_does_not_trigger_a_refresh(tmp_path, monkeypatch):
     fake_queue = FakeQueue()
-    monkeypatch.setattr(queue_module, "get_queue", lambda name="default": fake_queue)
+    monkeypatch.setattr(queue_module, "enqueue", lambda func, *a, **k: fake_queue.enqueue(func, *a, **k))
 
     maybe_trigger_stale_refresh(str(tmp_path), _payload(age_days=1))
 
@@ -32,7 +32,7 @@ def test_fresh_data_does_not_trigger_a_refresh(tmp_path, monkeypatch):
 
 def test_stale_data_enqueues_a_rebuild(tmp_path, monkeypatch):
     fake_queue = FakeQueue()
-    monkeypatch.setattr(queue_module, "get_queue", lambda name="default": fake_queue)
+    monkeypatch.setattr(queue_module, "enqueue", lambda func, *a, **k: fake_queue.enqueue(func, *a, **k))
 
     maybe_trigger_stale_refresh(str(tmp_path), _payload(age_days=REFRESH_STALE_DAYS + 1))
 
@@ -41,7 +41,7 @@ def test_stale_data_enqueues_a_rebuild(tmp_path, monkeypatch):
 
 def test_stale_refresh_is_not_re_enqueued_within_the_cooldown(tmp_path, monkeypatch):
     fake_queue = FakeQueue()
-    monkeypatch.setattr(queue_module, "get_queue", lambda name="default": fake_queue)
+    monkeypatch.setattr(queue_module, "enqueue", lambda func, *a, **k: fake_queue.enqueue(func, *a, **k))
     os.makedirs(tmp_path / "cfr_data", exist_ok=True)
 
     stale = _payload(age_days=REFRESH_STALE_DAYS + 1)
@@ -53,7 +53,7 @@ def test_stale_refresh_is_not_re_enqueued_within_the_cooldown(tmp_path, monkeypa
 
 def test_a_missing_or_unparsable_generated_at_is_a_no_op(tmp_path, monkeypatch):
     fake_queue = FakeQueue()
-    monkeypatch.setattr(queue_module, "get_queue", lambda name="default": fake_queue)
+    monkeypatch.setattr(queue_module, "enqueue", lambda func, *a, **k: fake_queue.enqueue(func, *a, **k))
 
     maybe_trigger_stale_refresh(str(tmp_path), {})
     maybe_trigger_stale_refresh(str(tmp_path), {"generated_at": "not-a-date"})
@@ -62,9 +62,9 @@ def test_a_missing_or_unparsable_generated_at_is_a_no_op(tmp_path, monkeypatch):
 
 
 def test_redis_being_unavailable_never_breaks_the_caller(tmp_path, monkeypatch):
-    def boom(name="default"):
+    def boom(*a, **k):
         raise ConnectionError("redis is down")
-    monkeypatch.setattr(queue_module, "get_queue", boom)
+    monkeypatch.setattr(queue_module, "enqueue", boom)
 
     # Must not raise, even though get_queue() blows up.
     maybe_trigger_stale_refresh(str(tmp_path), _payload(age_days=REFRESH_STALE_DAYS + 1))

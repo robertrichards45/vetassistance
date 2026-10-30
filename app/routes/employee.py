@@ -1257,7 +1257,7 @@ def todo_add():
     db = SessionLocal()
     title = (request.form.get("title") or "").strip()[:255]
     back = request.form.get("next") or url_for("employee.dashboard")
-    if not back.startswith("/"):
+    if not back.startswith("/") or back.startswith("//"):
         back = url_for("employee.dashboard")
     if not title:
         flash("Give the to-do a title.", "error")
@@ -1303,4 +1303,4 @@ def todo_toggle(todo_id: int):
     t.done_at = datetime.utcnow() if t.is_done else None
     db.commit()
     back = request.form.get("next") or url_for("employee.dashboard")
-    return redirect(back if back.startswith("/") else url_for("employee.dashboard"))
+    return redirect(back if back.startswith("/") and not back.startswith("//") else url_for("employee.dashboard"))

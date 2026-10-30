@@ -562,10 +562,10 @@ def upload():
         full_path, saved_name = save_upload(current_app().config['STORAGE_ROOT'], current_user.org_id, c.id, f)
         doc = Document(org_id=current_user.org_id, client_id=c.id, filename=saved_name, mime_type=f.mimetype or '', storage_path=full_path, uploaded_by_user_id=current_user.id, category=classify(saved_name, f.mimetype or ''))
         db.add(doc); db.commit()
-        # enqueue best-effort text extraction (PDF)
+        # Read the document's text in the background so AI tools can use it.
         try:
-            q = get_queue('docs')
-            q.enqueue(extract_document_text, doc.id)
+            from app.services.queue import enqueue
+            enqueue(extract_document_text, doc.id, queue="docs")
         except Exception:
             pass
         audit_log(current_user.org_id, current_user.id, 'CLIENT_UPLOAD', 'Document', doc.id, detail=saved_name)

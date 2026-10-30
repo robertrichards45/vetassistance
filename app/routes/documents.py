@@ -7,7 +7,7 @@ from app.extensions import SessionLocal
 from app.models import Client, Document, User
 from app.services.evidence_classifier import classify
 from app.services.storage import save_upload
-from app.services.queue import get_queue
+from app.services.queue import get_queue, enqueue
 from app.services.jobs import extract_document_text
 from app.services.doc_text import extract_text
 from app.services.audit_service import log as audit_log
@@ -185,7 +185,7 @@ def reclassify_client_docs(client_id: int):
             updated += 1
         if not text:
             try:
-                get_queue("docs").enqueue(extract_document_text, d.id)
+                enqueue(extract_document_text, d.id, queue="docs")
                 queued += 1
             except Exception:
                 pass
@@ -287,7 +287,7 @@ def upload_staff(client_id: int):
         doc = Document(org_id=current_user.org_id, client_id=c.id, filename=saved_name, mime_type=f.mimetype or "", storage_path=full_path, uploaded_by_user_id=current_user.id, category=classify(saved_name, f.mimetype or ''))
         db.add(doc); db.commit()
         try:
-            get_queue("docs").enqueue(extract_document_text, doc.id)
+            enqueue(extract_document_text, doc.id, queue="docs")
         except Exception:
             pass
         audit_log(current_user.org_id, current_user.id, "STAFF_UPLOAD", "Document", doc.id, detail=saved_name)

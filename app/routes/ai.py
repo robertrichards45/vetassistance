@@ -1,10 +1,11 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, send_file, current_app, request, Response, stream_with_context
+from flask import Blueprint, render_template, redirect, url_for, flash, send_file, current_app, request, Response, stream_with_context, jsonify
+from datetime import datetime
 import json
 from flask_login import login_required, current_user
 from app.routes._authz import require_roles
 from app.models.user import Role
 from app.extensions import SessionLocal
-from app.models import Client, AIRun, Document, FormData
+from app.models import Client, AIRun, Document, FormData, ClientTask
 from app.services.queue import get_queue
 from app.services.ai_engine import run_client_analysis, answer_doc_question, DOC_QA_PROMPT
 from app.services.doc_text import extract_text
@@ -58,7 +59,27 @@ def client_ai(client_id: int):
     if not c:
         return "Not found", 404
     messages, last_doc_id = _load_qa_history(db, c.id)
-    return render_template("ai/client_ai.html", client=c, latest=latest, docs=docs, parsed=parsed, qa_messages=messages, qa_doc_id=last_doc_id)
+    runs = db.query(AIRun).filter_by(org_id=current_user.org_id, client_id=c.id).order_by(AIRun.created_at.desc()).limit(8).all()
+    # Show the newest finished review while a new one runs.
+    shown = latest
+    if latest and latest.status != "COMPLETED":
+        shown = next((r for r in runs if r.status == "COMPLETED"), None)
+    if shown is not latest:
+        try:
+            parsed = json.loads(shown.result_json) if shown and shown.result_json else None
+        except Exception:
+            parsed = None
+    running = bool(latest and latest.status in ("QUEUED", "READING", "RUNNING"))
+    if running and latest.created_at and (datetime.utcnow() - latest.created_at).total_seconds() > 900:
+        latest.status, latest.error = "FAILED", "The review stopped responding (the server may have restarted). Run it again."
+        db.commit()
+        running = False
+    docs_read = sum(1 for d in docs if d.extracted_text_path)
+    open_titles = {t.title.lower() for t in db.query(ClientTask).filter_by(client_id=c.id, is_completed=False).all()}
+    return render_template("ai/client_ai.html", client=c, latest=latest, shown=shown, docs=docs, parsed=parsed,
+                           qa_messages=messages, qa_doc_id=last_doc_id, runs=runs, running=running,
+                           docs_read=docs_read, open_titles=open_titles,
+                           ai_ok=bool(current_app.config.get("OPENAI_API_KEY")))
 
 @ai_bp.post("/client/<int:client_id>/ask")
 @login_required
@@ -302,20 +323,54 @@ def ask_ai_stream(client_id: int):
 @login_required
 @require_roles(Role.DIRECTOR, Role.EMPLOYEE)
 def run_ai(client_id: int):
+    from app.services.queue import enqueue
+    from app.services.case_review import run_case_review
     db = SessionLocal()
     c = db.get(Client, client_id)
     if not c or c.org_id != current_user.org_id:
         return "Not found", 404
+    busy = db.query(AIRun).filter(AIRun.client_id == c.id, AIRun.status.in_(["QUEUED", "READING", "RUNNING"])).first()
+    if busy and busy.created_at and (datetime.utcnow() - busy.created_at).total_seconds() < 900:
+        flash("A review is already running for this client.", "info")
+        return redirect(url_for("ai.client_ai", client_id=c.id))
     run = AIRun(org_id=current_user.org_id, client_id=c.id, requested_by_user_id=current_user.id, status="QUEUED")
     db.add(run); db.commit()
     audit_log(current_user.org_id, current_user.id, "AI_RUN_QUEUED", "AIRun", run.id, detail=f"client_id={c.id}")
-    try:
-        q = get_queue("ai")
-        q.enqueue(run_client_analysis, run.id)
-        flash("AI analysis started. Refresh in a moment to see results.", "success")
-    except Exception:
-        run_client_analysis(run.id)
-        flash("AI analysis completed.", "success")
+    enqueue(run_case_review, run.id, queue="ai")
+    flash("Review started. It reads every document first, so it can take a minute or two. You can leave this page.", "success")
+    return redirect(url_for("ai.client_ai", client_id=c.id))
+
+
+@ai_bp.get("/client/<int:client_id>/status")
+@login_required
+@require_roles(Role.DIRECTOR, Role.EMPLOYEE)
+def run_status(client_id: int):
+    db = SessionLocal()
+    c = db.get(Client, client_id)
+    if not c or c.org_id != current_user.org_id:
+        return jsonify({"error": "not_found"}), 404
+    run = db.query(AIRun).filter_by(client_id=c.id).order_by(AIRun.created_at.desc()).first()
+    docs = db.query(Document).filter_by(client_id=c.id).all()
+    ready = sum(1 for d in docs if d.extracted_text_path)
+    return jsonify({"status": run.status if run else None, "id": run.id if run else None,
+                    "error": (run.error or "")[:400] if run else "", "docs": len(docs), "docs_read": ready})
+
+
+@ai_bp.post("/client/<int:client_id>/read-documents")
+@login_required
+@require_roles(Role.DIRECTOR, Role.EMPLOYEE)
+def read_documents(client_id: int):
+    from app.services.queue import enqueue
+    from app.services.jobs import extract_document_text
+    db = SessionLocal()
+    c = db.get(Client, client_id)
+    if not c or c.org_id != current_user.org_id:
+        return "Not found", 404
+    todo = [d.id for d in db.query(Document).filter_by(client_id=c.id).all() if not d.extracted_text_path]
+    for did in todo:
+        enqueue(extract_document_text, did, queue="docs")
+    flash(f"Reading {len(todo)} document{'s' if len(todo) != 1 else ''}. Scanned pages take a few seconds each." if todo
+          else "Every document has already been read.", "success")
     return redirect(url_for("ai.client_ai", client_id=c.id))
 
 
@@ -377,9 +432,11 @@ def export_cfr_report(client_id: int):
     if not c or c.org_id != current_user.org_id:
         return "Not found", 404
 
-    latest = db.query(AIRun).filter_by(org_id=current_user.org_id, client_id=c.id).order_by(AIRun.created_at.desc()).first()
+    latest = (db.query(AIRun).filter_by(org_id=current_user.org_id, client_id=c.id, status="COMPLETED")
+              .order_by(AIRun.created_at.desc()).first())
     if not latest or not latest.result_json:
-        return "No AI results available.", 404
+        flash("Run a case review first.", "error")
+        return redirect(url_for("ai.client_ai", client_id=c.id))
 
     try:
         parsed = json.loads(latest.result_json)
@@ -402,6 +459,28 @@ def export_cfr_report(client_id: int):
         str(parsed.get("summary") or ""),
         "",
     ]
+    if parsed.get("schema") == 2:
+        if parsed.get("recommended_next_step"):
+            lines += ["Recommended next step:", parsed["recommended_next_step"], ""]
+        lines.append("Claim map:")
+        for cnd in conditions:
+            el = cnd.get("elements") or {}
+            dc = f" (DC {cnd['diagnostic_code']})" if cnd.get("diagnostic_code") else ""
+            lines.append(f"{cnd.get('name')}{dc}: evidence strength {cnd.get('strength', '')}/100"
+                         + (f", supports {cnd['supported_rating']}%" if cnd.get("supported_rating") not in (None, "") else ""))
+            for key, label in (("diagnosis", "Diagnosis"), ("in_service", "In-service event"), ("nexus", "Nexus"), ("severity", "Severity")):
+                x = el.get(key) or {}
+                lines.append(f"  {label}: {(x.get('status') or 'missing').replace('_', ' ')} - {x.get('evidence') or ''}")
+            if cnd.get("rating_reasoning"):
+                lines.append(f"  Rating: {cnd['rating_reasoning']}")
+            for m in cnd.get("missing_evidence") or []:
+                lines.append(f"  Still needed: {m}")
+            lines.append("")
+        if parsed.get("action_plan"):
+            lines.append("Action plan:")
+            for a in parsed["action_plan"]:
+                lines.append(f"- [{(a.get('priority') or '').upper()}] {a.get('title')} ({a.get('owner')}): {a.get('why')}")
+            lines.append("")
     lines.append("Presumptive Conditions (Gulf War - Present):")
     lines.append("")
     presumptive = parsed.get("presumptive") or {}

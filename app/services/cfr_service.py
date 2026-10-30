@@ -50,9 +50,9 @@ def maybe_trigger_stale_refresh(base_dir: str, payload: Dict[str, Any]) -> None:
         pass
 
     try:
-        from app.services.queue import get_queue
+        from app.services.queue import get_queue, enqueue
         from scripts.build_va_ratings_chart_ecfr import build_chart
-        get_queue("default").enqueue(build_chart)
+        enqueue(build_chart)
         with open(marker, "w", encoding="utf-8") as f:
             f.write(str(time.time()))
     except Exception:
