@@ -3,11 +3,14 @@
 <div class="ws-head"><div><h1>Email</h1><p>How the site sends email, whether it's working, and every message it tried to send.</p></div></div>
 
 {% set working = st.provider and not st.missing_sender and last and last.ok %}
+{# Previous missing-credentials errors are historical; don't present them as proof that the current setup is failing. #}
+{% set previous_setup_failure = st.provider and not st.missing_sender and last and not last.ok and ('Email is not configured' in (last.error or '') or 'Missing sender address' in (last.error or '')) %}
 <div class="ws-grid" style="margin-bottom:20px">
   <section class="ws-card">
     <div class="ws-card-head"><h2>Status</h2>
       {% if not st.provider %}<span class="badge-dot badge-bad">Not set up</span>
       {% elif st.missing_sender %}<span class="badge-dot badge-bad">Sender missing</span>
+      {% elif previous_setup_failure %}<span class="badge-dot badge-warn">Ready to test</span>
       {% elif last and not last.ok %}<span class="badge-dot badge-bad">Failing</span>
       {% elif working %}<span class="badge-dot badge-ok">Working</span>
       {% else %}<span class="badge-dot badge-warn">Not tested</span>{% endif %}</div>
@@ -17,7 +20,11 @@
       {% if st.provider == 'SMTP' %}<li><div class="main">SMTP server</div><div class="meta">{{ st.smtp_host }}:{{ st.smtp_port }}</div></li>{% endif %}
       {% if last %}<li><div class="main">Last attempt</div><div class="meta">{{ last.created_at|short_date("%b %d, %I:%M %p") }} &middot; {{ 'sent' if last.ok else 'failed' }}</div></li>{% endif %}
     </ul>
-    {% if last_fail and (not last or not last.ok) %}<div class="sec"><div class="callout bad"><strong>Last error</strong>{{ last_fail.error }}</div></div>{% endif %}
+    {% if previous_setup_failure %}
+      <div class="sec"><div class="callout warn"><strong>Configuration detected — send a test email</strong>
+        The last attempt failed when email was not configured. Resend and the sender address are now present in the running configuration, but delivery has not been verified. Use <em>Send test email</em> below to verify your API key and sender domain.
+      </div></div>
+    {% elif last_fail and (not last or not last.ok) %}<div class="sec"><div class="callout bad"><strong>Last error</strong>{{ last_fail.error }}</div></div>{% endif %}
     {% if st.provider == 'SMTP' and st.on_railway %}<div class="sec"><div class="callout warn"><strong>SMTP on Railway</strong>Railway blocks outbound SMTP unless the project is on the Pro plan. If tests fail with a connection timeout, switch to Resend (steps on the right).</div></div>{% endif %}
     {% if current_user.is_director %}
     <form class="sec" method="post" action="{{ url_for('email_logs.send_test') }}" style="display:flex;gap:8px;flex-wrap:wrap">
