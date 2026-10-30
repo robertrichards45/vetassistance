@@ -42,8 +42,10 @@
           </ul>
           {% endif %}
           <p class="muted small" style="margin:10px 0 0;">Reviewed {{ review.at|short_date }}. Re-run after new documents arrive.</p>
+          <a class="btn btn-sm" style="margin-top:10px;" href="{{ url_for('claims.builder', client_id=client.id) }}">Build the claim forms</a>
         {% else %}
           <div class="ws-empty" style="padding:4px 0;"><strong>No AI review yet</strong>The review reads every document and maps each condition to what the VA needs: diagnosis, in-service event, nexus, and severity.</div>
+          <a class="btn btn-sm" style="margin-top:8px;" href="{{ url_for('claims.builder', client_id=client.id) }}">Or go straight to the claim builder</a>
         {% endif %}
       </div>
     </section>

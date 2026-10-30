@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+{% block title %}Claim builder | {{ client.display_name() }}{% endblock %}
+{% block content %}
+{% include "partials/_client_header.html" %}
+{% set claims = analysis.get('claims') or [] %}
+{% macro likely(n) -%}{{ 'Strong' if n >= 70 else ('Fair' if n >= 45 else 'Weak') }}{%- endmacro %}
+{% macro yn(name, val) -%}
+<select class="form-control" name="{{ name }}"><option value=""{% if not val %} selected{% endif %}>Not answered</option><option value="yes"{% if val == 'yes' %} selected{% endif %}>Yes</option><option value="no"{% if val == 'no' %} selected{% endif %}>No</option></select>
+{%- endmacro %}
+
+<div class="cb-intro">
+  <div>
+    <h2>Claim builder</h2>
+    <p>AI reads the whole file, recommends every claim the evidence supports with an approval estimate, and, if you choose, fills out VA Form 21-526EZ and writes a 21-4138 statement for each claim. You review everything before it's printed; the veteran signs.</p>
+  </div>
+  <div class="cb-docs">
+    <strong>{{ docs_read }} of {{ docs|length }}</strong><span>documents readable</span>
+    <a href="{{ safe_url_for('documents.client_documents', client_id=client.id) }}">Manage documents</a>
+  </div>
+</div>
+
+{% if not ai_ok %}
+<div class="callout warn" style="margin-bottom:20px;"><strong>AI isn't set up</strong>Add <code>OPENAI_API_KEY</code> in Railway's Variables to use the claim builder.</div>
+{% endif %}
+{% if packet and packet.error %}
+<div class="callout {{ 'bad' if packet.status == 'FAILED' else 'warn' }}" style="margin-bottom:20px;"><strong>{{ 'The analysis failed' if packet.status == 'FAILED' else 'Heads up' }}</strong>{{ packet.error }}</div>
+{% endif %}
+
+{% if running %}
+<section class="ws-card cb-running" id="cbRun" data-status="{{ packet.status }}">
+  <div class="ws-card-body">
+    <span class="spinner" aria-hidden="true"></span>
+    <div>
+      <strong id="cbRunTitle">{% if packet.status == 'DRAFTING' %}Filling the forms and writing statements{% elif packet.status == 'READING' %}Reading documents (scanned pages take a few seconds each){% else %}Analyzing the file{% endif %}</strong>
+      <p class="muted" id="cbRunSub">{% if packet.status == 'DRAFTING' %}Each statement is written from this veteran's records. This takes about a minute per claim.{% else %}This usually takes one to three minutes. You can leave this page; you'll get a notification when it's done.{% endif %}</p>
+    </div>
+  </div>
+</section>
+<script>
+(function(){
+  var box=document.getElementById('cbRun'), start=box.dataset.status;
+  function tick(){
+    fetch("{{ url_for('claims.status', client_id=client.id) }}",{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+      if(d.status==='DRAFTING' && d.statements!==null){ document.getElementById('cbRunSub').textContent=d.statements+' statement'+(d.statements===1?'':'s')+' written so far…'; }
+      if(d.status!==start && ['QUEUED','READING','ANALYZING','DRAFTING'].indexOf(d.status)<0){ location.reload(); return; }
+      if(d.status!==start){ start=d.status; document.getElementById('cbRunTitle').textContent = d.status==='ANALYZING' ? 'Analyzing the file' : (d.status==='READING' ? 'Reading documents' : 'Working…'); }
+      setTimeout(tick, 4000);
+    }).catch(function(){ setTimeout(tick, 8000); });
+  }
+  setTimeout(tick, 3000);
+})();
+</script>
+{% endif %}
+
+{% if not claims and not running %}
+<section class="ws-card cb-start">
+  <div class="ws-card-body">
+    {% if packet and packet.status == 'READY' %}<div class="callout warn" style="margin-bottom:16px;"><strong>No claims recommended yet</strong>The records don't show a current condition linked to service. Upload treatment records and the DD-214, then analyze again.</div>{% endif %}
+    <ol class="cb-steps">
+      <li><strong>Read the file</strong><span>Every document is read, with OCR for scans. Upload the DD-214, treatment records, decision letters, and any statements first.</span></li>
+      <li><strong>Recommend claims</strong><span>Direct, secondary, and presumptive (PACT Act, Gulf War, herbicide, Camp Lejeune), each with an approval estimate, the reasons, and what would raise it.</span></li>
+      <li><strong>Fill the forms (optional)</strong><span>Every answer placed in its box on the official 21-526EZ, plus a full first-person 21-4138 statement per claim. Anything the records don't show is flagged for the veteran, never made up.</span></li>
+    </ol>
+    <form method="post" action="{{ url_for('claims.analyze', client_id=client.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-primary" type="submit"{% if not ai_ok or not docs %} disabled{% endif %}>Analyze {{ docs|length }} document{{ 's' if docs|length != 1 }}</button>
+      {% if not docs %}<span class="muted small">Upload documents first.</span>{% elif docs_read < docs|length %}<span class="muted small">Unread documents are read automatically first.</span>{% endif %}
+    </form>
+  </div>
+</section>
+{% endif %}
+
+{% if claims %}
+{% if analysis.strategy %}
+<div class="callout" style="margin-bottom:20px;"><strong>Filing strategy</strong>{{ analysis.strategy }}</div>
+{% endif %}
+
+<form method="post" action="{{ url_for('claims.draft', client_id=client.id) }}" id="pickForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <section class="ws-card">
+    <div class="ws-card-head">
+      <h2>Recommended claims</h2>
+      <span class="muted small">{{ claims|length }} found · analyzed {{ (analysis.analyzed_at or '')[:10] }} · {{ (analysis.documents_reviewed or [])|length }} documents read</span>
+    </div>
+    <ul class="cb-claims">
+      {% for c in claims %}{% set n = c.likelihood or 0 %}
+      <li class="cb-claim">
+        <label class="cb-pick"><input type="checkbox" name="claim" value="{{ loop.index0 }}"{% if loop.index0 in selected %} checked{% endif %} aria-label="Include {{ c.condition }} on the forms"></label>
+        <div class="cb-main">
+          <div class="cb-title">
+            <strong>{{ c.condition }}</strong>
+            {% if c.diagnostic_code %}<a class="chip" href="{{ url_for('library.condition', dc=c.diagnostic_code) }}" target="_blank" rel="noopener">DC {{ c.diagnostic_code }}</a>{% endif %}
+            <span class="chip">{{ (c.claim_type or 'direct')|capitalize }}{% if c.secondary_to %} to {{ c.secondary_to }}{% endif %}</span>
+            {% set er = (c.estimated_rating|string)|replace('%','')|trim %}{% if er and er not in ('None', 'null') and c.estimated_rating is defined %}<span class="chip">Likely {{ er }}%</span>{% endif %}
+          </div>
+          <p class="cb-reason">{{ c.likelihood_reason }}</p>
+          <details class="cb-more">
+            <summary>Evidence and what's missing</summary>
+            <div class="cb-els">
+              {% for key, label in [('diagnosis','Current diagnosis'),('in_service','In-service event'),('nexus','Medical nexus'),('severity','Current severity')] %}
+                {% set el = (c.elements or {}).get(key) or {} %}{% set st = el.status or 'missing' %}
+                <div class="cb-el st-{{ st }}"><span class="cb-el-h">{{ label }} <b>{{ {'met':'Met','partial':'Partial','missing':'Missing','not_needed':'Not needed'}.get(st, st) }}</b></span><span>{{ el.evidence }}</span></div>
+              {% endfor %}
+            </div>
+            {% if c.basis %}<p class="small"><b>Basis:</b> {{ c.basis }}</p>{% endif %}
+            {% if c.evidence_needed %}<p class="small"><b>To raise the score:</b></p><ul class="small">{% for x in c.evidence_needed %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+            {% if c.supporting_forms %}<p class="small"><b>Also file:</b> {{ c.supporting_forms|join(', ') }}</p>{% endif %}
+          </details>
+        </div>
+        <div class="cb-score s-{{ 'hi' if n >= 70 else ('mid' if n >= 45 else 'lo') }}" title="Estimated approval likelihood from the evidence in the file">
+          <strong>{{ n }}%</strong><span>{{ likely(n) }}</span>
+          <i><b style="width:{{ n }}%"></b></i>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    <div class="cb-pickbar">
+      <span class="muted small">The estimate reflects the evidence in the file today, not a guarantee. VA decides every claim.</span>
+      <span class="grow"></span>
+      <button class="btn" type="submit" form="reAnalyze"{% if running %} disabled{% endif %}>Re-analyze</button>
+      <button class="btn btn-primary" type="submit" id="draftBtn"{% if running or not ai_ok %} disabled{% endif %}><span>Fill forms for <span id="pickN">{{ selected|length }}</span> claim<span id="pickS">{{ '' if selected|length == 1 else 's' }}</span></span></button>
+    </div>
+  </section>
+</form>
+<form id="reAnalyze" method="post" action="{{ url_for('claims.analyze', client_id=client.id) }}" onsubmit="return confirm('Start a fresh analysis? Current forms and statements will be replaced.');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"></form>
+<script>
+(function(){
+  var boxes=[].slice.call(document.querySelectorAll('#pickForm input[name=claim]'));
+  function f(){ var n=boxes.filter(function(b){return b.checked;}).length; document.getElementById('pickN').textContent=n; document.getElementById('pickS').textContent=n===1?'':'s'; document.getElementById('draftBtn').disabled = !n || {{ 'true' if running or not ai_ok else 'false' }}; }
+  boxes.forEach(function(b){ b.addEventListener('change', f); }); f();
+  document.getElementById('pickForm').addEventListener('submit', function(e){
+    {% if form %}if(!confirm('Re-fill the forms? Your edits to the current forms and statements will be replaced.')) e.preventDefault();{% endif %}
+  });
+})();
+</script>
+
+<div class="two-col cb-side">
+  {% if analysis.missing_info %}
+  <section class="ws-card">
+    <div class="ws-card-head"><h2>Ask the veteran</h2><span class="muted small">Not in the file</span></div>
+    <ul class="ws-list">{% for q in analysis.missing_info %}<li><div class="main">{{ q }}</div></li>{% endfor %}</ul>
+  </section>
+  {% endif %}
+  {% if analysis.not_recommended %}
+  <section class="ws-card">
+    <div class="ws-card-head"><h2>Not recommended yet</h2></div>
+    <ul class="ws-list">{% for x in analysis.not_recommended %}<li><div class="main"><div class="ttl">{{ x.condition }}</div><div class="sub wrap">{{ x.reason }}</div></div></li>{% endfor %}</ul>
+  </section>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if form and statements %}
+<form method="post" action="{{ url_for('claims.save', client_id=client.id) }}" id="forms" class="cb-forms">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="cb-forms-head">
+    <div><h2>Review the forms</h2><p class="muted">Check every answer against the records. Blank answers print blank. Edits are saved when you preview or download.</p></div>
+    <div class="actions">
+      <button class="btn" type="submit" name="next" value="526" formtarget="_blank">Preview 21-526EZ</button>
+      <button class="btn btn-primary" type="submit" name="next" value="packet" formtarget="_blank">Open full packet (PDF)</button>
+      <button class="btn" type="submit">Save</button>
+    </div>
+  </div>
+  {% if not has_ssn %}<div class="callout warn" style="margin-bottom:16px;"><strong>No SSN on file</strong>The forms will print without it. Add it in the client's Veteran details, or the veteran writes it on every page.</div>{% endif %}
+  {% set i = form.id or {} %}{% set s = form.service or {} %}{% set e = form.exposure or {} %}
+
+  <section class="ws-card">
+    <div class="ws-card-head"><h2>Section I · Identification</h2><span class="muted small">Items 1 to 11</span></div>
+    <div class="ws-card-body form-grid cb-grid">
+      <div><label class="form-label">Claim process (item 1)</label><select class="form-control" name="claim_process"><option value="STANDARD"{% if form.claim_process != 'FDC' %} selected{% endif %}>Standard claim</option><option value="FDC"{% if form.claim_process == 'FDC' %} selected{% endif %}>Fully developed claim (FDC)</option></select></div>
+      <div><label class="form-label">Filed a VA claim before? (4)</label>{{ yn('id.filed_before', i.filed_before) }}</div>
+      <div><label class="form-label">First name</label><input class="form-control" name="id.first" maxlength="12" value="{{ i.first }}"></div>
+      <div class="form-grid tight"><div><label class="form-label">MI</label><input class="form-control" name="id.mi" maxlength="1" value="{{ i.mi }}"></div><div><label class="form-label">Last name</label><input class="form-control" name="id.last" maxlength="18" value="{{ i.last }}"></div></div>
+      <div><label class="form-label">Date of birth (6)</label><input class="form-control" name="id.dob" placeholder="MM/DD/YYYY" value="{{ i.dob }}"></div>
+      <div><label class="form-label">VA file number (5)</label><input class="form-control" name="id.va_file" value="{{ i.va_file }}"></div>
+      <div><label class="form-label">Service number (7)</label><input class="form-control" name="id.service_number" value="{{ i.service_number }}"></div>
+      <div><label class="form-label">Phone (9)</label><input class="form-control" name="id.phone" value="{{ i.phone }}"></div>
+      <div class="full"><label class="form-label">Street (10)</label><input class="form-control" name="id.street" maxlength="30" value="{{ i.street }}"></div>
+      <div><label class="form-label">Apt / unit</label><input class="form-control" name="id.apt" maxlength="5" value="{{ i.apt }}"></div>
+      <div><label class="form-label">City</label><input class="form-control" name="id.city" maxlength="18" value="{{ i.city }}"></div>
+      <div class="form-grid tight"><div><label class="form-label">State</label><input class="form-control" name="id.state" maxlength="2" value="{{ i.state }}"></div><div><label class="form-label">Country</label><input class="form-control" name="id.country" maxlength="2" value="{{ i.country or 'US' }}"></div></div>
+      <div><label class="form-label">ZIP</label><input class="form-control" name="id.zip" value="{{ i.zip }}"></div>
+      <div><label class="form-label">Email (11)</label><input class="form-control" name="id.email" value="{{ i.email }}"></div>
+      <label class="check"><input type="checkbox" name="id.electronic" value="1"{% if i.electronic %} checked{% endif %}> Agrees to electronic correspondence</label>
+    </div>
+  </section>
+
+  <section class="ws-card">
+    <div class="ws-card-head"><h2>Section IV · Exposures</h2><span class="muted small">Item 15</span></div>
+    <div class="ws-card-body form-grid cb-grid">
+      <div><label class="form-label">Claiming toxic-exposure conditions? (15A)</label>{{ yn('exposure.claiming_toxic', e.claiming_toxic) }}</div>
+      <div><label class="form-label">Gulf War hazard locations? (15B)</label>{{ yn('exposure.gulf_war', e.gulf_war) }}</div>
+      <div class="form-grid tight"><div><label class="form-label">From (MM/YYYY)</label><input class="form-control" name="exposure.gw_from" value="{{ e.gw_from }}"></div><div><label class="form-label">To</label><input class="form-control" name="exposure.gw_to" value="{{ e.gw_to }}"></div></div>
+      <div><label class="form-label">Herbicide locations? (15C)</label>{{ yn('exposure.herbicide', e.herbicide) }}</div>
+      <div><label class="form-label">Other herbicide locations</label><input class="form-control" name="exposure.herb_locations" value="{{ e.herb_locations }}"></div>
+      <div class="form-grid tight"><div><label class="form-label">From</label><input class="form-control" name="exposure.herb_from" value="{{ e.herb_from }}"></div><div><label class="form-label">To</label><input class="form-control" name="exposure.herb_to" value="{{ e.herb_to }}"></div></div>
+      <div class="full cb-checks"><span class="form-label">Other exposures (15D)</span>
+        {% for k, lab in [('asbestos','Asbestos'),('mustard_gas','Mustard gas'),('radiation','Radiation'),('shad','SHAD'),('mos_toxin','MOS-related toxin'),('camp_lejeune','Camp Lejeune water')] %}
+          <label class="check"><input type="checkbox" name="exposure.{{ k }}" value="1"{% if e[k] %} checked{% endif %}> {{ lab }}</label>
+        {% endfor %}
+      </div>
+      <div><label class="form-label">Other (specify)</label><input class="form-control" name="exposure.other" value="{{ e.other }}"></div>
+      <div class="form-grid tight"><div><label class="form-label">From</label><input class="form-control" name="exposure.exp_from" value="{{ e.exp_from }}"></div><div><label class="form-label">To</label><input class="form-control" name="exposure.exp_to" value="{{ e.exp_to }}"></div></div>
+      <div class="full"><label class="form-label">Additional dates and locations (15E)</label><input class="form-control" name="exposure.additional" value="{{ e.additional }}"></div>
+    </div>
+  </section>
+
+  <section class="ws-card">
+    <div class="ws-card-head"><h2>Section V · Claimed conditions</h2><span class="muted small">Item 16 · rows past 15 go on the Section XIII addendum automatically</span></div>
+    <div class="table-responsive">
+      <table class="table doc-tbl cb-rows">
+        <thead><tr><th>#</th><th>Disability</th><th>Exposure, event, or injury</th><th>How it relates to service <span class="muted">(short; the statement has the full story)</span></th><th>Began</th><th></th></tr></thead>
+        <tbody>
+        {% for r in form.claims or [] %}
+          <tr>
+            <td class="muted">{{ loop.index }}</td>
+            <td><input class="form-control" name="claim.{{ loop.index0 }}.condition" value="{{ r.condition }}" aria-label="Disability {{ loop.index }}"></td>
+            <td><input class="form-control" name="claim.{{ loop.index0 }}.event" value="{{ r.event }}" aria-label="Event {{ loop.index }}"></td>
+            <td><input class="form-control" name="claim.{{ loop.index0 }}.explanation" value="{{ r.explanation }}" maxlength="90" aria-label="Relation {{ loop.index }}"></td>
+            <td><input class="form-control cb-date" name="claim.{{ loop.index0 }}.date" value="{{ r.date }}" placeholder="MM/YYYY" aria-label="Date {{ loop.index }}"></td>
+            <td><label class="check small" title="Leave this row off the form"><input type="checkbox" name="claim.{{ loop.index0 }}.remove" value="1"> Remove</label></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="ws-card-body">
+      <span class="form-label">Treatment at VA medical centers or military facilities after discharge (item 17)</span>
+      {% for n in range(3) %}{% set tr = (form.treatment or [])[n] if (form.treatment or [])|length > n else {} %}
+      <div class="form-grid cb-treat"><input class="form-control" name="treat.{{ n }}.text" value="{{ tr.text }}" placeholder="Condition: facility name, city, state" aria-label="Treatment facility {{ n + 1 }}"><input class="form-control" name="treat.{{ n }}.date" value="{{ tr.date }}" placeholder="MM/YYYY (blank if unknown)" aria-label="Treatment date {{ n + 1 }}"></div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="ws-card">
+    <div class="ws-card-head"><h2>Section VI and VII · Service and pay</h2><span class="muted small">Items 18 to 27</span></div>
+    <div class="ws-card-body form-grid cb-grid">
+      <div class="full"><label class="form-label">Other names served under (18)</label><input class="form-control" name="service.other_names" value="{{ s.other_names }}" placeholder="Leave blank if none"></div>
+      <div><label class="form-label">Branch (19A)</label><select class="form-control" name="service.branch"><option value="">Not answered</option>{% for b in ['Army','Navy','Marine Corps','Air Force','Coast Guard','Space Force','NOAA','USPHS'] %}<option{% if s.branch == b %} selected{% endif %}>{{ b }}</option>{% endfor %}</select></div>
+      <div><label class="form-label">Component (19B)</label><select class="form-control" name="service.component"><option value="">Not answered</option>{% for b in ['Active','Reserves','National Guard'] %}<option{% if s.component == b %} selected{% endif %}>{{ b }}</option>{% endfor %}</select></div>
+      <div><label class="form-label">Entry date (20A)</label><input class="form-control" name="service.entry" placeholder="MM/DD/YYYY" value="{{ s.entry }}"></div>
+      <div><label class="form-label">Exit date (20A)</label><input class="form-control" name="service.exit" placeholder="MM/DD/YYYY" value="{{ s.exit }}"></div>
+      <div class="full"><label class="form-label">Place of last separation (20B)</label><input class="form-control" name="service.place_sep" maxlength="30" value="{{ s.place_sep }}"></div>
+      <div><label class="form-label">Additional service from (20D)</label><input class="form-control" name="service.addl_from" placeholder="MM/DD/YYYY" value="{{ s.addl_from }}"></div>
+      <div><label class="form-label">Additional service to</label><input class="form-control" name="service.addl_to" placeholder="MM/DD/YYYY" value="{{ s.addl_to }}"></div>
+      <div><label class="form-label">Combat zone since 9-11-2001? (20C)</label>{{ yn('service.combat_911', s.combat_911) }}</div>
+      <div><label class="form-label">Reserves or National Guard? (21A)</label>{{ yn('service.reserves', s.reserves) }}</div>
+      <div><label class="form-label">Prisoner of war? (23A)</label>{{ yn('service.pow', s.pow) }}</div>
+      <div><label class="form-label">Receiving military retired pay? (24A)</label>{{ yn('service.retired_pay', s.retired_pay) }}</div>
+      <div><label class="form-label">Received separation or severance pay? (27A)</label>{{ yn('service.sep_pay', s.sep_pay) }}</div>
+    </div>
+  </section>
+
+  <h2 class="cb-st-h">Statements in support of claim (VA Form 21-4138)</h2>
+  {% for st in statements %}
+  <section class="ws-card cb-st" id="st{{ loop.index0 }}">
+    <div class="ws-card-head">
+      <h2>{{ st.condition }}{% if st.diagnostic_code %} <span class="muted small">DC {{ st.diagnostic_code }}</span>{% endif %}</h2>
+      <span class="cb-st-actions">
+        {% set ph = (st.placeholders or [])|length %}
+        {% if ph %}<span class="badge-dot badge-warn">{{ ph }} to confirm</span>{% else %}<span class="badge-dot badge-ok">No gaps</span>{% endif %}
+        <button class="btn btn-sm" type="submit" name="next" value="4138-{{ loop.index0 }}" formtarget="_blank">Preview PDF</button>
+        <button class="btn btn-sm" type="submit" form="toLetters{{ loop.index0 }}">Save to Letters</button>
+      </span>
+    </div>
+    <div class="ws-card-body">
+      <label class="sr-only" for="stt{{ loop.index0 }}">Statement for {{ st.condition }}</label>
+      <textarea id="stt{{ loop.index0 }}" class="form-control cb-text" name="statement.{{ loop.index0 }}" rows="18">{{ st.text }}</textarea>
+      <p class="muted small cb-wc" data-for="stt{{ loop.index0 }}"></p>
+      {% if st.exam_points %}
+      <details class="inline-edit"><summary>C&amp;P exam tips for the veteran</summary><ul class="small">{% for x in st.exam_points %}<li>{{ x }}</li>{% endfor %}</ul></details>
+      {% endif %}
+    </div>
+  </section>
+  {% endfor %}
+  <div class="sticky-save cb-save">
+    <span class="muted small">Prints on the official VA forms. Mail to the Claims Intake Center, PO Box 4444, Janesville, WI 53547-4444, or upload on VA.gov.</span>
+    <span class="grow"></span>
+    <button class="btn" type="submit">Save</button>
+    <button class="btn btn-primary" type="submit" name="next" value="packet" formtarget="_blank">Open full packet (PDF)</button>
+  </div>
+</form>
+{% for st in statements %}
+<form id="toLetters{{ loop.index0 }}" method="post" action="{{ url_for('claims.statement_to_letters', client_id=client.id, idx=loop.index0) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"></form>
+{% endfor %}
+<script>
+(function(){
+  [].forEach.call(document.querySelectorAll('.cb-wc'), function(p){
+    var t=document.getElementById(p.dataset.for);
+    function f(){ var w=(t.value.trim().match(/\S+/g)||[]).length, ph=(t.value.match(/\[VETERAN TO CONFIRM/g)||[]).length;
+      p.textContent=w+' words'+(ph?' · '+ph+' item'+(ph===1?'':'s')+' for the veteran to confirm':''); }
+    t.addEventListener('input', f); f();
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}

@@ -278,6 +278,8 @@ def create_app():
 
     from app.routes.library import library_bp
     app.register_blueprint(library_bp)
+    from app.routes.claim_builder import claims_bp
+    app.register_blueprint(claims_bp)
 
     def safe_url_for(endpoint: str, **values) -> str:
         aliases = {
