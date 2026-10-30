@@ -27,7 +27,7 @@
   <div><span>Readable by AI</span><strong{% if docs and docs_read < docs|length %} class="warn"{% endif %}>{{ docs_read }}</strong></div>
   <div><span>Last review</span><strong class="sm">{{ shown.completed_at|short_date("%b %d, %I:%M %p") if shown and shown.completed_at else 'Never' }}</strong></div>
   <div class="cr-strip-actions">
-    {% if docs and docs_read < docs|length %}<form method="post" action="{{ url_for('ai.read_documents', client_id=client.id) }}"><button class="btn btn-sm" type="submit">Read {{ docs|length - docs_read }} unread document{{ 's' if docs|length - docs_read != 1 }}</button></form>{% endif %}
+    {% set pend = (docs or [])|selectattr('text_state', 'equalto', 'pending')|list|length %}{% if pend %}<form method="post" action="{{ url_for('ai.read_documents', client_id=client.id) }}"><button class="btn btn-sm" type="submit">Read {{ pend }} unread document{{ 's' if pend != 1 }}</button></form>{% endif %}
     <a class="btn btn-sm" href="{{ url_for('documents.client_documents', client_id=client.id) }}">Manage documents</a>
   </div>
 </div>
@@ -170,7 +170,7 @@
       <ul class="ws-list">
         {% for d in docs %}
         <li><div class="main"><strong>{{ d.filename }}</strong><div class="sub">{{ d.category or 'Uncategorized' }}</div></div>
-          {% if d.extracted_text_path %}<span class="badge-dot badge-ok">Read</span>{% elif d.status == 'PROCESSING' %}<span class="badge-dot badge-warn">Reading</span>{% elif d.status in ('FAILED','ERROR') %}<span class="badge-dot badge-bad">Unreadable</span>{% else %}<span class="badge-dot badge-muted">Not read</span>{% endif %}</li>
+          {% set ts = d.text_state %}{% if ts == 'read' %}<span class="badge-dot badge-ok">Read</span>{% elif ts == 'missing' %}<span class="badge-dot badge-bad">File missing</span>{% elif ts == 'empty' %}<span class="badge-dot badge-bad">No text</span>{% elif d.status == 'PROCESSING' %}<span class="badge-dot badge-warn">Reading</span>{% elif d.status in ('FAILED','ERROR') %}<span class="badge-dot badge-bad">Unreadable</span>{% else %}<span class="badge-dot badge-muted">Not read</span>{% endif %}</li>
         {% endfor %}
       </ul>
       {% else %}

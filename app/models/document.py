@@ -23,3 +23,18 @@ class Document(Base):
     uploaded_by_user_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     is_client_visible: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    @property
+    def text_state(self) -> str:
+        """'read' (text the AI can use), 'empty' (read, no text found), 'missing' (file gone), or 'pending'."""
+        import os
+        if self.extracted_text_path and os.path.exists(self.extracted_text_path):
+            try:
+                if os.path.getsize(self.extracted_text_path) > 20:
+                    return "read"
+            except OSError:
+                pass
+            return "missing" if not (self.storage_path and os.path.exists(self.storage_path)) else "empty"
+        if self.storage_path and not os.path.exists(self.storage_path):
+            return "missing"
+        return "pending"

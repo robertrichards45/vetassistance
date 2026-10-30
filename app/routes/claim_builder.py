@@ -67,7 +67,7 @@ def builder(client_id: int):
         "claims/builder.html", client=c, packet=p, portal_user=portal_user, tool_title="Claim builder",
         analysis=_loads(p.analysis_json, {}) if p else {}, selected=_loads(p.selected_json, []) if p else [],
         form=_loads(p.form_json, {}) if p else {}, statements=_loads(p.statements_json, []) if p else [],
-        docs=docs, docs_read=sum(1 for d in docs if d.extracted_text_path), running=bool(p and p.status in RUNNING),
+        docs=docs, docs_read=sum(1 for d in docs if d.text_state == "read"), running=bool(p and p.status in RUNNING),
         ai_ok=bool(current_app.config.get("OPENAI_API_KEY")), has_ssn=bool(_ssn(c)),
     )
 

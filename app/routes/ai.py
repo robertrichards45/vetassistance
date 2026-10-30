@@ -74,7 +74,7 @@ def client_ai(client_id: int):
         latest.status, latest.error = "FAILED", "The review stopped responding (the server may have restarted). Run it again."
         db.commit()
         running = False
-    docs_read = sum(1 for d in docs if d.extracted_text_path)
+    docs_read = sum(1 for d in docs if d.text_state == "read")
     open_titles = {t.title.lower() for t in db.query(ClientTask).filter_by(client_id=c.id, is_completed=False).all()}
     return render_template("ai/client_ai.html", client=c, latest=latest, shown=shown, docs=docs, parsed=parsed,
                            qa_messages=messages, qa_doc_id=last_doc_id, runs=runs, running=running,
@@ -351,7 +351,7 @@ def run_status(client_id: int):
         return jsonify({"error": "not_found"}), 404
     run = db.query(AIRun).filter_by(client_id=c.id).order_by(AIRun.created_at.desc()).first()
     docs = db.query(Document).filter_by(client_id=c.id).all()
-    ready = sum(1 for d in docs if d.extracted_text_path)
+    ready = sum(1 for d in docs if d.text_state == "read")
     return jsonify({"status": run.status if run else None, "id": run.id if run else None,
                     "error": (run.error or "")[:400] if run else "", "docs": len(docs), "docs_read": ready})
 

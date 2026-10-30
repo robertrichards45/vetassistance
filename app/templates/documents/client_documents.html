@@ -4,7 +4,7 @@
 {% set active_tab = "documents" %}
 {% include "partials/_client_header.html" %}
 {% set CATS = ["Decision Letter","C&P Exam","DBQ","Treatment Records","Service Records (STR)","Buddy Statement","Employer Statement","Imaging/Labs","Other","Uncategorized"] %}
-{% set n_read = docs|selectattr('extracted_text_path')|list|length %}
+{% set n_read = docs|selectattr('text_state', 'equalto', 'read')|list|length %}
 {% set n_shared = docs|selectattr('is_client_visible')|list|length %}
 
 <form id="upForm" class="dz" method="post" action="{{ url_for('documents.upload_staff', client_id=client.id) }}" enctype="multipart/form-data">
@@ -64,7 +64,7 @@
       </tr></thead>
       <tbody>
       {% for d in docs %}
-        {% set rd = 'failed' if d.status in ('FAILED','ERROR') else ('read' if d.extracted_text_path else 'pending') %}
+        {% set ts = d.text_state %}{% set rd = 'failed' if (d.status in ('FAILED','ERROR') or ts in ('empty','missing')) else ('read' if ts == 'read' else 'pending') %}
         <tr data-name="{{ d.filename|lower }}" data-cat="{{ d.category or 'Uncategorized' }}" data-read="{{ rd }}" data-share="{{ 'shared' if d.is_client_visible else 'private' }}" data-date="{{ d.created_at.strftime('%Y%m%d%H%M%S') }}">
           <td><input type="checkbox" class="dsel" form="bulkForm" name="doc_ids" value="{{ d.id }}" aria-label="Select {{ d.filename }}"></td>
           <td><div class="doc-cell">
@@ -81,6 +81,8 @@
           </td>
           <td>
             {% if rd == 'read' %}<span class="badge-dot badge-ok" title="Text extracted, the AI review can use it">Readable</span>
+            {% elif ts == 'missing' %}<span class="badge-dot badge-bad" title="The stored file is gone (likely uploaded before storage was persistent). Upload it again.">File missing</span>
+            {% elif ts == 'empty' %}<span class="badge-dot badge-bad" title="No text could be read. Upload a clearer scan.">No text</span>
             {% elif rd == 'failed' %}<span class="badge-dot badge-bad" title="{{ d.error or 'Could not read this file' }}">Failed</span>
             {% elif d.status == 'PROCESSING' %}<span class="badge-dot badge-warn">Reading…</span>
             {% else %}<span class="badge-dot badge-muted">Not read</span>{% endif %}

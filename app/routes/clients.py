@@ -152,7 +152,7 @@ def view_client(client_id: int):
     return render_template("clients/view.html", client=c, thread=thread, employees=employees, payments=payments,
                            call_logs=call_logs, portal_user=portal_user, docs=docs, checklist=checklist, todos=todos,
                            last_client_msg=last_client_msg, review=review, reps=reps,
-                           docs_unread=sum(1 for d in docs if not d.extracted_text_path))
+                           docs_unread=sum(1 for d in docs if d.text_state != "read"))
 
 
 @clients_bp.get("/<int:client_id>/notes")
