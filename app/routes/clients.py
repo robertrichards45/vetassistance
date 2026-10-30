@@ -437,6 +437,10 @@ def create_portal(client_id: int):
         if existing.role != Role.CLIENT:
             flash("That email is already used by a staff account. Use a different email for the client portal.", "error")
             return redirect(url_for("clients.view_client", client_id=c.id))
+        other_client = db.query(Client).filter(Client.portal_user_id == existing.id, Client.id != c.id).first()
+        if other_client:
+            flash("This email is already linked to another client portal. Contact the account owner.", "error")
+            return redirect(url_for("clients.view_client", client_id=c.id))
         temp_pw = secrets.token_urlsafe(10)
         try:
             existing.set_password(temp_pw)
@@ -472,7 +476,9 @@ def create_portal(client_id: int):
             existing.is_active = True
             db.commit()
             u = existing
-    # Send branded invite (if SMTP configured)
+    # Send branded invite using the configured provider (Resend on Railway).
+    invite_sent = False
+    invite_error = "Email delivery was not attempted."
     try:
         from flask import current_app, request
         login_url = request.url_root.rstrip("/") + url_for("auth.login")
@@ -481,19 +487,24 @@ def create_portal(client_id: int):
         support_phone = current_app.config.get("SUPPORT_PHONE", "229-848-1633")
         subject, body_text, body_html = build_portal_invite(site_name, support_email, support_phone, login_url, email_norm, temp_pw)
         ok, msg = send_email_html(email_norm, subject, body_text, body_html, context="PORTAL_INVITE", org_id=current_user.org_id, actor_user_id=current_user.id)
+        invite_sent, invite_error = ok, msg
         if ok:
             flash("Portal invite email sent.", "success")
         else:
             flash(f"Portal invite not sent: {msg}", "warning")
-    except Exception:
-        pass
+    except Exception as exc:
+        invite_error = str(exc)
+        flash("Portal account created, but the invitation could not be emailed.", "warning")
     c.portal_user_id = u.id
     c.portal_enabled = True
     db.commit()
     ensure_tasks(current_user.org_id, c.id)
     post_welcome_letter(current_user.org_id, c.id, current_user.full_name or current_user.email, current_user.id)
     audit_log(current_user.org_id, current_user.id, "CLIENT_PORTAL_CREATED", "Client", c.id, detail=f"portal_user_id={u.id}")
-    flash("Client portal created. Temporary password emailed (reset required on login).", "success")
+    if invite_sent:
+        flash("Client portal created. Temporary password emailed; a new password is required on first sign-in.", "success")
+    else:
+        flash("Client portal created, but email failed. Check Email settings and use Resend invite.", "warning")
     return redirect(url_for("clients.view_client", client_id=c.id))
 
 
@@ -673,8 +684,8 @@ def resend_portal_invite(client_id: int):
         flash("Client portal is not created yet for this client.", "error")
         return redirect(url_for("clients.view_client", client_id=c.id))
     u = db.get(User, c.portal_user_id)
-    if not u:
-        flash("Portal user record missing.", "error")
+    if not u or u.org_id != current_user.org_id or u.role != Role.CLIENT or u.email.strip().lower() != c.email.strip().lower():
+        flash("Portal user record is missing or does not match this client.", "error")
         return redirect(url_for("clients.view_client", client_id=c.id))
 
     temp_pw = secrets.token_urlsafe(10)
