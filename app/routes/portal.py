@@ -195,7 +195,7 @@ def _send_verification_email(db, user):
     link = url_for("portal.verify_email", token=token, _external=True)
     return send_email_html(
         user.email, "Verify your Veteran Benefits Assistance email",
-        f"To verify your email and activate access to your client portal, use this link within 24 hours:\\n{link}",
+        f"To verify your email and activate access to your client portal, use this link within 24 hours:\n{link}",
         f'<p>Verify your email to activate your secure client portal.</p>'
         f'<p><a href="{link}">Verify email address</a></p>'
         f'<p>This verification link expires in 24 hours.</p>',
