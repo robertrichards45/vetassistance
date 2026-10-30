@@ -29,7 +29,7 @@ def test_public_search_files(app, monkeypatch):
     assert c.get("/BingSiteAuth.xml").status_code == 404
     monkeypatch.setenv("BING_SITE_VERIFICATION", "ABC123")
     assert "ABC123" in c.get("/BingSiteAuth.xml").get_data(as_text=True)
-    assert "resumebuilder.shop/military" in c.get("/").get_data(as_text=True)
+    assert "resumebuilder.shop/military-to-civilian-resume" in c.get("/").get_data(as_text=True)
 
 
 def test_notify_search_engines(app, monkeypatch):
