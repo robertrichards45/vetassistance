@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 from typing import Optional
 
@@ -19,6 +20,9 @@ def _get_fernet() -> Optional[Fernet]:
 def encrypt_ssn(raw_ssn: str) -> str:
     f = _get_fernet()
     if not f:
+        logging.getLogger("vetassistance").error(
+            "SSN not saved: SSN_ENCRYPTION_KEY is missing or invalid. Set it in Railway."
+        )
         return ""
     token = f.encrypt(raw_ssn.encode("utf-8"))
     return token.decode("utf-8")

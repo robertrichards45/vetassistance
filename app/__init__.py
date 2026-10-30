@@ -1,4 +1,4 @@
-﻿import os
+import os
 from types import SimpleNamespace
 from datetime import timezone
 try:
@@ -11,6 +11,8 @@ from flask_login import current_user
 from hashlib import sha256
 from sqlalchemy import inspect, text
 from werkzeug.routing import BuildError
+from werkzeug.middleware.proxy_fix import ProxyFix
+import logging
 from app.config import Config
 from app.extensions import login_manager, csrf, limiter, init_db, SessionLocal
 from app.models import User, Base, PageView
@@ -20,6 +22,18 @@ from app.models.user import Role
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+
+    # Railway terminates HTTPS at its edge proxy. Trust one hop of X-Forwarded-*
+    # headers so request.scheme is https (canonical/OG URLs, secure redirects)
+    # and request.remote_addr is the visitor's IP (rate limiting per visitor).
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
+    log = logging.getLogger("vetassistance")
+    if not app.debug:
+        if app.config.get("SECRET_KEY") in ("", "dev-secret-key-change-me"):
+            log.error("SECURITY: SECRET_KEY is not set in the environment. Set a long random SECRET_KEY in Railway.")
+        if not os.environ.get("SSN_ENCRYPTION_KEY", "").strip():
+            log.error("SECURITY: SSN_ENCRYPTION_KEY is not set. SSNs entered by clients cannot be saved until it is.")
 
     engine = init_db(app)
     login_manager.init_app(app)
@@ -117,6 +131,19 @@ def create_app():
                 db.close()
         except Exception:
             return
+
+    @app.after_request
+    def security_headers(resp):
+        resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+        resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+        resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        resp.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=(self)")
+        if not app.debug and request.is_secure:
+            resp.headers.setdefault("Strict-Transport-Security", "max-age=31536000")
+        # Logged-in pages can show personal data; never let shared caches keep them.
+        if current_user.is_authenticated:
+            resp.headers.setdefault("Cache-Control", "no-store")
+        return resp
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -283,24 +310,36 @@ def create_app():
         brand_name = os.environ.get("BRAND_NAME") or app.config.get("SITE_NAME", "")
         unread_messages = 0
         if getattr(_current_user, "is_authenticated", False):
+            db = None
             try:
+                from datetime import datetime
+                from sqlalchemy import func, or_
                 from app.models import Client, MessageThread, Message
                 from app.models.user import Role
-                db = SessionLocal()
                 if _current_user.role in [Role.DIRECTOR, Role.EMPLOYEE]:
-                    if _current_user.role == Role.DIRECTOR:
-                        clients = db.query(Client).filter_by(org_id=_current_user.org_id, is_archived=False).all()
-                    else:
-                        clients = db.query(Client).filter_by(org_id=_current_user.org_id, assigned_user_id=_current_user.id, is_archived=False).all()
-                    from datetime import datetime
-                    for c in clients:
-                        thread = db.query(MessageThread).filter_by(org_id=_current_user.org_id, client_id=c.id).first()
-                        if not thread:
-                            continue
-                        since = thread.last_staff_seen_at or datetime.min
-                        unread_messages += db.query(Message).filter_by(org_id=_current_user.org_id, thread_id=thread.id, sender_role="CLIENT").filter(Message.created_at > since).count()
+                    db = SessionLocal()
+                    # One query instead of one-per-client on every staff page load.
+                    q = (
+                        db.query(func.count(Message.id))
+                        .join(MessageThread, Message.thread_id == MessageThread.id)
+                        .join(Client, MessageThread.client_id == Client.id)
+                        .filter(
+                            Client.org_id == _current_user.org_id,
+                            Client.is_archived.is_(False),
+                            Message.org_id == _current_user.org_id,
+                            Message.sender_role == "CLIENT",
+                            or_(MessageThread.last_staff_seen_at.is_(None),
+                                Message.created_at > MessageThread.last_staff_seen_at),
+                        )
+                    )
+                    if _current_user.role != Role.DIRECTOR:
+                        q = q.filter(Client.assigned_user_id == _current_user.id)
+                    unread_messages = int(q.scalar() or 0)
             except Exception:
                 unread_messages = 0
+            finally:
+                if db is not None:
+                    db.close()
         return {
             "SITE": site,
             "COMPANY_NAME": brand_name,

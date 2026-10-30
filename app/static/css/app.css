@@ -1295,10 +1295,10 @@ body{
 
 
 
-/* Global typography */
+/* Global typography (letter/report previews keep their own serif via .word-report) */
 body, input, button, select, textarea{
-  font-family:"Times New Roman", Times, serif;
-  font-size:16px; /* 12pt */
+  font-family:"Source Sans 3", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size:16px;
 }
 
 /* ==========================

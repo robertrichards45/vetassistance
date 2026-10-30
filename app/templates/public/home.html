@@ -1,143 +1,274 @@
 {% extends "base.html" %}
-{% block title %}{{ COMPANY_NAME }} | VA Claims Guidance{% endblock %}
+{% block title %}{{ COMPANY_NAME }} | VA Claim Preparation by Veterans{% endblock %}
 
 {% block content %}
-<section class="home-hero">
-  <div class="home-hero-copy">
-    <div class="home-kicker">{{ SITE.home_hero_kicker or "Veterans Helping Veterans" }}</div>
-    <h1 class="home-title">{{ home_content.hero_title or SITE.home_hero_title or "Veterans Benefits" }}</h1>
-    <p class="home-subtitle">{{ home_content.hero_subtitle or SITE.home_hero_subtitle or "A premium claims intelligence ecosystem: portal, evidence discipline, and AI-guided strategy built to win." }}</p>
-    <div class="home-actions">
-      <a class="btn btn-primary" href="{{ SITE.home_primary_cta_url or url_for('onboard.become_client') }}">{{ home_content.cta_primary or SITE.home_primary_cta_text or "Become a Client" }}</a>
-      <a class="btn btn-outline-primary" href="{{ url_for('portal.portal_home') }}">{{ home_content.cta_secondary or "Client Login" }}</a>
-      <a class="btn btn-outline-primary" href="{{ url_for('public.pricing') }}">Pricing</a>
-    </div>
-    <div class="home-disclaimer">{{ SITE.home_disclaimer_box or "Educational support only. No guarantee of outcome." }}</div>
-  </div>
-  <div class="home-hero-card">
-    <div class="home-stat">
-      <span>Public tools</span>
-      <strong>Benefits finder, locator, guides</strong>
-    </div>
-    <div class="home-stat">
-      <span>Secure workflow</span>
-      <strong>Client portal, uploads, and messaging</strong>
-    </div>
-    <div class="home-stat">
-      <span>Next action</span>
-      <strong>{% if diy_access %}DIY tools available{% else %}Start with the public resources{% endif %}</strong>
-    </div>
-  </div>
-</section>
+<div class="hm">
 
-<section class="home-grid">
-  <article class="home-panel">
-    <div class="home-panel-kicker">{{ home_content.feature_1_title or "Evidence Discipline" }}</div>
-    <h2>{{ home_content.feature_1_body or "Upload, categorize, and track evidence with checklists and timelines so nothing gets missed." }}</h2>
-    <div class="home-link-list">
-      <a href="{{ url_for('onboard.become_client') }}">Become a client</a>
-      <a href="{{ url_for('portal.portal_home') }}">Client login</a>
-      <a href="{{ url_for('public.veteran_upload') }}">Veteran upload</a>
-      <a href="{{ url_for('public.contact') }}">Contact the team</a>
+  <section class="hm-hero">
+    <div class="hm-hero-copy">
+      <p class="hm-kicker"><img src="{{ url_for('static', filename='brand/logo.png') }}" alt="" width="22" height="22"> Veteran-run. Veterans helping veterans.</p>
+      <h1>Build a VA claim with no missing evidence.</h1>
+      <p class="hm-lede">We help you gather your records, find the gaps the VA will look for, and put together a clean, organized claim packet. Everything stays in a secure portal you can check any time.</p>
+      <div class="hm-actions">
+        <a class="hm-btn hm-btn-primary" href="{{ SITE.home_primary_cta_url or url_for('onboard.become_client') }}">Start your claim review</a>
+        <a class="hm-btn hm-btn-ghost" href="{{ url_for('resources.benefits_finder') }}">Try the free Benefits Finder</a>
+      </div>
+      <ul class="hm-assure">
+        <li>Encrypted uploads and SSN storage</li>
+        <li>Free eligibility review</li>
+        <li>Real people answer your messages</li>
+      </ul>
     </div>
-  </article>
 
-  <article class="home-panel">
-    <div class="home-panel-kicker">{{ home_content.feature_2_title or "AI Guidance per Client" }}</div>
-    <h2>{{ home_content.feature_2_body or "Evidence scoring, gaps, conflicts, and next-best actions tied to the client file." }}</h2>
-    <ul class="home-feature-list">
-      <li>{{ home_content.feature_3_title or "Documents + Letters on Demand" }}</li>
-      <li>{{ home_content.feature_3_body or "Generate DOCX, web copy, and email drafts in seconds. Nexus packets included." }}</li>
-      <li>Secure portal for files, checklists, and messages</li>
-      <li>Benefits discovery by location and eligibility clues</li>
-    </ul>
-  </article>
-</section>
+    <figure class="hm-folder" aria-label="Example evidence checklist for a VA claim">
+      <div class="hm-folder-tab">Claim file: Knee &amp; tinnitus</div>
+      <div class="hm-folder-body">
+        <ul class="hm-check">
+          <li class="ok"><span class="mark" aria-hidden="true"></span><div><strong>DD-214</strong><small>Service dates confirmed</small></div></li>
+          <li class="ok"><span class="mark" aria-hidden="true"></span><div><strong>Service treatment records</strong><small>Knee injury noted, 2009</small></div></li>
+          <li class="ok"><span class="mark" aria-hidden="true"></span><div><strong>Current diagnosis</strong><small>VA clinic, 2026</small></div></li>
+          <li class="gap"><span class="mark" aria-hidden="true"></span><div><strong>Nexus opinion</strong><small>Missing: links today's condition to service</small></div></li>
+          <li class="ok"><span class="mark" aria-hidden="true"></span><div><strong>Buddy statement</strong><small>Hearing exposure, flight line</small></div></li>
+        </ul>
+        <figcaption>One gap found. Fix it before you file, not after a denial.</figcaption>
+      </div>
+    </figure>
+  </section>
 
-<section class="home-pricing">
-  <div class="section-head">
-    <div class="home-panel-kicker">Pricing Snapshot</div>
-    <h2>Simple service options.</h2>
-  </div>
-  {% if pricing_items %}
-    <div class="pricing-grid">
-      {% for item in pricing_items[:3] %}
-        <article class="pricing-card">
-          <div class="pricing-name">{{ item.name }}</div>
-          {% if item.is_percent %}
-            <div class="pricing-price">{{ item.percent_of_backpay }}% of backpay</div>
-          {% else %}
-            <div class="pricing-price">${{ "%.2f"|format((item.price_cents or 0) / 100) }}</div>
-          {% endif %}
-          <p class="pricing-desc">{{ item.description or "Details available on the pricing page." }}</p>
-        </article>
+  <section class="hm-steps" aria-labelledby="how-title">
+    <h2 id="how-title">How it works</h2>
+    <ol>
+      <li>
+        <h3>Tell us about your service</h3>
+        <p>Answer a short intake about your branch, dates, and the conditions you want to claim. It's free and there's no obligation.</p>
+      </li>
+      <li>
+        <h3>Upload what you have</h3>
+        <p>Drag your records into the secure portal: DD-214, medical records, letters, photos. Phone pictures of paperwork work fine.</p>
+      </li>
+      <li>
+        <h3>Get an organized packet</h3>
+        <p>We sort your evidence by condition, check it against the VA rating criteria, flag what's missing, and prepare the forms and statements.</p>
+      </li>
+    </ol>
+    <a class="hm-btn hm-btn-primary" href="{{ url_for('onboard.become_client') }}">Start the free intake</a>
+  </section>
+
+  <section class="hm-packet" aria-labelledby="packet-title">
+    <div class="hm-packet-head">
+      <h2 id="packet-title">What goes into your packet</h2>
+      <p>Built around how the VA actually rates claims: diagnosis, an in-service event, and the link between them.</p>
+    </div>
+    <dl class="hm-packet-list">
+      <div><dt>Evidence checklist per condition</dt><dd>See exactly which records support each condition and which ones are still needed.</dd></div>
+      <div><dt>Gap and conflict review</dt><dd>Software scans your file for missing pieces and contradictions; a person reviews every finding.</dd></div>
+      <div><dt>Statements and letters</dt><dd>Drafts of personal statements, buddy statements, and nexus letter requests for your doctor.</dd></div>
+      <div><dt>Forms filled in</dt><dd>VA forms pre-filled from your file so you're not retyping the same details ten times.</dd></div>
+      <div><dt>Secure portal and messaging</dt><dd>Track tasks, deadlines, and messages with our team in one place instead of email chains.</dd></div>
+    </dl>
+  </section>
+
+  <section class="hm-tools" aria-labelledby="tools-title">
+    <h2 id="tools-title">Free tools, no account needed</h2>
+    <div class="hm-tools-row">
+      <a href="{{ url_for('resources.benefits_finder') }}"><strong>Benefits Finder</strong><span>Federal and state benefits you may qualify for</span></a>
+      <a href="{{ url_for('public.intelligent_benefits') }}#services-locator"><strong>Service Locator</strong><span>VA offices, clinics, and help near you</span></a>
+      <a href="{{ url_for('public.crsc') }}"><strong>CRSC &amp; combat pay</strong><span>Check if you're owed retirement offset pay</span></a>
+      <a href="{{ url_for('public.guides') }}"><strong>Claim guides</strong><span>Plain-language walkthroughs of the process</span></a>
+    </div>
+  </section>
+
+  <section class="hm-pricing" aria-labelledby="pricing-title">
+    <div class="hm-packet-head">
+      <h2 id="pricing-title">Pricing</h2>
+      <p>Start with a free review. You'll see the fee in writing before you sign anything.</p>
+    </div>
+    {% if pricing_items %}
+      <div class="hm-price-list">
+        {% for item in pricing_items[:3] %}
+          <article class="hm-price{% if loop.first %} is-free{% endif %}">
+            <h3>{{ item.name }}</h3>
+            {% if item.is_percent %}
+              <p class="amt">{{ item.percent_of_backpay }}% <span>of backpay</span></p>
+            {% else %}
+              <p class="amt">{% if (item.price_cents or 0) == 0 %}Free{% else %}${{ "%.2f"|format((item.price_cents or 0) / 100) }}{% endif %}</p>
+            {% endif %}
+            <p>{{ item.description or "Details on the pricing page." }}</p>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="hm-muted">Pricing is being updated. <a href="{{ url_for('public.contact') }}">Contact us</a> for current options.</p>
+    {% endif %}
+    <a class="hm-link" href="{{ url_for('public.pricing') }}">See full pricing</a>
+  </section>
+
+  {% if comments %}
+  <section class="hm-voices" id="comments" aria-labelledby="voices-title">
+    <h2 id="voices-title">What veterans say</h2>
+    <div class="hm-voice-list">
+      {% for comment in comments[:3] %}
+        <blockquote>
+          <p>{{ comment.comment }}</p>
+          <footer>{{ comment.name }}{% if comment.branch %}, {{ comment.branch }}{% endif %}</footer>
+        </blockquote>
       {% endfor %}
     </div>
-  {% else %}
-    <div class="home-empty">Pricing details are being updated. Use the contact page for current options.</div>
+  </section>
   {% endif %}
-  <a class="home-inline-link" href="{{ url_for('public.pricing') }}">View all pricing</a>
-</section>
 
-{% if comments %}
-<section class="home-comments" id="comments">
-  <div class="section-head">
-    <div class="home-panel-kicker">Community Feedback</div>
-    <h2>Recent approved comments.</h2>
-  </div>
-  <div class="comments-grid">
-    {% for comment in comments[:6] %}
-      <article class="comment-card">
-        <div class="comment-name">{{ comment.name }}</div>
-        {% if comment.branch %}
-          <div class="comment-branch">{{ comment.branch }}</div>
-        {% endif %}
-        <p>{{ comment.comment }}</p>
-      </article>
-    {% endfor %}
-  </div>
-</section>
-{% endif %}
+  <section class="hm-crisis" id="crisis" aria-labelledby="crisis-title">
+    <div>
+      <h2 id="crisis-title">In crisis right now?</h2>
+      <p>The Veterans Crisis Line is free, confidential, and open 24/7. You don't have to be enrolled in VA care.</p>
+    </div>
+    <div class="hm-crisis-actions">
+      <a class="hm-btn hm-btn-gold" href="tel:988">Call 988, then press 1</a>
+      <a class="hm-btn hm-btn-light" href="sms:838255">Text 838255</a>
+      <a class="hm-crisis-more" href="https://www.veteranscrisisline.net/" target="_blank" rel="noopener">Chat online at VeteransCrisisLine.net</a>
+    </div>
+  </section>
+
+  <section class="hm-final">
+    <h2>Not sure if you have a claim?</h2>
+    <p>The eligibility review is free. Tell us what happened in service and we'll tell you what evidence you'd need.</p>
+    <a class="hm-btn hm-btn-primary" href="{{ url_for('onboard.become_client') }}">Start your claim review</a>
+    <p class="hm-fine">{{ SITE.home_disclaimer_box or "Educational and administrative support only. We are a private business, not affiliated with or endorsed by the U.S. Department of Veterans Affairs. No outcome is guaranteed." }}</p>
+  </section>
+
+</div>
 {% endblock %}
 
 {% block head %}
 <style>
-.home-hero{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(280px,.95fr);gap:22px;align-items:stretch;padding:10px 0 24px;}
-.home-hero-copy,.home-hero-card,.home-panel,.pricing-card,.comment-card,.home-empty{background:#fff;border:1px solid rgba(15,23,42,.1);border-radius:24px;box-shadow:0 18px 40px rgba(15,23,42,.07);}
-.home-hero-copy{padding:34px;background:linear-gradient(145deg,#fff 0%,#f6f9fd 100%);}
-.home-kicker,.home-panel-kicker{display:inline-flex;align-items:center;padding:7px 12px;border-radius:999px;background:rgba(31,75,122,.08);border:1px solid rgba(31,75,122,.14);font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:.72rem;color:#163b66;}
-.home-title{margin:16px 0 12px;font-size:clamp(2.2rem,5vw,4rem);line-height:1.02;color:#0b1f3a;max-width:11ch;}
-.home-subtitle{margin:0;max-width:62ch;font-size:1.05rem;line-height:1.7;color:#4a5d73;}
-.home-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:22px;}
-.home-disclaimer{margin-top:20px;padding:12px 14px;border-radius:16px;background:#edf4fb;color:#325273;font-weight:700;font-size:.92rem;}
-.home-hero-card{padding:24px;display:flex;flex-direction:column;justify-content:center;gap:14px;background:linear-gradient(180deg,#14365f 0%,#1f4b7a 100%);color:#fff;}
-.home-stat{padding:14px 16px;border-radius:18px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.12);}
-.home-stat span{display:block;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;opacity:.78;font-weight:800;}
-.home-stat strong{display:block;margin-top:6px;font-size:1rem;line-height:1.4;}
-.home-grid,.pricing-grid,.comments-grid{display:grid;gap:18px;}
-.home-grid{grid-template-columns:repeat(2,minmax(0,1fr));margin:8px 0 24px;}
-.home-panel{padding:24px;}
-.home-panel h2,.section-head h2{margin:12px 0 0;color:#0b1f3a;font-size:1.7rem;line-height:1.15;}
-.home-link-list{display:grid;gap:10px;margin-top:18px;}
-.home-link-list a,.home-inline-link{font-weight:800;color:#1f4b7a;text-decoration:none;}
-.home-link-list a:hover,.home-inline-link:hover{text-decoration:underline;}
-.home-feature-list{margin:18px 0 0;padding-left:18px;color:#41556d;line-height:1.8;font-weight:600;}
-.home-pricing,.home-comments{display:flex;flex-direction:column;gap:18px;padding:8px 0 10px;}
-.section-head{display:flex;flex-direction:column;gap:12px;}
-.pricing-grid{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));}
-.pricing-card,.comment-card{padding:20px;}
-.pricing-name,.comment-name{font-weight:900;color:#0b1f3a;}
-.pricing-price{margin-top:8px;font-size:1.5rem;font-weight:900;color:#1f4b7a;}
-.pricing-desc,.comment-card p{margin:10px 0 0;color:#4a5d73;line-height:1.65;}
-.comment-branch{margin-top:6px;font-size:.82rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#6b7d91;}
-.comments-grid{grid-template-columns:repeat(auto-fit,minmax(240px,1fr));}
-.home-empty{padding:18px;color:#4a5d73;font-weight:700;}
+.hm{
+  --navy:#14325A; --navy-deep:#0E2440; --gold:#F2C14E; --manila:#EAD9AA;
+  --ink:#102033; --slate:#4A5D73; --line:#D6DEE8; --ok:#2E7D4F; --gap:#B4462F;
+  --display:"Barlow Semi Condensed","Source Sans 3",system-ui,sans-serif;
+  color:var(--ink); max-width:1180px; margin:0 auto;
+}
+.hm h1,.hm h2,.hm h3{font-family:var(--display);color:var(--ink);letter-spacing:-.005em;}
+.hm h2{font-size:clamp(1.8rem,3.4vw,2.4rem);font-weight:700;line-height:1.1;margin:0 0 .6rem;}
+.hm h3{font-size:1.3rem;font-weight:700;line-height:1.2;margin:0 0 .35rem;}
+.hm p{line-height:1.65;}
+.hm section{padding:56px 0;border-top:1px solid var(--line);}
+.hm section:first-child{border-top:0;}
+
+/* Buttons */
+.hm-btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 22px;border-radius:8px;font-weight:700;font-size:1.02rem;text-decoration:none;border:2px solid transparent;transition:background-color .15s ease,border-color .15s ease;}
+.hm-btn-primary{background:var(--navy);color:#fff;}
+.hm-btn-primary:hover{background:var(--navy-deep);color:#fff;}
+.hm-btn-ghost{border-color:var(--navy);color:var(--navy);background:transparent;}
+.hm-btn-ghost:hover{background:rgba(20,50,90,.06);color:var(--navy);}
+.hm-btn-gold{background:var(--gold);color:var(--navy-deep);}
+.hm-btn-gold:hover{background:#e7b43a;color:var(--navy-deep);}
+.hm-btn-light{border-color:rgba(255,255,255,.7);color:#fff;}
+.hm-btn-light:hover{background:rgba(255,255,255,.1);color:#fff;}
+.hm a:focus-visible{outline:3px solid var(--gold);outline-offset:3px;}
+
+/* Hero */
+.hm-hero{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:56px;align-items:center;padding:36px 0 64px;}
+.hm-kicker{display:flex;align-items:center;gap:10px;margin:0 0 18px;color:var(--slate);font-weight:600;}
+.hm-hero h1{font-size:clamp(2.6rem,6vw,4.4rem);font-weight:700;line-height:.98;margin:0 0 20px;max-width:13ch;}
+.hm-lede{font-size:1.2rem;color:var(--slate);max-width:52ch;margin:0;}
+.hm-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px;}
+.hm-assure{list-style:none;margin:26px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:8px 22px;color:var(--slate);font-weight:600;font-size:.98rem;}
+.hm-assure li{position:relative;padding-left:20px;}
+.hm-assure li::before{content:"";position:absolute;left:0;top:.45em;width:10px;height:6px;border-left:2.5px solid var(--ok);border-bottom:2.5px solid var(--ok);transform:rotate(-45deg);}
+
+/* Folder — the signature element */
+.hm-folder{margin:0;position:relative;transform:rotate(1.2deg);animation:hm-settle .7s cubic-bezier(.2,.8,.2,1) both;}
+.hm-folder-tab{display:inline-block;background:var(--manila);padding:9px 18px 7px;border-radius:10px 10px 0 0;font-family:var(--display);font-weight:600;font-size:1rem;color:#5b4a22;margin-left:22px;}
+.hm-folder-body{background:var(--manila);border-radius:4px 14px 14px 14px;padding:16px;box-shadow:0 22px 40px -18px rgba(14,36,64,.45);}
+.hm-check{list-style:none;margin:0;padding:6px 18px;background:#fff;border-radius:6px;box-shadow:0 1px 0 rgba(0,0,0,.06);}
+.hm-check li{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-bottom:1px solid #E8EEF5;}
+.hm-check li:last-child{border-bottom:0;}
+.hm-check strong{display:block;font-size:1.02rem;}
+.hm-check small{display:block;color:var(--slate);font-size:.9rem;}
+.hm-check .mark{flex:0 0 22px;height:22px;border-radius:5px;border:2px solid var(--ok);position:relative;margin-top:2px;}
+.hm-check .ok .mark{background:var(--ok);}
+.hm-check .ok .mark::after{content:"";position:absolute;left:6px;top:2px;width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg);}
+.hm-check .gap .mark{border-color:var(--gap);border-style:dashed;}
+.hm-check .gap{animation:hm-flag .5s .75s ease-out both;margin:0 -10px;padding-left:10px;padding-right:10px;border-radius:6px;}
+.hm-check .gap small{color:var(--gap);font-weight:700;}
+.hm-folder figcaption{padding:12px 4px 2px;font-weight:700;color:#5b4a22;}
+@keyframes hm-settle{from{opacity:0;transform:translateY(14px) rotate(3deg);}to{opacity:1;transform:rotate(1.2deg);}}
+@keyframes hm-flag{from{background:transparent;}to{background:#FBEAE5;}}
+
+/* Steps */
+.hm-steps ol{list-style:none;counter-reset:step;margin:28px 0 32px;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:36px;}
+.hm-steps li{counter-increment:step;padding-top:18px;border-top:3px solid var(--navy);}
+.hm-steps li::before{content:counter(step);display:block;font-family:var(--display);font-weight:700;font-size:2.6rem;line-height:1;color:var(--gold);margin-bottom:10px;-webkit-text-stroke:1px #c99a2a;}
+.hm-steps p{color:var(--slate);margin:0;}
+
+/* Packet */
+.hm-packet{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:56px;}
+.hm-packet-head p{color:var(--slate);max-width:40ch;margin:0;font-size:1.08rem;}
+.hm-packet-list{margin:0;}
+.hm-packet-list div{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.3fr);gap:20px;padding:16px 0;border-bottom:1px solid var(--line);}
+.hm-packet-list div:first-child{padding-top:4px;}
+.hm-packet-list dt{font-weight:700;font-size:1.05rem;}
+.hm-packet-list dd{margin:0;color:var(--slate);line-height:1.6;}
+
+/* Tools */
+.hm-tools-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px;margin-top:22px;background:var(--line);border:2px solid var(--line);border-radius:12px;overflow:hidden;}
+.hm-tools-row a{background:#fff;padding:22px 20px;text-decoration:none;color:var(--ink);display:flex;flex-direction:column;gap:6px;min-height:120px;}
+.hm-tools-row a:hover{background:#F5F8FC;}
+.hm-tools-row strong{font-family:var(--display);font-size:1.25rem;color:var(--navy);}
+.hm-tools-row span{color:var(--slate);line-height:1.5;}
+
+/* Pricing */
+.hm-pricing{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:20px 56px;}
+.hm-price-list{display:grid;gap:14px;}
+.hm-price{padding:20px 22px;border:1px solid var(--line);border-radius:10px;background:#fff;}
+.hm-price.is-free{border-color:var(--navy);border-width:2px;}
+.hm-price h3{font-size:1.15rem;}
+.hm-price .amt{font-family:var(--display);font-size:2rem;font-weight:700;color:var(--navy);margin:2px 0 6px;line-height:1.1;}
+.hm-price .amt span{font-size:1rem;font-weight:600;color:var(--slate);font-family:"Source Sans 3",sans-serif;}
+.hm-price p:last-child{margin:0;color:var(--slate);}
+.hm-link{grid-column:2;font-weight:700;color:var(--navy);}
+.hm-muted{color:var(--slate);}
+
+/* Voices */
+.hm-voice-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:28px;margin-top:20px;}
+.hm-voice-list blockquote{margin:0;padding-left:18px;border-left:3px solid var(--gold);}
+.hm-voice-list p{font-size:1.08rem;margin:0 0 10px;}
+.hm-voice-list footer{color:var(--slate);font-weight:700;}
+
+/* Crisis */
+.hm .hm-crisis{background:var(--navy-deep);color:#fff;border-radius:14px;padding:36px 40px;margin:24px 0;border:0;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px 40px;align-items:center;}
+.hm-crisis h2{color:#fff;}
+.hm-crisis p{margin:0;color:rgba(255,255,255,.85);max-width:48ch;}
+.hm-crisis-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center;}
+.hm-crisis-more{flex-basis:100%;color:#fff;font-weight:600;}
+
+/* Final */
+.hm .hm-final{text-align:left;padding-bottom:24px;}
+.hm-final p{color:var(--slate);max-width:56ch;font-size:1.08rem;}
+.hm-final .hm-fine{font-size:.9rem;margin-top:28px;max-width:80ch;}
+
 @media (max-width: 980px){
-  .home-hero,.home-grid{grid-template-columns:1fr;}
+  .hm-hero,.hm-packet,.hm-pricing{grid-template-columns:1fr;gap:36px;}
+  .hm-folder{max-width:520px;}
+  .hm-tools-row{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .hm-link{grid-column:1;}
+  .hm .hm-crisis{grid-template-columns:1fr;}
 }
 @media (max-width: 640px){
-  .home-hero-copy,.home-hero-card,.home-panel,.pricing-card,.comment-card{padding:20px;}
-  .home-title{max-width:none;}
+  .hm section{padding:40px 0;}
+  .hm-hero{padding:8px 0 40px;}
+  .hm-lede{font-size:1.08rem;}
+  .hm-actions .hm-btn{width:100%;}
+  .hm-steps ol{grid-template-columns:1fr;gap:26px;}
+  .hm-packet-list div{grid-template-columns:1fr;gap:4px;}
+  .hm-tools-row{grid-template-columns:1fr;}
+  .hm .hm-crisis{padding:26px 22px;}
+  .hm-crisis-actions .hm-btn{width:100%;}
+  .hm-folder{transform:none;animation:none;}
+}
+@media (prefers-reduced-motion: reduce){
+  .hm-folder,.hm-check .gap{animation:none;}
+  .hm-check .gap{background:#FBEAE5;}
 }
 </style>
 {% endblock %}

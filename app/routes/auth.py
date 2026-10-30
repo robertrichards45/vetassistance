@@ -6,7 +6,7 @@ from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_user, logout_user, login_required, current_user
 
-from app.extensions import SessionLocal, csrf
+from app.extensions import SessionLocal, csrf, limiter
 from app.models import User, Client
 from app.models.user import Role
 
@@ -30,7 +30,7 @@ def login():
 
 
 @auth_bp.post("/login")
-@csrf.exempt  # prevent CSRF causing "POST clears form" during local/dev; re-enable in production later
+@limiter.limit("10 per minute; 50 per hour")
 def login_post():
     identifier = (request.form.get("email") or "").strip()
     password = request.form.get("password") or ""

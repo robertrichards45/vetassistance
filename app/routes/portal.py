@@ -4,7 +4,7 @@ import json
 from datetime import datetime, timedelta
 import secrets
 from flask_login import login_required, current_user, login_user
-from app.extensions import SessionLocal
+from app.extensions import SessionLocal, limiter
 from app.models import Client, MessageThread, Message, Document, Letter, ClientTask, User, Organization, PasswordResetToken, VACallLog, FormData, RenderedArtifact
 import os
 from app.services.evidence_classifier import classify
@@ -65,6 +65,7 @@ def portal_register():
 
 
 @portal_bp.post("/register")
+@limiter.limit("10 per minute; 40 per hour")
 def portal_register_post():
     email = (request.form.get("email") or "").strip().lower()
     full_name = (request.form.get("full_name") or "").strip()
@@ -191,6 +192,7 @@ def portal_forgot():
 
 
 @portal_bp.post("/forgot")
+@limiter.limit("10 per minute; 40 per hour")
 def portal_forgot_post():
     email = (request.form.get("email") or "").strip()
     if not email:
@@ -240,6 +242,7 @@ def portal_reset(token: str):
 
 
 @portal_bp.post("/reset/<token>")
+@limiter.limit("10 per minute; 40 per hour")
 def portal_reset_post(token: str):
     if current_user.is_authenticated:
         return redirect(url_for("portal.dashboard"))

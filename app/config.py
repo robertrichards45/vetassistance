@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import os
 from pathlib import Path
@@ -41,6 +41,9 @@ class BaseConfig:
     ENV = os.environ.get("FLASK_ENV", "development")
     DEBUG = os.environ.get("FLASK_DEBUG", "1") == "1"
     WTF_CSRF_TIME_LIMIT = None
+    # Token is still required on every form; skip the extra HTTPS Referer match so
+    # privacy extensions that strip Referer don't break forms behind Railway's proxy.
+    WTF_CSRF_SSL_STRICT = False
 
     # Database
     DATABASE_URL = _database_url()
@@ -75,7 +78,20 @@ class BaseConfig:
     OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-5.5")
 
     # Rate limiting storage (avoid in-memory warning)
-    RATELIMIT_STORAGE_URL = os.environ.get("RATELIMIT_STORAGE_URL", "memory://")
+    # Shared across gunicorn workers when Redis is available; falls back to memory.
+    REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+    RATELIMIT_STORAGE_URI = os.environ.get("RATELIMIT_STORAGE_URL") or os.environ.get("REDIS_URL") or "memory://"
+    RATELIMIT_STORAGE_URL = RATELIMIT_STORAGE_URI
+    RATELIMIT_HEADERS_ENABLED = True
+    # If Redis is briefly unreachable, keep serving pages instead of erroring.
+    RATELIMIT_SWALLOW_ERRORS = True
+    RATELIMIT_IN_MEMORY_FALLBACK_ENABLED = True
+
+    # Session cookies
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = "Lax"
+    REMEMBER_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_SAMESITE = "Lax"
 
 class DevelopmentConfig(BaseConfig):
     ENV = "development"
@@ -84,6 +100,9 @@ class DevelopmentConfig(BaseConfig):
 class ProductionConfig(BaseConfig):
     ENV = "production"
     DEBUG = False
+    SESSION_COOKIE_SECURE = True
+    REMEMBER_COOKIE_SECURE = True
+    PREFERRED_URL_SCHEME = "https"
 
 def _select_config():
     env = (os.environ.get("FLASK_ENV") or os.environ.get("ENV") or "").strip().lower()

@@ -25,7 +25,12 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 login_manager = LoginManager()
 csrf = CSRFProtect()
 if Limiter is not None:
-    limiter = Limiter(key_func=get_remote_address, default_limits=["1000 per day", "120 per hour"])
+    limiter = Limiter(key_func=get_remote_address, default_limits=["3000 per day", "400 per hour"])
+
+    @limiter.request_filter
+    def _skip_static():  # CSS/JS/images shouldn't count against a visitor's limit
+        from flask import request
+        return request.path.startswith("/static/") or request.path in ("/favicon.ico", "/robots.txt")
 else:
     limiter = None  # type: ignore
 SessionLocal = scoped_session(sessionmaker())
