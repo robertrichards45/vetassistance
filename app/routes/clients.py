@@ -688,29 +688,34 @@ def resend_portal_invite(client_id: int):
         flash("Portal user record is missing or does not match this client.", "error")
         return redirect(url_for("clients.view_client", client_id=c.id))
 
-    temp_pw = secrets.token_urlsafe(10)
-    try:
-        u.set_password(temp_pw)
-    except Exception:
-        u.password_hash = generate_password_hash(temp_pw)
-    u.must_reset_password = True
-    u.is_active = True
+    # Resending must never invalidate the client's current password.
+    # A short-lived setup/reset link lets the recipient choose a password
+    # without transmitting a new temporary password by email.
+    from datetime import datetime, timedelta
+    from app.models import PasswordResetToken
+    token = secrets.token_urlsafe(32)
+    reset = PasswordResetToken(user_id=u.id, token=token,
+                               expires_at=datetime.utcnow() + timedelta(hours=2))
+    db.add(reset)
     db.commit()
-
     try:
-        from flask import current_app, request
-        login_url = request.url_root.rstrip("/") + url_for("auth.login")
-        site_name = current_app.config.get("SITE_NAME", "Veteran Benefits Assistance")
-        support_email = current_app.config.get("SUPPORT_EMAIL", "veteranclaimsassistance@gmail.com")
-        support_phone = current_app.config.get("SUPPORT_PHONE", "229-848-1633")
-        subject, body_text, body_html = build_portal_invite(site_name, support_email, support_phone, login_url, c.email.strip().lower(), temp_pw)
-        ok, msg = send_email_html(c.email.strip().lower(), subject, body_text, body_html, context="PORTAL_INVITE", org_id=current_user.org_id, actor_user_id=current_user.id)
+        from flask import request
+        reset_url = request.url_root.rstrip("/") + url_for("portal.portal_reset", token=token)
+        subject = "Your Veteran Benefits Assistance portal access"
+        body_text = (f"Open the link below to set a new portal password. "
+                     f"This link works once and expires in 2 hours.\\n\\n{reset_url}\\n")
+        body_html = (f'<p>Open this secure link to set a new portal password:</p>'
+                     f'<p><a href="{reset_url}">Set your portal password</a></p>'
+                     f'<p>This link expires in 2 hours and works once.</p>')
+        ok, msg = send_email_html(c.email.strip().lower(), subject, body_text, body_html,
+                                  context="PORTAL_INVITE", org_id=current_user.org_id,
+                                  actor_user_id=current_user.id)
         if ok:
-            flash("Portal invite resent (temporary password rotated).", "success")
+            flash("Secure portal access link sent. The client's existing password was not changed.", "success")
         else:
-            flash(f"Invite not sent: {msg}", "warning")
-    except Exception as e:
-        flash(f"Invite email failed: {e}", "warning")
+            flash(f"Portal access email failed: {msg}. Existing password is unchanged.", "warning")
+    except Exception:
+        flash("Could not send portal access link. Existing password is unchanged.", "warning")
 
     return redirect(url_for("clients.view_client", client_id=c.id))
 
