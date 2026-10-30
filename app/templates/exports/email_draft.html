@@ -1,49 +1,40 @@
-{% extends "layout.html" %}
-{% block title %}Email Draft • {{ artifact.title }}{% endblock %}
+{% extends "base.html" %}
+{% block title %}Email draft | {{ artifact.title }}{% endblock %}
 {% block content %}
-<div class="row">
+{% set tool_title = "Email draft" %}
+{% if client %}{% include "partials/_client_header.html" %}{% endif %}
+
+<div class="ws-grid">
   <div>
-    <h2>Email Draft</h2>
-    <div class="muted small">{{ client.display_name() if client else "" }}</div>
-  </div>
-  <div class="row-actions">
-    <a class="btn secondary" href="{{ url_for('clients.view_client', client_id=artifact.client_id) }}">Back to Client</a>
-    <a class="btn tiny" href="{{ url_for('exports.download_artifact', artifact_id=artifact.id) }}">Download DOCX</a>
-  </div>
-</div>
-
-<div class="grid2">
-  <div class="card">
-    <h3>Subject</h3>
-    <pre class="pre" id="subj">{{ subject }}</pre>
-    <button class="btn tiny secondary" type="button" onclick="copyId('subj')">Copy Subject</button>
-
-    <h3 style="margin-top:14px;">Body</h3>
-    <pre class="pre" id="body">{{ body }}</pre>
-    <button class="btn tiny secondary" type="button" onclick="copyId('body')">Copy Body</button>
-
-    {% if to_email %}
-      <div style="margin-top:14px;">
-        <a class="btn" href="mailto:{{ to_email }}?subject={{ subject|urlencode }}">Open Email Client</a>
-        <div class="muted small" style="margin-top:8px;">This opens your email app with the recipient + subject. Paste the body from above.</div>
+    <section class="ws-card">
+      <div class="ws-card-head"><div><h2>Email draft</h2><span class="muted small">For {{ artifact.title }}</span></div></div>
+      <div class="ws-card-body stack-form">
+        <div class="copy-field">
+          <div class="copy-field-head"><span class="form-label">Subject</span><button class="btn btn-sm" type="button" data-copy="#subj">Copy</button></div>
+          <div id="subj" class="copy-box">{{ subject }}</div>
+        </div>
+        <div class="copy-field">
+          <div class="copy-field-head"><span class="form-label">Message</span><button class="btn btn-sm" type="button" data-copy="#body">Copy</button></div>
+          <div id="body" class="copy-box copy-box-long">{{ body }}</div>
+        </div>
       </div>
-    {% endif %}
+    </section>
   </div>
-
-  <div class="card">
-    <h3>Notes</h3>
-    <ul class="bullets">
-      <li>This system can’t send email automatically; it generates a ready-to-send draft.</li>
-      <li>Use “Download DOCX” to attach the Word document.</li>
-      <li>Use “Copy Body” for a web copy/paste version.</li>
-    </ul>
+  <div>
+    <section class="ws-card">
+      <div class="ws-card-head"><h2>Send it</h2></div>
+      <div class="ws-card-body stack-form">
+        {% if to_email %}
+        <a class="btn btn-primary" href="mailto:{{ to_email }}?subject={{ subject|urlencode }}&body={{ body[:1500]|urlencode }}">Open in my email app</a>
+        <p class="muted small" style="margin:0;">Addressed to {{ to_email }}. Long messages may be cut off; paste the full message if so.</p>
+        {% else %}
+        <p class="muted small" style="margin:0;">No email address on file for this veteran. Copy the subject and message into your email.</p>
+        {% endif %}
+        {% if artifact.docx_path %}<a class="btn" href="{{ url_for('exports.download_artifact', artifact_id=artifact.id) }}">Download the Word file to attach</a>{% endif %}
+        {% if artifact.pdf_path %}<a class="btn" href="{{ url_for('exports.download_artifact_pdf', artifact_id=artifact.id) }}">Download the PDF to attach</a>{% endif %}
+      </div>
+    </section>
+    <div class="callout">Don't email Social Security numbers or full medical records. Use the veteran's secure portal for those.</div>
   </div>
 </div>
-
-<script>
-function copyId(id){
-  const txt = document.getElementById(id).innerText;
-  navigator.clipboard.writeText(txt).then(()=> alert("Copied."), ()=> alert("Copy failed."));
-}
-</script>
 {% endblock %}

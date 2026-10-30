@@ -1,126 +1,92 @@
 {% extends "base.html" %}
-{% block title %}CUE Motion Submission{% endblock %}
+{% block title %}File the CUE motion{% endblock %}
 {% block content %}
-<style>
-  .cue-submit{ max-width: 1100px; margin:0 auto; display:grid; gap:16px; }
-  .cue-tabs{ display:flex; gap:8px; flex-wrap:wrap; }
-  .cue-tab{ padding:8px 12px; border-radius:999px; border:1px solid rgba(15,23,42,.14); background:#fff; font-weight:900; cursor:pointer; }
-  .cue-tab.active{ background: rgba(44,95,168,.14); border-color: rgba(44,95,168,.34); color:#12335e; }
-  .cue-tab-panel{ display:none; }
-  .cue-tab-panel.active{ display:block; }
-  .cue-box{ background:#fff; border:1px solid rgba(15,23,42,.10); border-radius:18px; box-shadow:0 18px 44px rgba(2,8,23,.08); padding:16px; }
-  .cue-cta{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
-  .cue-list{ margin:8px 0 0; padding-left:18px; }
-</style>
-
-<div class="cue-submit">
 {% set tool_title = "CUE motion" %}
-{% include "partials/_client_header.html" %}
-<div class="tool-head"><div><h2>Review and submit the CUE motion</h2><p>Check the motion, download it, and follow the filing steps.</p></div></div>
+{% if is_staff %}{% include "partials/_client_header.html" %}{% else %}
+<div class="ws-head"><div><h1>File your CUE motion</h1><p>Download the motion, send it to VA, then tell us how you sent it.</p></div></div>
+{% endif %}
 
-  <div class="cue-box">
-    <h3>Generated Files</h3>
-    <div class="cue-cta">
-      {% if file_row and file_row.docx_path %}
-        <a class="btn btn-outline-primary" href="{{ url_for('cue.portal_download', motion_id=motion.id, kind='docx') if not is_staff else url_for('cue.staff_download', motion_id=motion.id, kind='docx') }}">Download DOCX</a>
-      {% endif %}
-      {% if file_row and file_row.pdf_path %}
-        <a class="btn btn-outline-primary" href="{{ url_for('cue.portal_download', motion_id=motion.id, kind='pdf') if not is_staff else url_for('cue.staff_download', motion_id=motion.id, kind='pdf') }}">Download PDF</a>
-        <a class="btn btn-outline-primary" href="{{ url_for('cue.portal_download', motion_id=motion.id, kind='pdf') if not is_staff else url_for('cue.staff_download', motion_id=motion.id, kind='pdf') }}" target="_blank" rel="noopener">Print Preview</a>
-      {% endif %}
-      {% if file_row and file_row.decision_path %}
-        <a class="btn btn-outline-primary" href="{{ url_for('cue.portal_download', motion_id=motion.id, kind='decision') if not is_staff else url_for('cue.staff_download', motion_id=motion.id, kind='decision') }}">Decision Letter</a>
-      {% endif %}
-    </div>
-  </div>
-
-  <div class="cue-box">
-    <h3>How to Submit</h3>
-    <div class="cue-tabs" id="cueSubmitTabs">
-      <button class="cue-tab active" data-tab="quicksubmit">VA.gov QuickSubmit</button>
-      <button class="cue-tab" data-tab="fax">Fax</button>
-      <button class="cue-tab" data-tab="mail">Mail</button>
-    </div>
-
-    <div class="cue-tab-panel active" data-tab-panel="quicksubmit">
-      <h4>Submit Online Using VA QuickSubmit (Recommended)</h4>
-      <ol class="cue-list">
-        <li>Open <a href="https://eauth.va.gov/accessva/?cspSelectFor=quicksubmit" target="_blank" rel="noopener">VA.gov QuickSubmit</a> and sign in (ID.me / Login.gov / DS Logon).</li>
-        <li>Click “Start a new submission.”</li>
-        <li>Choose the benefit type that best matches your issue (usually Compensation).</li>
-        <li>Upload your generated PDF titled: “MOTION FOR REVISION BASED ON CUE – 38 CFR §3.105(a)”.</li>
-        <li>Upload attachments (recommended): a copy of the VA decision you are challenging and any supporting documents that were already part of the record at that time (if you have them).</li>
-        <li>In any notes field, paste: “This submission includes a Motion for Revision Based on Clear and Unmistakable Error under 38 C.F.R. § 3.105(a).”</li>
-        <li>Submit and save your confirmation (screenshot or PDF).</li>
-        <li>Return to your portal and click “Mark as Submitted” and upload your confirmation.</li>
-      </ol>
-      <div style="margin-top:10px;">
-        <strong>Checklist</strong>
-        <div class="cue-list" style="list-style:none; padding-left:0;">
-          <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox"> Motion uploaded</label>
-          <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox"> Decision letter uploaded</label>
-          <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox"> Confirmation saved</label>
-          <label style="display:flex; gap:8px; align-items:center;"><input type="checkbox"> Marked as submitted in portal</label>
+<div class="ws-grid">
+  <div>
+    <section class="ws-card">
+      <div class="ws-card-head"><h2>How to send it to VA</h2></div>
+      <div class="ws-card-body">
+        <div class="seg cue-seg" role="tablist" aria-label="Filing method">
+          <label><input type="radio" name="cueHow" value="quicksubmit" checked> VA QuickSubmit</label>
+          <label><input type="radio" name="cueHow" value="fax"> Fax</label>
+          <label><input type="radio" name="cueHow" value="mail"> Mail</label>
+        </div>
+        <div class="cue-panel" data-panel="quicksubmit">
+          <p><strong>Recommended.</strong> Fastest, and you get a confirmation right away.</p>
+          <ol class="steps-list">
+            <li>Open <a href="https://eauth.va.gov/accessva/?cspSelectFor=quicksubmit" target="_blank" rel="noopener">VA QuickSubmit ↗</a> and sign in with ID.me, Login.gov or DS Logon.</li>
+            <li>Choose <em>Start a new submission</em>, then the benefit type that matches the decision (usually Compensation).</li>
+            <li>Upload the motion PDF, the VA decision you're challenging, and any evidence that was already in the record at that time.</li>
+            <li>In the notes field, paste: <span class="copy-inline" id="cueNote">This submission includes a Motion for Revision Based on Clear and Unmistakable Error under 38 C.F.R. § 3.105(a).</span> <button class="btn btn-sm" type="button" data-copy="#cueNote">Copy</button></li>
+            <li>Submit and save the confirmation as a screenshot or PDF.</li>
+          </ol>
+        </div>
+        <div class="cue-panel" data-panel="fax" hidden>
+          <ol class="steps-list">
+            <li>Print the motion and attachments.</li>
+            <li>Check the current VA Evidence Intake Center fax number on VA.gov before sending. Numbers change.</li>
+            <li>Fax everything and keep the confirmation sheet.</li>
+          </ol>
+        </div>
+        <div class="cue-panel" data-panel="mail" hidden>
+          <ol class="steps-list">
+            <li>Print the motion and attachments.</li>
+            <li>Check the current VA Evidence Intake Center mailing address on VA.gov before sending.</li>
+            <li>Send it by certified mail with tracking and keep the receipt.</li>
+          </ol>
         </div>
       </div>
-    </div>
-    <div class="cue-tab-panel" data-tab-panel="fax">
-      <h4>Submit by Fax</h4>
-      <ol class="cue-list">
-        <li>Print your CUE motion and attachments.</li>
-        <li>Verify the current VA Evidence Intake Center fax number before sending (numbers can change).</li>
-        <li>Fax the packet and keep the fax confirmation sheet.</li>
-        <li>Upload the fax confirmation to your portal and click “Mark as Submitted.”</li>
-      </ol>
-    </div>
-    <div class="cue-tab-panel" data-tab-panel="mail">
-      <h4>Submit by Mail (Certified Recommended)</h4>
-      <ol class="cue-list">
-        <li>Print your CUE motion and attachments.</li>
-        <li>Verify the current VA Evidence Intake Center mailing address before sending (addresses can change).</li>
-        <li>Mail using Certified Mail / tracking (recommended).</li>
-        <li>Save the tracking receipt and upload it to your portal, then click “Mark as Submitted.”</li>
-      </ol>
-    </div>
-  </div>
+    </section>
 
-  <div class="cue-box">
-    <h3>Mark Submitted</h3>
-    <form method="post" action="{{ url_for('cue.staff_mark_submitted', client_id=client.id, motion_id=motion.id) if is_staff else url_for('cue.portal_mark_submitted', motion_id=motion.id) }}" enctype="multipart/form-data">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <div class="row g-3">
-        <div class="col-md-6">
-          <label class="form-label">Submission method</label>
-          <select class="form-select" name="submission_method">
-            <option value="">Select</option>
-            <option value="QuickSubmit">QuickSubmit</option>
+    <section class="ws-card">
+      <div class="ws-card-head"><h2>Mark it as sent</h2></div>
+      <div class="ws-card-body">
+        <form method="post" action="{{ url_for('cue.staff_mark_submitted', client_id=client.id, motion_id=motion.id) if is_staff else url_for('cue.portal_mark_submitted', motion_id=motion.id) }}" enctype="multipart/form-data" class="stack-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label class="form-label" for="cueMethod">How was it sent?</label>
+          <select id="cueMethod" class="form-control" name="submission_method" required>
+            <option value="">Choose one</option>
+            <option value="QuickSubmit">VA QuickSubmit</option>
             <option value="Fax">Fax</option>
             <option value="Mail">Mail</option>
           </select>
-        </div>
-        <div class="col-md-6">
-          <label class="form-label">Upload confirmation (optional)</label>
-          <input class="form-control" type="file" name="confirmation_upload">
-        </div>
+          <label class="form-label" for="cueProof">Confirmation, fax sheet or mail receipt <span class="muted small">(optional)</span></label>
+          <input id="cueProof" class="form-control" type="file" name="confirmation_upload">
+          <button class="btn btn-primary" type="submit">Mark as sent</button>
+        </form>
       </div>
-      <div class="cue-cta">
-        <button class="btn btn-primary" type="submit">Mark Submitted</button>
+    </section>
+  </div>
+  <div>
+    <section class="ws-card">
+      <div class="ws-card-head"><h2>Your files</h2></div>
+      {% if file_row and (file_row.pdf_path or file_row.docx_path or file_row.decision_path) %}
+      <ul class="ws-list">
+        {% if file_row.pdf_path %}<li><div class="main"><div class="ttl">CUE motion (PDF)</div><div class="sub">Upload or print this one</div></div><div class="meta inline-row"><a class="btn btn-sm" href="{{ (url_for('cue.portal_download', motion_id=motion.id, kind='pdf') if not is_staff else url_for('cue.staff_download', motion_id=motion.id, kind='pdf')) }}" target="_blank" rel="noopener">View</a><a class="btn btn-sm btn-primary" href="{{ (url_for('cue.portal_download', motion_id=motion.id, kind='pdf') if not is_staff else url_for('cue.staff_download', motion_id=motion.id, kind='pdf')) }}" download>Download</a></div></li>{% endif %}
+        {% if file_row.docx_path %}<li><div class="main"><div class="ttl">CUE motion (Word)</div><div class="sub">Editable copy</div></div><div class="meta"><a class="btn btn-sm" href="{{ (url_for('cue.portal_download', motion_id=motion.id, kind='docx') if not is_staff else url_for('cue.staff_download', motion_id=motion.id, kind='docx')) }}">Download</a></div></li>{% endif %}
+        {% if file_row.decision_path %}<li><div class="main"><div class="ttl">VA decision letter</div><div class="sub">Attach this with the motion</div></div><div class="meta"><a class="btn btn-sm" href="{{ (url_for('cue.portal_download', motion_id=motion.id, kind='decision') if not is_staff else url_for('cue.staff_download', motion_id=motion.id, kind='decision')) }}">Download</a></div></li>{% endif %}
+      </ul>
+      {% else %}
+      <div class="ws-empty"><strong>Files are still being made</strong>Refresh in a minute.</div>
+      {% endif %}
+    </section>
+    <section class="ws-card">
+      <div class="ws-card-head"><h2>Before you send</h2></div>
+      <div class="ws-card-body">
+        <label class="check"><input type="checkbox"> Motion PDF attached</label>
+        <label class="check"><input type="checkbox"> VA decision letter attached</label>
+        <label class="check"><input type="checkbox"> Confirmation or receipt saved</label>
+        <p class="muted small" style="margin:10px 0 0;">A CUE motion must point to an error in the law or facts that were already in the record when VA decided. New evidence belongs in a supplemental claim instead.</p>
       </div>
-    </form>
+    </section>
   </div>
 </div>
-
 <script>
-(function(){
-  const tabs = document.querySelectorAll(".cue-tab");
-  const panels = document.querySelectorAll(".cue-tab-panel");
-  tabs.forEach(tab => {
-    tab.addEventListener("click", () => {
-      const target = tab.getAttribute("data-tab");
-      tabs.forEach(t => t.classList.toggle("active", t === tab));
-      panels.forEach(p => p.classList.toggle("active", p.getAttribute("data-tab-panel") === target));
-    });
-  });
-})();
+document.querySelectorAll('input[name="cueHow"]').forEach(function(r){r.addEventListener('change',function(){document.querySelectorAll('.cue-panel').forEach(function(p){p.hidden=p.dataset.panel!==r.value;});});});
 </script>
 {% endblock %}

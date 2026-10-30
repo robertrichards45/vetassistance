@@ -1,35 +1,56 @@
 {% extends "base.html" %}
+{% block title %}Intake #{{ row.id }}{% endblock %}
 {% block content %}
-<h1>Intake #{{ row.id }}</h1>
-<p><strong>Email:</strong> {{ row.email or "(none)" }}</p>
-<p><strong>File:</strong> {{ row.filename }} — <a href="{{ url_for('intakes.download_file', intake_id=row.id) }}">Download file</a></p>
-<p><strong>Hash:</strong> {{ row.file_hash }}</p>
-<p><strong>Status:</strong> {{ row.status.value }}</p>
-<p><strong>Created:</strong> {{ row.created_at }}</p>
+<div class="ws-head">
+  <div>
+    <p class="crumbs"><a href="{{ url_for('intakes.queue') }}">Intake queue</a> / #{{ row.id }}</p>
+    <h1>{{ (meta.full_name if meta and meta.full_name) or row.email or ('Intake #' ~ row.id) }}</h1>
+    <p>Received {{ row.created_at|format_et }}</p>
+  </div>
+  <div class="actions">
+    {% set st = row.status.value %}
+    <span class="badge-dot {{ 'badge-ok' if st == 'CONVERTED' else ('badge-muted' if st == 'REVIEWED' else 'badge-warn') }}">{{ {'NEW':'New','REVIEWED':'Reviewed','CONVERTED':'Client created'}[st] }}</span>
+  </div>
+</div>
 
-<form method="post" action="{{ url_for('intakes.mark_reviewed', intake_id=row.id) }}">
-  <button type="submit">Mark Reviewed</button>
-</form>
-
-<hr>
-<h2>Convert to Client</h2>
-    <p><a href="{{ url_for('intakes.convert_preview', intake_id=row.id) }}">Open Convert Wizard</a></p>
-<form method="post" action="{{ url_for('intakes.convert', intake_id=row.id) }}">
-      <label>Assign Representative</label>
-      <select name="assigned_user_id">
-        <option value="">— Unassigned —</option>
-        {% for u in reps %}
-          <option value="{{ u.id }}">{{ u.full_name or u.email }} ({{ u.role.value }})</option>
-        {% endfor %}
-      </select>
-      <br><br>
-  <label>
-    <input type="checkbox" name="make_portal" value="1" checked>
-    Create/Enable Client Portal (creates CLIENT user if needed)
-  </label>
-  <br><br>
-  <button type="submit">Convert Intake → Client</button>
-</form>
-
-<p><a href="{{ url_for('intakes.queue') }}">Back to queue</a></p>
+<div class="ws-grid">
+  <div>
+    <section class="ws-card">
+      <div class="ws-card-head"><h2>What they sent</h2></div>
+      <div class="ws-card-body">
+        <dl class="kv">
+          <dt>Email</dt><dd>{% if row.email %}<a href="mailto:{{ row.email }}">{{ row.email }}</a>{% else %}<span class="muted">Not given</span>{% endif %}</dd>
+          <dt>Phone</dt><dd>{{ (meta.phone if meta and meta.phone) or '—' }}</dd>
+          <dt>File</dt><dd><a href="{{ url_for('intakes.download_file', intake_id=row.id) }}">{{ row.filename }}</a></dd>
+          <dt>File check</dt><dd class="mono small muted" title="SHA-256 fingerprint, used to spot duplicate uploads">{{ row.file_hash[:16] }}…</dd>
+        </dl>
+        <div class="inline-row" style="margin-top:14px;">
+          <a class="btn" href="{{ url_for('intakes.download_file', intake_id=row.id) }}">Download file</a>
+          {% if row.status.value == 'NEW' %}
+          <form method="post" action="{{ url_for('intakes.mark_reviewed', intake_id=row.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn" type="submit">Mark reviewed</button>
+          </form>
+          {% endif %}
+          {% if row.status.value == 'CONVERTED' %}
+          <form method="post" action="{{ url_for('intakes.resend_invite', intake_id=row.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn" type="submit">Resend portal invite</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+  </div>
+  <div>
+    {% if row.status.value != 'CONVERTED' %}
+    <section class="ws-card">
+      <div class="ws-card-head"><h2>Turn into a client</h2></div>
+      <div class="ws-card-body">{% include "partials/_intake_convert_form.html" %}</div>
+    </section>
+    {% else %}
+    <div class="callout">This intake is already a client. Find them in <a href="{{ url_for('clients.list_clients') }}">Clients</a>.</div>
+    {% endif %}
+  </div>
+</div>
 {% endblock %}

@@ -1,30 +1,34 @@
-{% extends "layout.html" %}
-{% block title %}Agreement - {{ client.display_name() }}{% endblock %}
+{% extends "base.html" %}
+{% block title %}{{ item.title }} | {{ client.display_name() }}{% endblock %}
 {% block content %}
-<div class="row">
-  <div>
-    <h2>Agreement</h2>
-    <div class="muted small">{{ client.display_name() }}</div>
-  </div>
-  <div class="row-actions">
-    <a class="btn secondary" href="{{ url_for('agreements.for_client', client_id=client.id) }}">Back</a>
-  </div>
-</div>
+{% set tool_title = "Agreements" %}
+{% include "partials/_client_header.html" %}
 
-<div class="card">
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;border-bottom:1px solid rgba(15,23,42,.10);padding-bottom:10px;">
-    <img src="{{ url_for('static', filename='brand/logo.png') }}" alt="Logo" style="height:50px;width:auto;">
-    <div>
-      <div style="font-weight:900;color:#0B1F3A;">{{ brand.brand }}</div>
-      <div class="muted small">{{ brand.email }} {% if brand.phone %} | {{ brand.phone }}{% endif %}</div>
-    </div>
+<div class="ws-grid">
+  <div>
+    <section class="ws-card">
+      <div class="ws-card-head"><h2>{{ item.title }}</h2>{% if item.status == 'SIGNED' %}<span class="badge-dot badge-ok">Signed</span>{% else %}<span class="badge-dot badge-warn">Waiting for signature</span>{% endif %}</div>
+      <div class="ws-card-body">
+        <div class="agreement-letterhead">
+          <img src="{{ url_for('static', filename='brand/logo.png') }}" alt="" height="44">
+          <div><strong>{{ brand.brand }}</strong><div class="muted small">{{ brand.email }}{% if brand.phone %} · {{ brand.phone }}{% endif %}</div></div>
+        </div>
+        <div class="prose agreement-text">{{ item.body }}</div>
+      </div>
+    </section>
   </div>
-  <div class="muted small">Status: {{ item.status }}</div>
-  <pre style="white-space:pre-wrap; font-family:inherit;">{{ item.body }}</pre>
-  {% if item.status == 'SIGNED' %}
-    <div class="muted small" style="margin-top:10px;">
-      Signed by {{ item.signed_name }} on {{ item.signed_at.strftime('%Y-%m-%d') if item.signed_at else '' }}
-    </div>
-  {% endif %}
+  <div>
+    <section class="ws-card">
+      <div class="ws-card-head"><h2>Status</h2></div>
+      <div class="ws-card-body">
+        <dl class="kv">
+          <dt>Sent</dt><dd>{{ item.created_at|short_date('%b %d, %Y') }}</dd>
+          <dt>Status</dt><dd>{{ 'Signed' if item.status == 'SIGNED' else 'Waiting for the veteran' }}</dd>
+          {% if item.status == 'SIGNED' %}<dt>Signed by</dt><dd>{{ item.signed_name }}</dd><dt>Signed on</dt><dd>{{ item.signed_at|short_date('%b %d, %Y') if item.signed_at else '' }}</dd>{% endif %}
+        </dl>
+        <a class="btn" href="{{ url_for('agreements.for_client', client_id=client.id) }}" style="margin-top:12px;">All agreements</a>
+      </div>
+    </section>
+  </div>
 </div>
 {% endblock %}

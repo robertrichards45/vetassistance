@@ -815,7 +815,8 @@ input[type=checkbox], input[type=radio]{accent-color:var(--navy);width:16px;heig
 .note-meta strong{color:var(--ink);}
 .note-body{white-space:pre-wrap;margin-top:6px;color:var(--ink);overflow-wrap:anywhere;}
 .note-compose{position:sticky;top:84px;}
-.stack-form .check,.check{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px;flex-wrap:wrap;}
+.stack-form .check,.check{display:flex;align-items:flex-start;gap:8px;font-weight:600;font-size:15px;flex-wrap:nowrap;line-height:1.4;}
+.check > input{flex:0 0 auto;margin-top:3px;}
 @media (max-width: 1024px){ .note-compose{position:static;} }
 @media (max-width: 1024px){ .ws-grid > div:has(> .note-compose){order:-1;} }
 
@@ -957,3 +958,15 @@ form[hidden]{display:none !important;}
 .raw-traffic > summary{cursor:pointer;list-style:none;}
 .raw-traffic > summary::-webkit-details-marker{display:none;}
 .raw-traffic:not([open]) > summary{border-bottom:0;}
+.agreement-letterhead{display:flex;gap:12px;align-items:center;padding-bottom:14px;margin-bottom:16px;border-bottom:1px solid var(--line,#e5e7eb)}
+.agreement-text{white-space:pre-wrap;line-height:1.6}
+.letter-editor{font-family:Georgia,"Times New Roman",serif;font-size:15px;line-height:1.65;min-height:520px;padding:22px 24px}
+.copy-field-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.copy-box{white-space:pre-wrap;background:var(--surface-2,#f7f8fb);border:1px solid var(--line,#e5e7eb);border-radius:10px;padding:12px 14px;font-size:14.5px;line-height:1.55}
+.copy-box-long{max-height:520px;overflow:auto}
+.preview-frame{border:1px solid var(--line,#e5e7eb);border-radius:12px;overflow:hidden;background:#f8fafc}
+.preview-frame iframe{display:block;width:100%;height:620px;border:0;background:#fff}
+.doc-paper{white-space:pre-wrap;background:#fff;border:1px solid var(--line,#e5e7eb);border-radius:6px;box-shadow:0 10px 30px -20px rgba(15,23,42,.35);padding:44px 52px;max-width:820px;margin:0 auto;font-family:Georgia,"Times New Roman",serif;font-size:15.5px;line-height:1.65}
+@media(max-width:640px){.doc-paper{padding:22px 18px}}
+.steps-list{margin:6px 0 0;padding-left:20px;display:grid;gap:8px;line-height:1.55}
+.copy-inline{background:var(--canvas,#f4f6fa);border:1px dashed var(--line,#d9dee8);border-radius:6px;padding:2px 6px}

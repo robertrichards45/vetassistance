@@ -1,37 +1,21 @@
-{% extends "layout.html" %}
-{% block title %}Generated • {{ template.name }}{% endblock %}
+{% extends "base.html" %}
+{% block title %}{{ template.name }} | {{ client.display_name() }}{% endblock %}
 {% block content %}
-<div class="row">
-  <div>
-    <h2>{{ template.name }}</h2>
-    <div class="muted small">{{ client.display_name() }}</div>
-  </div>
-  <div class="row-actions">
-    <a class="btn secondary" href="{{ url_for('templates.for_client', client_id=client.id) }}">Back</a>
-  </div>
-</div>
+{% set tool_title = "Templates" %}
+{% include "partials/_client_header.html" %}
 
-<div class="card">
-  <div class="row" style="margin-bottom:10px;">
-    <div class="muted small">Export + copy tools</div>
-    <div class="row-actions">
+<section class="ws-card">
+  <div class="ws-card-head">
+    <div><h2>{{ template.name }}</h2><span class="muted small">Filled in with {{ client.display_name() }}'s details</span></div>
+    <div class="inline-row">
+      <button class="btn" type="button" data-copy="#webcopy">Copy text</button>
       {% if artifact %}
-        <a class="btn tiny" href="{{ url_for('exports.download_artifact', artifact_id=artifact.id) }}">Download DOCX</a>
-        <a class="btn tiny secondary" href="{{ url_for('exports.email_draft', artifact_id=artifact.id) }}">Email Draft</a>
+      <a class="btn" href="{{ url_for('exports.email_draft', artifact_id=artifact.id) }}">Email draft</a>
+      <a class="btn btn-primary" href="{{ url_for('exports.download_artifact', artifact_id=artifact.id) }}">Download Word</a>
       {% endif %}
-      <button class="btn tiny secondary" type="button" onclick="copyText()">Copy Web Copy</button>
     </div>
   </div>
-  <pre id="webcopy" class="pre">{{ output }}</pre>
-</div>
-
-<script>
-function copyText(){
-  const el = document.getElementById('webcopy');
-  const txt = el.innerText;
-  navigator.clipboard.writeText(txt).then(()=> {
-    alert("Copied to clipboard.");
-  }).catch(()=> alert("Copy failed."));
-}
-</script>
+  <div class="ws-card-body"><div id="webcopy" class="doc-paper prose">{{ output }}</div></div>
+</section>
+<p class="muted small">Saved to <a href="{{ url_for('artifacts.for_client', client_id=client.id) }}">Generated documents</a>. <a href="{{ url_for('templates.for_client', client_id=client.id) }}">Use another template</a></p>
 {% endblock %}

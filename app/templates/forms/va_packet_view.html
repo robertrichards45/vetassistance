@@ -1,62 +1,40 @@
-{% extends "layout.html" %}
-{% block title %}VA Forms Packet - {{ artifact.title }}{% endblock %}
+{% extends "base.html" %}
+{% block title %}{{ artifact.title }} | {{ client.display_name() if client else 'VA forms' }}{% endblock %}
 {% block content %}
-<div class="row">
-  <div>
-    <h2>VA Forms Packet</h2>
-    <div class="muted small">{{ artifact.title }}</div>
-  </div>
-  <div class="row-actions">
-    <a class="btn secondary" href="{{ url_for('clients.view_client', client_id=artifact.client_id) }}">Back</a>
-  </div>
-</div>
+{% set tool_title = "VA forms packet" %}
+{% if client %}{% include "partials/_client_header.html" %}{% endif %}
 
-<div class="card">
-  <div class="muted small">Official VA forms are linked below. Use Print from your browser if needed.</div>
-  <div class="muted small">Prefilled PDFs are XFA-based. Use Adobe Acrobat Reader to view filled fields.</div>
-  <div style="margin-top:10px;">
-    <button class="btn btn-outline-primary" type="button" id="openAllForms">Open All Forms</button>
+<section class="ws-card">
+  <div class="ws-card-head">
+    <div><h2>{{ artifact.title }}</h2><span class="muted small">{{ forms|length }} form{{ 's' if forms|length != 1 }} · created {{ artifact.created_at|short_date('%b %d, %Y') }}</span></div>
+    {% if forms %}<button class="btn" type="button" id="openAllForms">Open all blank forms</button>{% endif %}
   </div>
-  <div class="table" style="margin-top:12px;">
-    <div class="thead" style="grid-template-columns: 1fr 1fr 140px;">
-      <div>Form</div>
-      <div>Purpose</div>
-      <div>Link</div>
-    </div>
+  {% if forms %}
+  <ul class="ws-list">
     {% for f in forms %}
-    <div class="trow" style="grid-template-columns: 1fr 1fr 140px;">
-      <div>
-        <strong>{{ f.title }}</strong>
-        <div class="muted small">Category: {{ f.category }}</div>
+    <li>
+      <div class="main">
+        <div class="ttl">{{ f.title }}</div>
+        <div class="sub wrap">{{ f.use }}{% if f.category %} · <span class="chip">{{ f.category }}</span>{% endif %}</div>
       </div>
-      <div class="muted small">{{ f.use }}</div>
-      <div>
-        <a class="btn btn-sm btn-outline-primary" href="{{ f.url }}" target="_blank" rel="noopener">Open PDF</a>
-        {% if f.template %}
-        <div style="margin-top:6px;">
-          <a class="btn btn-sm btn-outline-primary" href="{{ url_for('forms.va_prefill_single', client_id=artifact.client_id, form_key=f.key) }}">Prefilled PDF</a>
-        </div>
-        {% else %}
-        <div class="muted small" style="margin-top:6px;">Prefill not configured</div>
-        {% endif %}
+      <div class="meta inline-row">
+        {% if f.template %}<a class="btn btn-primary btn-sm" href="{{ url_for('forms.va_prefill_single', client_id=artifact.client_id, form_key=f.key) }}">Prefilled PDF</a>{% endif %}
+        <a class="btn btn-sm" href="{{ f.url }}" target="_blank" rel="noopener">Blank form ↗</a>
       </div>
-    </div>
-    {% else %}
-      <div class="muted" style="padding:12px;">No forms selected.</div>
+    </li>
     {% endfor %}
-  </div>
-</div>
+  </ul>
+  {% else %}
+  <div class="ws-empty"><strong>No forms in this packet</strong>Go back and choose the forms the veteran needs.</div>
+  {% endif %}
+</section>
+<div class="callout" style="margin-top:16px;">Some VA forms only show filled-in answers in Adobe Acrobat Reader. If a prefilled form looks blank in your browser, download it and open it in Acrobat. For a 21-526EZ with AI-written statements, use the <a href="{{ url_for('claims.builder', client_id=artifact.client_id) }}">claim builder</a>.</div>
 
 <script>
 (function(){
-  const btn = document.getElementById("openAllForms");
-  if(!btn) return;
-  btn.addEventListener("click", function(){
-    const urls = {{ forms|tojson }};
-    urls.forEach(function(f){
-      if(f.url){ window.open(f.url, "_blank"); }
-    });
-  });
+  var btn=document.getElementById("openAllForms");if(!btn)return;
+  var forms={{ forms|tojson }};
+  btn.addEventListener("click",function(){forms.forEach(function(f){if(f.url)window.open(f.url,"_blank","noopener");});});
 })();
 </script>
 {% endblock %}

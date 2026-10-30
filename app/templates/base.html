@@ -640,5 +640,9 @@
 })();
 </script>
 {% endif %}
+  <script>
+  // Copy buttons: <button data-copy="#elementId">. Shows "Copied" briefly.
+  document.addEventListener('click',function(e){var b=e.target.closest('[data-copy]');if(!b)return;var el=document.querySelector(b.getAttribute('data-copy'));if(!el)return;var t=('value' in el&&el.value!==undefined&&el.tagName!=='PRE'&&el.tagName!=='DIV')?el.value:el.innerText;var old=b.textContent;navigator.clipboard.writeText(t).then(function(){b.textContent='Copied ✓';setTimeout(function(){b.textContent=old;},1600);},function(){b.textContent='Copy failed';setTimeout(function(){b.textContent=old;},1600);});});
+  </script>
 </body>
 </html>

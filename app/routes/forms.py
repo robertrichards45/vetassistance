@@ -155,7 +155,7 @@ def va_packet_view(artifact_id: int):
         meta = json.loads(a.meta_json or "{}")
     except Exception:
         meta = {}
-    return render_template("forms/va_packet_view.html", artifact=a, forms=meta.get("forms") or [])
+    return render_template("forms/va_packet_view.html", artifact=a, client=db.get(Client, a.client_id), forms=meta.get("forms") or [])
 
 
 @forms_bp.get("/client/<int:client_id>/va-forms/prefill/<form_key>")

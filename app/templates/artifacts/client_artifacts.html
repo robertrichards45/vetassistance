@@ -1,63 +1,48 @@
-{% extends "layout.html" %}
-{% block title %}Generated Docs - {{ client.display_name() }}{% endblock %}
+{% extends "base.html" %}
+{% block title %}Generated documents | {{ client.display_name() }}{% endblock %}
 {% block content %}
 {% set tool_title = "Generated documents" %}
 {% include "partials/_client_header.html" %}
-<div class="tool-head"><div><h2>Generated documents</h2><p>Letters, packets, and reports created for this client. Download them or turn them into an email draft.</p></div></div>
 
-<div class="card">
-  <form method="get" class="search">
-    <input name="q" value="{{ q }}" placeholder="Search generated docs...">
-    <button class="btn secondary" type="submit">Search</button>
-  </form>
-</div>
-
-<div class="card" style="margin-top:14px;">
-  <h3>Artifacts</h3>
-  <div class="table">
-    <div class="thead" style="grid-template-columns: 2fr 140px 1fr auto auto auto auto;">
-      <div>Title</div><div>Type</div><div>Created</div><div></div><div></div><div></div><div></div>
-    </div>
-    {% for a in arts %}
-      <div class="trow" style="grid-template-columns: 2fr 140px 1fr auto auto auto auto;">
-        <div><strong>{{ a.title }}</strong><div class="muted small">{{ a.artifact_type }}</div></div>
-        <div class="pill ready">{{ a.artifact_type }}</div>
-        <div class="muted small">{{ a.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
-        <div>
-          {% if a.pdf_path %}
-            <a class="btn tiny" href="{{ url_for('exports.download_artifact_pdf', artifact_id=a.id) }}">PDF</a>
-          {% else %}
-            <span class="muted small">PDF</span>
-          {% endif %}
-        </div>
-        <div>
-          {% if a.docx_path %}
-            <a class="btn tiny" href="{{ url_for('exports.download_artifact', artifact_id=a.id) }}">DOCX</a>
-          {% else %}
-            <span class="muted small">DOCX</span>
-          {% endif %}
-        </div>
-        <div><a class="btn tiny secondary" href="{{ url_for('exports.email_draft', artifact_id=a.id) }}">Email Draft</a></div>
-        <div>
-          {% if a.artifact_type.startswith('CRSC') %}
-          <form method="post" action="{{ url_for('artifacts.delete_artifact', artifact_id=a.id) }}" onsubmit="return confirmCrscDelete();">
-          {% else %}
-          <form method="post" action="{{ url_for('artifacts.delete_artifact', artifact_id=a.id) }}" onsubmit="return confirm('Delete this generated document?');">
-          {% endif %}
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button class="btn tiny secondary" type="submit">Delete</button>
-          </form>
-        </div>
-      </div>
-    {% else %}
-      <div class="muted" style="padding:16px;">No generated docs yet.</div>
-    {% endfor %}
+<section class="ws-card">
+  <div class="ws-card-head">
+    <div><h2>Generated documents</h2><span class="muted small">Letters, packets and reports made for this veteran</span></div>
+    <form method="get" class="inline-row" role="search">
+      <label class="sr-only" for="artQ">Search</label>
+      <input id="artQ" class="form-control" name="q" value="{{ q }}" placeholder="Search by title">
+      <button class="btn" type="submit">Search</button>
+    </form>
   </div>
-</div>
+  {% if arts %}
+  <ul class="ws-list">
+    {% for a in arts %}
+    <li>
+      <div class="main">
+        <div class="ttl">{{ a.title }}</div>
+        <div class="sub"><span class="chip">{{ a.artifact_type|replace('_', ' ')|title }}</span> {{ a.created_at|short_date('%b %d, %Y') }}</div>
+      </div>
+      <div class="meta inline-row">
+        {% if a.pdf_path %}<a class="btn btn-sm" href="{{ url_for('exports.download_artifact_pdf', artifact_id=a.id) }}">PDF</a>{% endif %}
+        {% if a.docx_path %}<a class="btn btn-sm" href="{{ url_for('exports.download_artifact', artifact_id=a.id) }}">Word</a>{% endif %}
+        <a class="btn btn-sm" href="{{ url_for('exports.email_draft', artifact_id=a.id) }}">Email draft</a>
+        <form method="post" action="{{ url_for('artifacts.delete_artifact', artifact_id=a.id) }}" data-confirm="{{ 'crsc' if a.artifact_type.startswith('CRSC') else 'plain' }}" class="js-del">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="linkish danger" type="submit">Delete</button>
+        </form>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="ws-empty"><strong>{{ 'Nothing matches “' ~ q ~ '”' if q else 'No generated documents yet' }}</strong>{% if not q %}Letters, VA form packets and reports you create for this veteran will be kept here.{% endif %}</div>
+  {% endif %}
+</section>
 <script>
-function confirmCrscDelete(){
-  const confirmText = prompt('Type DELETE to remove this CRSC document.');
-  return (confirmText || '').trim().toUpperCase() === 'DELETE';
-}
+document.querySelectorAll('form.js-del').forEach(function(f){
+  f.addEventListener('submit',function(e){
+    var ok = f.dataset.confirm==='crsc' ? ((prompt('Type DELETE to remove this CRSC document.')||'').trim().toUpperCase()==='DELETE') : confirm('Delete this generated document?');
+    if(!ok)e.preventDefault();
+  });
+});
 </script>
 {% endblock %}
