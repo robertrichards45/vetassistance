@@ -361,14 +361,14 @@ def run_status(client_id: int):
 @require_roles(Role.DIRECTOR, Role.EMPLOYEE)
 def read_documents(client_id: int):
     from app.services.queue import enqueue
-    from app.services.jobs import extract_document_text
+    from app.services.jobs import extract_many
     db = SessionLocal()
     c = db.get(Client, client_id)
     if not c or c.org_id != current_user.org_id:
         return "Not found", 404
     todo = [d.id for d in db.query(Document).filter_by(client_id=c.id).all() if not d.extracted_text_path]
-    for did in todo:
-        enqueue(extract_document_text, did, queue="docs")
+    if todo:
+        enqueue(extract_many, todo, queue="docs")
     flash(f"Reading {len(todo)} document{'s' if len(todo) != 1 else ''}. Scanned pages take a few seconds each." if todo
           else "Every document has already been read.", "success")
     return redirect(url_for("ai.client_ai", client_id=c.id))

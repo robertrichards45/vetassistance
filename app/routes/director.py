@@ -102,7 +102,7 @@ def users():
         c = clients_by_user.get(u.id)
         engaged = bool(c and c.id in active_clients)
         one_visit = not u.last_login_at or not u.created_at or abs((u.last_login_at - u.created_at).total_seconds()) < 86400
-        spam = one_visit and not engaged and (
+        spam = u.is_active and one_visit and not engaged and (
             gibberish_name(u.full_name or "") or gibberish_name((u.email or "").split("@")[0]))
         info[u.id] = {"client": c, "engaged": engaged, "spam": spam}
     open_by_rep = {}
@@ -131,6 +131,9 @@ def bulk_disable_users():
                 c.is_archived = True
     db.commit()
     audit_log(current_user.org_id, current_user.id, "USERS_DISABLED_BULK", "User", "bulk", detail=f"count={len(rows)}")
+    if not rows:
+        flash("Select at least one login.", "error")
+        return redirect(url_for("director.users", tab="clients"))
     flash(f"Disabled {len(rows)} login{'s' if len(rows) != 1 else ''}." + (" Their client records were archived." if request.form.get("archive_clients") == "1" else ""), "success")
     return redirect(url_for("director.users", tab="clients"))
 

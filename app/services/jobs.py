@@ -16,10 +16,11 @@ def extract_document_text(document_id: int) -> None:
         text = extract_text(doc.storage_path)
         # store extracted text next to file
         base = doc.storage_path + ".txt"
+        # Always write the file (even when empty) so the document counts as read and isn't retried forever.
+        with open(base, "w", encoding="utf-8") as f:
+            f.write(text or "")
+        doc.extracted_text_path = base
         if text.strip():
-            with open(base, "w", encoding="utf-8") as f:
-                f.write(text)
-            doc.extracted_text_path = base
             doc.category = classify(doc.filename, doc.mime_type or "", text)
         doc.status = "READY"
         db.commit()
@@ -27,3 +28,12 @@ def extract_document_text(document_id: int) -> None:
         doc.status = "FAILED"
         doc.error = str(e)
         db.commit()
+
+
+def extract_many(document_ids: list) -> None:
+    """Read several documents one after another (OCR is CPU and memory heavy; never run dozens at once)."""
+    for did in document_ids:
+        try:
+            extract_document_text(did)
+        except Exception:
+            SessionLocal().rollback()
