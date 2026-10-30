@@ -100,6 +100,33 @@ def create_app():
         pass
 
     @app.before_request
+    def require_initial_password_change():
+        # A temporary password is a one-time login credential, not a full session.
+        # Keep static assets and the change-password/logout routes accessible.
+        if (current_user.is_authenticated and getattr(current_user, "must_reset_password", False)
+                and request.endpoint not in ("auth.change_password", "auth.change_password_post",
+                                             "auth.logout", "static")
+                and not (request.path or "").startswith("/static/")):
+            from flask import redirect
+            return redirect(url_for("auth.change_password"))
+
+    @app.before_request
+    def require_verified_client_email():
+        # A self-registered client must prove mailbox control before case access.
+        # The pending dashboard only exposes verification instructions.
+        if (current_user.is_authenticated and current_user.role == Role.CLIENT
+                and request.endpoint not in ("portal.dashboard", "portal.verify_email",
+                                             "portal.resend_verification", "auth.logout", "static")
+                and not (request.path or "").startswith("/static/")):
+            from app.models import Client
+            db = SessionLocal()
+            client = db.query(Client).filter_by(org_id=current_user.org_id,
+                                                portal_user_id=current_user.id).first()
+            if client and client.email_verified is False:
+                from flask import redirect
+                return redirect(url_for("portal.dashboard"))
+
+    @app.before_request
     def track_page_view():
         try:
             if request.method != "GET":

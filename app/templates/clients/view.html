@@ -201,7 +201,7 @@
               {% else %}Off — the veteran can't upload or message yet{% endif %}
             </div>
           </div>
-          <form method="post" action="{{ url_for('clients.create_portal', client_id=client.id) }}">
+          <form method="post" action="{{ url_for('clients.resend_portal_invite' if client.portal_enabled and client.portal_user_id else 'clients.create_portal', client_id=client.id) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button class="btn btn-sm{{ ' btn-primary' if not client.portal_enabled }}" type="submit">{{ 'Resend invite' if client.portal_enabled else 'Turn on portal' }}</button>
           </form>

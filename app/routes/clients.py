@@ -437,6 +437,10 @@ def create_portal(client_id: int):
         if existing.role != Role.CLIENT:
             flash("That email is already used by a staff account. Use a different email for the client portal.", "error")
             return redirect(url_for("clients.view_client", client_id=c.id))
+        other_client = db.query(Client).filter(Client.portal_user_id == existing.id, Client.id != c.id).first()
+        if other_client:
+            flash("This email is already linked to another client portal. Contact the account owner.", "error")
+            return redirect(url_for("clients.view_client", client_id=c.id))
         temp_pw = secrets.token_urlsafe(10)
         try:
             existing.set_password(temp_pw)
@@ -472,7 +476,9 @@ def create_portal(client_id: int):
             existing.is_active = True
             db.commit()
             u = existing
-    # Send branded invite (if SMTP configured)
+    # Send branded invite using the configured provider (Resend on Railway).
+    invite_sent = False
+    invite_error = "Email delivery was not attempted."
     try:
         from flask import current_app, request
         login_url = request.url_root.rstrip("/") + url_for("auth.login")
@@ -481,19 +487,24 @@ def create_portal(client_id: int):
         support_phone = current_app.config.get("SUPPORT_PHONE", "229-848-1633")
         subject, body_text, body_html = build_portal_invite(site_name, support_email, support_phone, login_url, email_norm, temp_pw)
         ok, msg = send_email_html(email_norm, subject, body_text, body_html, context="PORTAL_INVITE", org_id=current_user.org_id, actor_user_id=current_user.id)
+        invite_sent, invite_error = ok, msg
         if ok:
             flash("Portal invite email sent.", "success")
         else:
             flash(f"Portal invite not sent: {msg}", "warning")
-    except Exception:
-        pass
+    except Exception as exc:
+        invite_error = str(exc)
+        flash("Portal account created, but the invitation could not be emailed.", "warning")
     c.portal_user_id = u.id
     c.portal_enabled = True
     db.commit()
     ensure_tasks(current_user.org_id, c.id)
     post_welcome_letter(current_user.org_id, c.id, current_user.full_name or current_user.email, current_user.id)
     audit_log(current_user.org_id, current_user.id, "CLIENT_PORTAL_CREATED", "Client", c.id, detail=f"portal_user_id={u.id}")
-    flash("Client portal created. Temporary password emailed (reset required on login).", "success")
+    if invite_sent:
+        flash("Client portal created. Temporary password emailed; a new password is required on first sign-in.", "success")
+    else:
+        flash("Client portal created, but email failed. Check Email settings and use Resend invite.", "warning")
     return redirect(url_for("clients.view_client", client_id=c.id))
 
 
@@ -673,33 +684,38 @@ def resend_portal_invite(client_id: int):
         flash("Client portal is not created yet for this client.", "error")
         return redirect(url_for("clients.view_client", client_id=c.id))
     u = db.get(User, c.portal_user_id)
-    if not u:
-        flash("Portal user record missing.", "error")
+    if not u or u.org_id != current_user.org_id or u.role != Role.CLIENT or u.email.strip().lower() != c.email.strip().lower():
+        flash("Portal user record is missing or does not match this client.", "error")
         return redirect(url_for("clients.view_client", client_id=c.id))
 
-    temp_pw = secrets.token_urlsafe(10)
-    try:
-        u.set_password(temp_pw)
-    except Exception:
-        u.password_hash = generate_password_hash(temp_pw)
-    u.must_reset_password = True
-    u.is_active = True
+    # Resending must never invalidate the client's current password.
+    # A short-lived setup/reset link lets the recipient choose a password
+    # without transmitting a new temporary password by email.
+    from datetime import datetime, timedelta
+    from app.models import PasswordResetToken
+    token = secrets.token_urlsafe(32)
+    reset = PasswordResetToken(user_id=u.id, token=token,
+                               expires_at=datetime.utcnow() + timedelta(hours=2))
+    db.add(reset)
     db.commit()
-
     try:
-        from flask import current_app, request
-        login_url = request.url_root.rstrip("/") + url_for("auth.login")
-        site_name = current_app.config.get("SITE_NAME", "Veteran Benefits Assistance")
-        support_email = current_app.config.get("SUPPORT_EMAIL", "veteranclaimsassistance@gmail.com")
-        support_phone = current_app.config.get("SUPPORT_PHONE", "229-848-1633")
-        subject, body_text, body_html = build_portal_invite(site_name, support_email, support_phone, login_url, c.email.strip().lower(), temp_pw)
-        ok, msg = send_email_html(c.email.strip().lower(), subject, body_text, body_html, context="PORTAL_INVITE", org_id=current_user.org_id, actor_user_id=current_user.id)
+        from flask import request
+        reset_url = request.url_root.rstrip("/") + url_for("portal.portal_reset", token=token)
+        subject = "Your Veteran Benefits Assistance portal access"
+        body_text = (f"Open the link below to set a new portal password. "
+                     f"This link works once and expires in 2 hours.\\n\\n{reset_url}\\n")
+        body_html = (f'<p>Open this secure link to set a new portal password:</p>'
+                     f'<p><a href="{reset_url}">Set your portal password</a></p>'
+                     f'<p>This link expires in 2 hours and works once.</p>')
+        ok, msg = send_email_html(c.email.strip().lower(), subject, body_text, body_html,
+                                  context="PORTAL_INVITE", org_id=current_user.org_id,
+                                  actor_user_id=current_user.id)
         if ok:
-            flash("Portal invite resent (temporary password rotated).", "success")
+            flash("Secure portal access link sent. The client's existing password was not changed.", "success")
         else:
-            flash(f"Invite not sent: {msg}", "warning")
-    except Exception as e:
-        flash(f"Invite email failed: {e}", "warning")
+            flash(f"Portal access email failed: {msg}. Existing password is unchanged.", "warning")
+    except Exception:
+        flash("Could not send portal access link. Existing password is unchanged.", "warning")
 
     return redirect(url_for("clients.view_client", client_id=c.id))
 
