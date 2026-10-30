@@ -1,39 +1,52 @@
 {% extends "layout.html" %}
 {% block title %}Intake Form • {{ client.display_name() }}{% endblock %}
 {% block content %}
-<div class="row">
-  <div>
-    <h2>Client Intake Form</h2>
-    <div class="muted small">{{ client.display_name() }}</div>
-  </div>
-  <div class="row-actions">
-    <a class="btn secondary" href="{{ url_for('clients.view_client', client_id=client.id) }}">Back</a>
-  </div>
+{% set tool_title = "Intake form" %}
+{% include "partials/_client_header.html" %}
+<div class="tool-head">
+  <div><h2>Intake form</h2><p>These details pre-fill VA forms, letters, and drafts for this client.</p></div>
 </div>
-
-<div class="card">
-  <form method="post" action="{{ url_for('forms.intake_save', client_id=client.id) }}" class="grid">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <div style="grid-column:1/-1;"><label>Full legal name</label><input name="full_legal_name" value="{{ data.full_legal_name or '' }}"></div>
-    <div><label>DOB</label><input name="dob" placeholder="YYYY-MM-DD" value="{{ data.dob or '' }}"></div>
-    <div><label>SSN (full)</label><input name="ssn_full" type="password" autocomplete="off" placeholder="Enter full SSN to store securely"></div>
-    <div><label>SSN last 4</label><input name="ssn_last4" maxlength="4" value="{{ data.ssn_last4 or '' }}"></div>
-    <div><label>Phone</label><input name="phone" value="{{ data.phone or '' }}"></div>
-    <div><label>Branch</label><input name="branch" value="{{ data.branch or '' }}"></div>
-    <div><label>Service entry date</label><input name="service_entry_date" placeholder="YYYY-MM-DD" value="{{ data.service_entry_date or '' }}"></div>
-    <div><label>Service discharge date</label><input name="service_discharge_date" placeholder="YYYY-MM-DD" value="{{ data.service_discharge_date or '' }}"></div>
-    <div><label>Service dates</label><input name="service_dates" placeholder="YYYY-YYYY" value="{{ data.service_dates or '' }}"></div>
-    <div style="grid-column:1/-1;"><label>Mailing address</label><input name="mailing_address1" placeholder="Street address" value="{{ data.mailing_address1 or '' }}"></div>
-    <div style="grid-column:1/-1;"><label>Mailing address (line 2)</label><input name="mailing_address2" placeholder="Apt / Unit (optional)" value="{{ data.mailing_address2 or '' }}"></div>
-    <div><label>Mailing city</label><input name="mailing_city" value="{{ data.mailing_city or '' }}"></div>
-    <div><label>Mailing state</label><input name="mailing_state" value="{{ data.mailing_state or '' }}"></div>
-    <div><label>Mailing ZIP</label><input name="mailing_zip" value="{{ data.mailing_zip or '' }}"></div>
-    <div><label>Current VA rating</label><input name="current_rating" placeholder="e.g., 70%" value="{{ data.current_rating or '' }}"></div>
-    <div style="grid-column:1/-1;"><label>Issues / conditions / goals</label><textarea name="issues" rows="4">{{ data.issues or '' }}</textarea></div>
-    <div style="grid-column:1/-1;"><label>Deadlines</label><textarea name="deadlines" rows="2">{{ data.deadlines or '' }}</textarea></div>
-    <div style="grid-column:1/-1;"><label>Notes</label><textarea name="notes" rows="4">{{ data.notes or '' }}</textarea></div>
-    <div style="grid-column:1/-1;"><button class="btn" type="submit">Save</button></div>
-  </form>
-  <p class="muted small">This structured intake data can be used to auto-fill letters and drafts.</p>
-</div>
+<form method="post" action="{{ url_for('forms.intake_save', client_id=client.id) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <section class="ws-card">
+    <div class="ws-card-head"><h2>Identity</h2></div>
+    <div class="ws-card-body form-grid">
+      <div class="full"><label class="form-label" for="f1">Full legal name</label><input id="f1" class="form-control" name="full_legal_name" value="{{ data.full_legal_name or '' }}"></div>
+      <div><label class="form-label" for="f2">Date of birth</label><input id="f2" class="form-control" name="dob" placeholder="YYYY-MM-DD" value="{{ data.dob or '' }}"></div>
+      <div><label class="form-label" for="f5">Phone</label><input id="f5" class="form-control" name="phone" value="{{ data.phone or '' }}"></div>
+      <div><label class="form-label" for="f3">Social Security number</label><input id="f3" class="form-control" name="ssn_full" type="password" autocomplete="off" placeholder="Leave blank to keep the saved one"><p class="hint">Stored encrypted.</p></div>
+      <div><label class="form-label" for="f4">SSN last 4</label><input id="f4" class="form-control" name="ssn_last4" maxlength="4" inputmode="numeric" value="{{ data.ssn_last4 or '' }}"></div>
+    </div>
+  </section>
+  <section class="ws-card">
+    <div class="ws-card-head"><h2>Service</h2></div>
+    <div class="ws-card-body form-grid">
+      <div><label class="form-label" for="f6">Branch</label><input id="f6" class="form-control" name="branch" list="branches" value="{{ data.branch or '' }}"></div>
+      <div><label class="form-label" for="f13">Current VA rating</label><input id="f13" class="form-control" name="current_rating" placeholder="e.g. 70%" value="{{ data.current_rating or '' }}"></div>
+      <div><label class="form-label" for="f7">Entered service</label><input id="f7" class="form-control" name="service_entry_date" placeholder="YYYY-MM-DD" value="{{ data.service_entry_date or '' }}"></div>
+      <div><label class="form-label" for="f8">Discharged</label><input id="f8" class="form-control" name="service_discharge_date" placeholder="YYYY-MM-DD" value="{{ data.service_discharge_date or '' }}"></div>
+      <div><label class="form-label" for="f9">Service dates (if exact dates unknown)</label><input id="f9" class="form-control" name="service_dates" placeholder="YYYY-YYYY" value="{{ data.service_dates or '' }}"></div>
+      <datalist id="branches"><option>Army</option><option>Navy</option><option>Air Force</option><option>Marine Corps</option><option>Coast Guard</option><option>Space Force</option><option>National Guard</option></datalist>
+    </div>
+  </section>
+  <section class="ws-card">
+    <div class="ws-card-head"><h2>Mailing address</h2></div>
+    <div class="ws-card-body form-grid">
+      <div class="full"><label class="form-label" for="f10">Street</label><input id="f10" class="form-control" name="mailing_address1" value="{{ data.mailing_address1 or '' }}"></div>
+      <div class="full"><label class="form-label" for="f11">Apt or unit</label><input id="f11" class="form-control" name="mailing_address2" value="{{ data.mailing_address2 or '' }}"></div>
+      <div><label class="form-label" for="f12">City</label><input id="f12" class="form-control" name="mailing_city" value="{{ data.mailing_city or '' }}"></div>
+      <div class="form-grid tight"><div><label class="form-label" for="f12s">State</label><input id="f12s" class="form-control" name="mailing_state" maxlength="2" value="{{ data.mailing_state or '' }}"></div>
+        <div><label class="form-label" for="f12z">ZIP</label><input id="f12z" class="form-control" name="mailing_zip" inputmode="numeric" value="{{ data.mailing_zip or '' }}"></div></div>
+    </div>
+  </section>
+  <section class="ws-card">
+    <div class="ws-card-head"><h2>Claim</h2></div>
+    <div class="ws-card-body form-grid">
+      <div class="full"><label class="form-label" for="f14">Conditions and goals</label><textarea id="f14" class="form-control" name="issues" rows="4">{{ data.issues or '' }}</textarea></div>
+      <div class="full"><label class="form-label" for="f15">Deadlines</label><textarea id="f15" class="form-control" name="deadlines" rows="2">{{ data.deadlines or '' }}</textarea></div>
+      <div class="full"><label class="form-label" for="f16">Notes</label><textarea id="f16" class="form-control" name="notes" rows="3">{{ data.notes or '' }}</textarea></div>
+    </div>
+  </section>
+  <div class="sticky-save"><button class="btn btn-primary" type="submit">Save intake</button></div>
+</form>
 {% endblock %}

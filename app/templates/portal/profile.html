@@ -4,8 +4,7 @@
 <section class="profile-hero">
   <div class="profile-hero-inner">
     <div class="profile-hero-copy">
-      <div class="profile-kicker">Client Portal</div>
-      <h2>Profile and Contact Info</h2>
+            <h1>Your profile</h1>
       <div class="muted small">{{ client.display_name() }}</div>
       <div class="muted small" style="margin-top:8px;">Keep your contact, address, and service details current so we can prefill forms accurately.</div>
       <div class="profile-progress">
@@ -16,18 +15,10 @@
         <div class="profile-progress-meta" id="profileProgressMeta">0% complete</div>
       </div>
     </div>
-    <div class="profile-hero-actions">
-      <a class="btn secondary" href="{{ url_for('portal.dashboard') }}">Back</a>
-      <a class="btn secondary" href="{{ url_for('portalx.notes') }}">Notes</a>
-    </div>
   </div>
 </section>
 
 <section class="profile-shell">
-  <div class="profile-card">
-    <div class="profile-card-title">Profile Details</div>
-    <div class="profile-card-sub">Saved securely and used only to support your claim preparation.</div>
-  </div>
 
   <div class="profile-card">
     <form method="post" action="{{ url_for('portalx.profile_save') }}" class="profile-grid" id="profileForm">

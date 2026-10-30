@@ -1,51 +1,29 @@
 {% extends "layout.html" %}
 {% block title %}VA Forms Packet - {{ client.display_name() }}{% endblock %}
 {% block content %}
-<div class="row">
-  <div>
-    <h2>VA Forms Packet</h2>
-    <div class="muted small">{{ client.display_name() }}</div>
-  </div>
-  <div class="row-actions">
-    <a class="btn secondary" href="{{ url_for('clients.view_client', client_id=client.id) }}">Back</a>
-  </div>
+{% set tool_title = "VA forms" %}
+{% include "partials/_client_header.html" %}
+<div class="tool-head">
+  <div><h2>VA forms packet</h2><p>Choose the official VA forms this client needs. Forms with pre-fill use the client's intake details.</p></div>
 </div>
-
-<div class="card">
-  <p class="muted small">Select the official VA forms needed for this client. These links go to VA.gov PDF forms.</p>
-  <p class="muted small">Prefilled PDFs are XFA-based. Use Adobe Acrobat Reader to view filled fields.</p>
-  <form method="post" action="{{ url_for('forms.va_packet_create', client_id=client.id) }}">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <div class="table">
-      <div class="thead" style="grid-template-columns: 80px 1fr 1fr;">
-        <div>Select</div>
-        <div>Form</div>
-        <div>Purpose</div>
-      </div>
+<form method="post" action="{{ url_for('forms.va_packet_create', client_id=client.id) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <section class="ws-card">
+    <ul class="ws-list">
       {% for f in forms %}
-      <div class="trow" style="grid-template-columns: 80px 1fr 1fr;">
-        <div><input type="checkbox" name="form_key" value="{{ f.key }}"></div>
-        <div>
-          <strong>{{ f.title }}</strong>
-          <div class="muted small">Category: {{ f.category }}</div>
-          <div class="muted small">{{ f.url }}</div>
+      <li>
+        <input type="checkbox" name="form_key" value="{{ f.key }}" id="fk{{ loop.index }}" style="width:18px;height:18px;accent-color:var(--navy)">
+        <label class="main" for="fk{{ loop.index }}" style="cursor:pointer"><strong>{{ f.title }}</strong><div class="sub" style="white-space:normal">{{ f.use }}</div></label>
+        <div class="meta" style="flex-direction:row;align-items:center;gap:8px">
+          <span class="badge-dot badge-muted">{{ f.category|title }}</span>
+          {% if f.template %}<a class="btn btn-sm" href="{{ url_for('forms.va_prefill_single', client_id=client.id, form_key=f.key) }}">Pre-filled PDF</a>{% endif %}
+          <a class="btn btn-sm" href="{{ f.url }}" target="_blank" rel="noopener">VA.gov</a>
         </div>
-        <div class="muted small">
-          {{ f.use }}
-          {% if f.template %}
-          <div class="muted small" style="margin-top:6px;">
-            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('forms.va_prefill_single', client_id=client.id, form_key=f.key) }}">Download Prefilled PDF</a>
-          </div>
-          {% else %}
-          <div class="muted small" style="margin-top:6px;">Prefill not configured</div>
-          {% endif %}
-        </div>
-      </div>
+      </li>
       {% endfor %}
-    </div>
-    <div style="margin-top:12px;">
-      <button class="btn btn-primary" type="submit">Generate Packet</button>
-    </div>
-  </form>
-</div>
+    </ul>
+  </section>
+  <div class="sticky-save"><button class="btn btn-primary" type="submit">Build packet from selected forms</button>
+    <span class="muted small">Pre-filled PDFs open best in Adobe Acrobat Reader.</span></div>
+</form>
 {% endblock %}

@@ -1,8 +1,9 @@
 {# Case header for staff client pages. Needs: client. Optional: portal_user, active_tab. #}
 {% set k = stage_key(client.status) %}{% set si = stage_index(client.status) %}
 {% set is_guest = (client.account_type and client.account_type.lower() == "guest") or (not client.email) or (client.email_verified is false) %}
-<nav class="crumbs" aria-label="Breadcrumb"><a href="{{ url_for('clients.list_clients') }}">Clients</a><span aria-hidden="true">/</span><span>{{ client.display_name() }}</span></nav>
-<header class="case-head">
+{% set _tool = tool_title if tool_title is defined else None %}
+<nav class="crumbs" aria-label="Breadcrumb"><a href="{{ url_for('clients.list_clients') }}">Clients</a><span aria-hidden="true">/</span>{% if _tool %}<a href="{{ url_for('clients.view_client', client_id=client.id) }}">{{ client.display_name() }}</a><span aria-hidden="true">/</span><span>{{ _tool }}</span>{% else %}<span>{{ client.display_name() }}</span>{% endif %}</nav>
+<header class="case-head{% if _tool %} is-compact{% endif %}">
   <div class="case-id">
     <span class="avatar avatar-lg" aria-hidden="true">{{ (client.first_name[:1] ~ client.last_name[:1])|upper or '?' }}</span>
     <div>
@@ -40,6 +41,7 @@
   </div>
 </header>
 
+{% if not _tool %}
 <section class="case-stage ws-card" aria-label="Case stage">
   <ol class="track track-compact">
     {% for sk, sl, _ in CASE_STAGES %}
@@ -57,9 +59,10 @@
     <button class="btn btn-primary" type="submit">Update stage</button>
   </form>
   <script>(function(){var sel=document.getElementById('stageSel'),box=document.querySelector('.decision-date');if(!sel||!box)return;function f(){box.hidden=sel.value!=='decision';}sel.addEventListener('change',f);f();})();</script>
+{% endif %}
 </section>
 
-{% set tab = active_tab if active_tab is defined else 'overview' %}
+{% set tab = active_tab if active_tab is defined else ('' if _tool else 'overview') %}
 <nav class="ws-tabs" aria-label="Client sections">
   <a href="{{ url_for('clients.view_client', client_id=client.id) }}"{% if tab == 'overview' %} aria-current="page"{% endif %}>Overview</a>
   <a href="{{ safe_url_for('documents.client_documents', client_id=client.id) }}"{% if tab == 'documents' %} aria-current="page"{% endif %}>Documents</a>

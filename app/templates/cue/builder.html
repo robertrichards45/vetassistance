@@ -54,10 +54,9 @@
 </style>
 
 <div class="cue-wrap">
-  <section class="cue-hero">
-    <h1>CUE Motion Builder</h1>
-    <p>{{ client.display_name() }} | {{ client.email or "No email on file" }}</p>
-  </section>
+{% set tool_title = "CUE motion" %}
+{% include "partials/_client_header.html" %}
+<div class="tool-head"><div><h2>CUE motion builder</h2><p>A step-by-step builder for a Clear and Unmistakable Error motion. Complete each step; the disclaimer must be accepted first.</p></div></div>
 
   <div class="cue-grid">
     <div class="cue-card">

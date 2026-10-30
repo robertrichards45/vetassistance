@@ -1,15 +1,7 @@
 {% extends "layout.html" %}
 {% block title %}VA Call Log - {{ COMPANY_NAME }}{% endblock %}
 {% block content %}
-<div class="row">
-  <div>
-    <h2>VA Call Log</h2>
-    <div class="muted small">{{ client.display_name() }}</div>
-  </div>
-  <div class="row-actions">
-    <a class="btn secondary" href="{{ url_for('portal.dashboard') }}">Back to Dashboard</a>
-  </div>
-</div>
+<div class="ws-head"><div><h1>VA call log</h1><p>Keep a record of every call with the VA: who you spoke to, what they said, and what happens next. Your team can see it too.</p></div></div>
 
 <div class="card" id="va-calls" style="margin-top:12px;">
   <h3>Log a call</h3>

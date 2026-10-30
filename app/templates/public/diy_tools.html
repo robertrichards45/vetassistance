@@ -1,22 +1,19 @@
 {% extends "base.html" %}
 {% block title %}DIY Tools{% endblock %}
 {% block content %}
-<section class="page-hero">
-  <div class="page-hero-inner">
-    <div>
-      <div class="page-kicker">Do It Yourself</div>
-      <h1 class="page-title">DIY Tools Dashboard</h1>
-      <p class="page-sub">Use the tools below to build and track your claim.</p>
-    </div>
-    <div class="page-actions">
-      <a class="btn btn-outline-light" href="{{ url_for('diy.billing') }}">Billing</a>
-      <form method="post" action="{{ url_for('diy.become_client') }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button class="btn btn-primary" type="submit">Become a Client</button>
-      </form>
-    </div>
+<div class="ws-head">
+  <div><h1>Your toolkit</h1><p>Everything you need to research ratings, organize evidence, and file on your own.</p></div>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('diy.billing') }}">Billing</a>
+    <form method="post" action="{{ url_for('diy.become_client') }}" style="display:inline"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-primary" type="submit">Get help from our team</button></form>
   </div>
-</section>
+</div>
+<nav class="launcher" aria-label="Tools">
+  <a href="{{ url_for('cfr.ratings_chart') }}"><svg aria-hidden="true"><use href="#i-chart"/></svg><strong>Rating chart</strong><span>What each percentage requires</span></a>
+  <a href="#calcInput"><svg aria-hidden="true"><use href="#i-scale"/></svg><strong>Rating calculator</strong><span>Combine ratings the VA way</span></a>
+  <a href="{{ url_for('resources.benefits_finder') }}"><svg aria-hidden="true"><use href="#i-compass"/></svg><strong>Benefits Finder</strong><span>Federal and state benefits</span></a>
+  <a href="{{ url_for('public.guides') }}"><svg aria-hidden="true"><use href="#i-book"/></svg><strong>Claim guides</strong><span>Step-by-step walkthroughs</span></a>
+</nav>
 
 <div class="admin-wrap">
   <div class="card-shell">

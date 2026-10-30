@@ -42,10 +42,8 @@
 </style>
 
 <div class="guide-wrap">
-  <section class="guide-hero">
-    <h1>Which VA Filing Is Right for Me?</h1>
-    <p>{{ client.display_name() }} | Use this to pick the right path before filing.</p>
-  </section>
+  {% if is_staff %}{% set tool_title = "Which filing?" %}{% include "partials/_client_header.html" %}{% endif %}
+  <div class="tool-head"><div><h2>Which VA filing is right?</h2><p>Answer a few questions to pick between a supplemental claim, higher-level review, Board appeal, increase, or CUE before filing anything.</p></div></div>
 
   <div class="guide-card" id="guideCard">
     <div id="guideStep">

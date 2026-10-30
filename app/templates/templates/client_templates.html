@@ -1,27 +1,21 @@
 {% extends "layout.html" %}
 {% block title %}Templates • {{ client.display_name() }}{% endblock %}
 {% block content %}
-<div class="row">
-  <div>
-    <h2>Templates</h2>
-    <div class="muted small">{{ client.display_name() }}</div>
-  </div>
-  <div class="row-actions">
-    <a class="btn secondary" href="{{ url_for('clients.view_client', client_id=client.id) }}">Back</a>
-  </div>
-</div>
+{% set tool_title = "From a template" %}
+{% include "partials/_client_header.html" %}
+<div class="tool-head"><div><h2>Create from a template</h2><p>Fill a saved letter or document template with this client's details.</p></div></div>
 
-<div class="card">
+<section class="ws-card"><div class="ws-card-body">
   {% if templates %}
     <form method="post" action="{{ url_for('templates.render_for_client', client_id=client.id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <label>Select template</label>
-      <select name="template_id">
+      <label class="form-label" for="tplsel">Template</label>
+      <select id="tplsel" class="form-control" name="template_id" style="max-width:520px">
         {% for t in templates %}
           <option value="{{ t.id }}">{{ t.category }} - {{ t.name }}</option>
         {% endfor %}
       </select>
-      <button class="btn" style="margin-top:10px;">Generate</button>
+      <div style="margin-top:12px"><button class="btn btn-primary">Create document</button></div>
     </form>
   {% else %}
     <div class="muted" style="padding:12px;">No templates found for this organization.</div>
@@ -34,5 +28,5 @@
       <div class="muted small" style="margin-top:8px;">Ask a director to add default templates.</div>
     {% endif %}
   {% endif %}
-</div>
+</div></section>
 {% endblock %}

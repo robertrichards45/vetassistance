@@ -14,22 +14,9 @@
 </style>
 
 <div class="cue-submit">
-  <section class="page-hero">
-    <div class="page-hero-inner">
-      <div>
-        <div class="page-kicker">CUE Motion</div>
-        <h1 class="page-title">Submission Instructions</h1>
-        <p class="page-sub">{{ client.display_name() }} | Status: {{ motion.status or "draft" }}</p>
-      </div>
-      <div class="page-actions">
-        {% if is_staff %}
-          <a class="btn btn-outline-light" href="{{ url_for('cue.staff_builder', client_id=client.id, motion_id=motion.id) }}">Back to Builder</a>
-        {% else %}
-          <a class="btn btn-outline-light" href="{{ url_for('cue.portal_builder', motion_id=motion.id) }}">Back to Builder</a>
-        {% endif %}
-      </div>
-    </div>
-  </section>
+{% set tool_title = "CUE motion" %}
+{% include "partials/_client_header.html" %}
+<div class="tool-head"><div><h2>Review and submit the CUE motion</h2><p>Check the motion, download it, and follow the filing steps.</p></div></div>
 
   <div class="cue-box">
     <h3>Generated Files</h3>

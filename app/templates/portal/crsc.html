@@ -1,15 +1,7 @@
 {% extends "layout.html" %}
 {% block title %}CRSC Dashboard - {{ COMPANY_NAME }}{% endblock %}
 {% block content %}
-<div class="row">
-  <div>
-    <h2>CRSC Dashboard</h2>
-    <div class="muted small">{{ client.display_name() }}</div>
-  </div>
-  <div class="row-actions">
-    <a class="btn secondary" href="{{ url_for('portal.dashboard') }}">Back to Portal</a>
-  </div>
-</div>
+<div class="ws-head"><div><h1>Combat-Related Special Compensation</h1><p>Track your CRSC application: eligibility, the documents you need, and where your packet stands.</p></div></div>
 
 {% if is_guest %}
   <div class="card" style="margin-top:12px;">

@@ -1,15 +1,9 @@
 {% extends "layout.html" %}
 {% block title %}Generated Docs - {{ client.display_name() }}{% endblock %}
 {% block content %}
-<div class="row">
-  <div>
-    <h2>Generated Docs</h2>
-    <div class="muted small">{{ client.display_name() }}</div>
-  </div>
-  <div class="row-actions">
-    <a class="btn secondary" href="{{ url_for('clients.view_client', client_id=client.id) }}">Back</a>
-  </div>
-</div>
+{% set tool_title = "Generated documents" %}
+{% include "partials/_client_header.html" %}
+<div class="tool-head"><div><h2>Generated documents</h2><p>Letters, packets, and reports created for this client. Download them or turn them into an email draft.</p></div></div>
 
 <div class="card">
   <form method="get" class="search">

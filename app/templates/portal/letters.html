@@ -1,25 +1,16 @@
 {% extends "layout.html" %}
 {% block title %}Letters • {{ BRAND_NAME }}{% endblock %}
 {% block content %}
-<div class="row">
-  <div>
-    <h2>Letters</h2>
-    <div class="muted small">{{ client.display_name() }}</div>
-  </div>
-  <div class="row-actions">
-    <a class="btn secondary" href="{{ url_for('portal.dashboard') }}">Back</a>
-  </div>
-</div>
-
-<div class="card">
+<div class="ws-head"><div><h1>Letters</h1><p>Letters and updates your team prepared for you. Print or save any of them.</p></div></div>
+{% if letters %}
   {% for l in letters %}
-    <div class="mini">
-      <div><strong>{{ l.title }}</strong></div>
-      <div class="muted small">{{ l.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
-      <pre class="pre" style="margin-top:10px;">{{ l.body }}</pre>
-    </div>
-  {% else %}
-    <div class="muted">No letters yet.</div>
+  <article class="ws-card letter">
+    <div class="ws-card-head"><h2>{{ l.title }}</h2><span class="muted small">{{ l.created_at|short_date("%B %d, %Y") }}</span></div>
+    <div class="ws-card-body letter-body">{{ l.body }}</div>
+    <div class="ws-card-body" style="border-top:1px solid var(--line-soft);padding-top:10px;padding-bottom:12px"><button class="btn btn-sm" type="button" onclick="var w=window.open('','_blank');w.document.write('<pre style=&quot;font:15px/1.6 Georgia,serif;white-space:pre-wrap;max-width:680px;margin:40px auto&quot;>'+this.closest('.letter').querySelector('.letter-body').innerHTML+'</pre>');w.document.close();w.print();">Print</button></div>
+  </article>
   {% endfor %}
-</div>
+{% else %}
+  <section class="ws-card"><div class="ws-empty"><strong>No letters yet</strong>When your team prepares a letter for you, it will appear here and you'll get a notification.</div></section>
+{% endif %}
 {% endblock %}
