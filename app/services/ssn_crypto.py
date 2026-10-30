@@ -14,7 +14,13 @@ def _get_fernet() -> Optional[Fernet]:
     try:
         return Fernet(key)
     except Exception:
+        pass
+    # Any long random secret works too (e.g. Railway's ${{secret(64)}}): derive a Fernet key from it.
+    if len(key) < 32:
         return None
+    import base64
+    import hashlib
+    return Fernet(base64.urlsafe_b64encode(hashlib.sha256(key.encode("utf-8")).digest()))
 
 
 def encrypt_ssn(raw_ssn: str) -> str:
