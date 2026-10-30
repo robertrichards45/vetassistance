@@ -141,3 +141,51 @@ def test_director_one_time_client_invite_can_be_accepted(app, monkeypatch):
     assert visitor.get("/portal/dashboard", headers=H).status_code == 200
     unused = app.test_client()
     assert unused.get(path, headers=H).status_code in (302, 303)
+
+
+def test_self_registration_requires_mailbox_verification_before_case_access(app, monkeypatch):
+    """Knowing a veteran's email cannot reveal case documents without mailbox proof."""
+    sent = []
+    def fake_send(to, subject, text, html, **kwargs):
+        sent.append((to, subject, text))
+        return True, "sent"
+    monkeypatch.setattr("app.services.email_service.send_email_html", fake_send)
+    monkeypatch.setattr("app.services.bot_guard.looks_like_bot", lambda: False)
+    director = app.test_client()
+    assert login(director, EMAILS["director"], PASSWORD).status_code in (302, 303)
+    t = csrf(director, "/clients/new")
+    r = director.post("/clients/new", data={"csrf_token": t, "first_name": "Protected",
+                  "last_name": "Veteran", "email": "protected-veteran@demo.test",
+                  "notes": "PRIVATE CASE NOTE"}, headers=H)
+    assert r.status_code in (302, 303)
+
+    visitor = app.test_client()
+    html = visitor.get("/portal/register", headers=H).get_data(as_text=True)
+    t = re.search(r'name="csrf_token"[^>]*value="([^"]+)"', html).group(1)
+    form_ts = re.search(r'name="form_ts"[^>]*value="([^"]+)"', html).group(1)
+    r = visitor.post("/portal/register", data={"csrf_token": t, "form_ts": form_ts,
+                    "full_name": "Some Registrant", "email": "protected-veteran@demo.test",
+                    "password": "Verification-Test-2026", "confirm_password": "Verification-Test-2026",
+                    "consent_ack": "yes", "consent_review": "yes"}, headers=H)
+    assert r.status_code in (302, 303)
+    assert "/portal/dashboard" in r.headers["Location"]
+    html = visitor.get("/portal/dashboard", headers=H).get_data(as_text=True)
+    assert "Verify your email" in html
+    assert "PRIVATE CASE NOTE" not in html
+    # Even a direct URL to a private section must not disclose data.
+    r = visitor.get("/portal/messages", headers=H)
+    assert r.status_code == 302 and "/portal/dashboard" in r.headers["Location"]
+
+    db = SessionLocal()
+    c = db.query(Client).filter_by(email="protected-veteran@demo.test").first()
+    assert c and not c.email_verified
+    db.close()
+    assert sent and sent[-1][1].startswith("Verify")
+    link = re.search(r"https?://[^\s]+", sent[-1][2]).group(0)
+    r = visitor.get(urlparse(link).path, headers=H)
+    assert r.status_code in (302, 303)
+    db = SessionLocal()
+    c = db.query(Client).filter_by(email="protected-veteran@demo.test").first()
+    assert c.email_verified
+    db.close()
+    assert visitor.get("/portal/dashboard", headers=H).status_code == 200
