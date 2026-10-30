@@ -34,7 +34,7 @@ def _is_guest_client(c: Client | None) -> bool:
         return True
     if not (c.email or "").strip():
         return True
-    return False
+    return c.email_verified is False
 
 def _public_client_id(c: Client) -> str:
     return f"C-{c.id}"
@@ -120,9 +120,9 @@ def portal_register_post():
                 first_name=first,
                 last_name=last,
                 portal_enabled=True,
-                account_type="verified",
-                email_verified=True,
-                email_verified_at=datetime.utcnow(),
+                account_type="pending",
+                email_verified=False,
+                email_verified_at=None,
             )
             if phone:
                 client.phone = phone
@@ -137,23 +137,13 @@ def portal_register_post():
             db.add(client)
             db.commit()
         else:
-            if not client.email:
-                client.email = email
-            if not client.account_type:
-                client.account_type = "verified"
-            if client.email_verified is False:
-                client.email_verified = True
-                client.email_verified_at = datetime.utcnow()
-            if phone:
-                client.phone = phone
-            if dob:
-                client.dob = dob
-            if service_branch:
-                client.service_branch = service_branch
-            if service_dates:
-                client.service_entry_date = service_dates
-            if referred_by:
-                client.referral_source = referred_by
+            # An unverified signup cannot overwrite a pre-existing veteran's case.
+            if client.portal_user_id:
+                flash("This client portal is already linked. Please sign in or contact support.", "error")
+                return redirect(url_for("portal.portal_home"))
+            client.account_type = "pending"
+            client.email_verified = False
+            client.email_verified_at = None
             db.commit()
 
         if not client:
@@ -167,8 +157,8 @@ def portal_register_post():
 
         client.portal_user_id = user.id
         client.portal_enabled = True
-        if not client.account_type:
-            client.account_type = "verified"
+        client.account_type = "pending"
+        client.email_verified = False
         db.commit()
 
         audit_log(
@@ -183,7 +173,86 @@ def portal_register_post():
         login_user(user)
         user.last_login_at = datetime.utcnow()
         db.commit()
-        flash("Account created. Welcome to your client portal.", "success")
+        ok, _ = _send_verification_email(db, user)
+        if ok:
+            flash("Account created. Check your inbox for an email verification link before accessing your case.", "success")
+        else:
+            flash("Account created, but the verification email could not be sent. Please retry from the dashboard.", "warning")
+        return redirect(url_for("portal.dashboard"))
+    finally:
+        db.close()
+
+
+def _send_verification_email(db, user):
+    """Mail a 24-hour proof-of-mailbox link; never mark addresses verified on signup."""
+    from app.models import EmailVerificationToken
+    from app.services.email_service import send_email_html
+    token = secrets.token_urlsafe(32)
+    row = EmailVerificationToken(user_id=user.id, email=user.email, token=token,
+                                 expires_at=datetime.utcnow() + timedelta(hours=24))
+    db.add(row)
+    db.commit()
+    link = url_for("portal.verify_email", token=token, _external=True)
+    return send_email_html(
+        user.email, "Verify your Veteran Benefits Assistance email",
+        f"To verify your email and activate access to your client portal, use this link within 24 hours:\\n{link}",
+        f'<p>Verify your email to activate your secure client portal.</p>'
+        f'<p><a href="{link}">Verify email address</a></p>'
+        f'<p>This verification link expires in 24 hours.</p>',
+        context="PORTAL_VERIFY", org_id=user.org_id, actor_user_id=user.id)
+
+
+@portal_bp.get("/verify/<token>")
+def verify_email(token):
+    from app.models import EmailVerificationToken
+    db = SessionLocal()
+    try:
+        row = db.query(EmailVerificationToken).filter_by(token=token).first()
+        if not row or row.used_at or row.expires_at < datetime.utcnow():
+            flash("This verification link is invalid or expired. Request a fresh one.", "error")
+            return redirect(url_for("portal.portal_home"))
+        user = db.get(User, row.user_id)
+        if not user or user.email.lower() != row.email.lower() or user.role != Role.CLIENT:
+            flash("This verification link is not valid for a client portal.", "error")
+            return redirect(url_for("portal.portal_home"))
+        if current_user.is_authenticated and current_user.id != user.id:
+            flash("Please sign out of your other account before verifying this address.", "error")
+            return redirect(url_for("public.home"))
+        c = db.query(Client).filter_by(org_id=user.org_id, portal_user_id=user.id).first()
+        if not c or c.email.lower() != row.email.lower():
+            flash("Client account not found. Please contact support.", "error")
+            return redirect(url_for("portal.portal_home"))
+        row.used_at = datetime.utcnow()
+        c.email_verified = True
+        c.email_verified_at = datetime.utcnow()
+        c.account_type = "verified"
+        db.commit()
+        flash("Email verified. Your portal is now active.", "success")
+        return redirect(url_for("portal.dashboard") if current_user.is_authenticated else url_for("auth.login"))
+    finally:
+        db.close()
+
+
+@portal_bp.post("/resend-verification")
+@login_required
+@limiter.limit("3 per hour")
+def resend_verification():
+    if current_user.role != Role.CLIENT:
+        return "Forbidden", 403
+    db = SessionLocal()
+    try:
+        c = _linked_client(db)
+        if not c or not c.portal_enabled:
+            return "Portal not enabled.", 403
+        if c.email_verified:
+            return redirect(url_for("portal.dashboard"))
+        user = db.get(User, current_user.id)
+        try:
+            ok, _ = _send_verification_email(db, user)
+        except Exception:
+            ok = False
+        flash("Verification email sent. Check your inbox and spam folder." if ok
+              else "Email failed. Please contact support.", "success" if ok else "error")
         return redirect(url_for("portal.dashboard"))
     finally:
         db.close()
@@ -291,6 +360,9 @@ def dashboard():
     c = _linked_client(db)
     if not c or not c.portal_enabled:
         return "Portal not enabled.", 403
+    if c.email_verified is False:
+        # No claim details, tasks, or messages may be shown before mailbox verification.
+        return render_template("portal/verify_pending.html", email=c.email)
     is_guest = _is_guest_client(c)
     docs_uploaded = []
     docs_shared = []
