@@ -149,6 +149,8 @@ def traffic():
             "bot", "spider", "crawler", "slurp", "bingpreview",
             "facebookexternalhit", "preview", "python-requests", "aiohttp",
             "httpclient", "wget", "curl", "uptime", "pingdom", "healthcheck",
+            "headless", "go-http-client", "scrapy", "zgrab", "masscan", "nmap", "okhttp", "java/",
+            "libwww", "node-fetch", "axios", "scanner", "censys", "expanse", "gptbot", "claude", "perplexity",
         ]
         staff_ids = (
             db.query(User.id)
@@ -156,6 +158,17 @@ def traffic():
             .all()
         )
         staff_ids = [sid for (sid,) in staff_ids]
+
+        # Paths only vulnerability scanners ask for. Any visitor who asks for one is a bot, and every
+        # page that visitor loaded is left out too.
+        probe_bits = [".env", ".git", ".php", "wp-", "wordpress", "phpmyadmin", ".bak", ".sql", "cgi-bin",
+                      "/vendor/", "xmlrpc", ".aws", ".ds_store", "/actuator", "/.well-known/security", "/owa/",
+                      "/boaform", "/hnap1", "/console", "/server-status", "/config.", "/backup"]
+        path_l = func.lower(PageView.path)
+        probe_cond = or_(*[path_l.like(f"%{b}%") for b in probe_bits])
+        scanners = (db.query(PageView.ip_hash).filter(PageView.created_at >= since, probe_cond,
+                                                      PageView.ip_hash.isnot(None), PageView.ip_hash != "").distinct().subquery())
+        noise = ["/robots.txt", "/sitemap.xml", "/favicon.ico", "/apple-touch-icon.png", "/apple-touch-icon-precomposed.png", "/health", "/ads.txt"]
 
         def apply_real_filters(q):
             q = q.filter(PageView.created_at >= since)
@@ -165,6 +178,8 @@ def traffic():
             ua = func.lower(PageView.user_agent)
             for p in bot_patterns:
                 q = q.filter(~ua.like(f"%{p}%"))
+            q = q.filter(~probe_cond, ~PageView.path.in_(noise), ~PageView.path.like("/static/%"))
+            q = q.filter(or_(PageView.ip_hash == None, ~PageView.ip_hash.in_(db.query(scanners.c.ip_hash))))
             return q
 
         total = apply_real_filters(db.query(func.count(PageView.id))).scalar() or 0
