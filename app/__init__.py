@@ -22,6 +22,8 @@ from app.models.user import Role
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+    from app.services.ai_compat import install as _ai_compat
+    _ai_compat()
 
     # Railway terminates HTTPS at its edge proxy. Trust one hop of X-Forwarded-*
     # headers so request.scheme is https (canonical/OG URLs, secure redirects)
