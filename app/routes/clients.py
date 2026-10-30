@@ -170,7 +170,8 @@ def client_notes(client_id: int):
         .limit(200)
         .all()
     )
-    return render_template("clients/notes.html", client=c, notes=notes)
+    authors = {u.id: u for u in db.query(User).filter(User.org_id == current_user.org_id).all()}
+    return render_template("clients/notes.html", client=c, notes=notes, authors=authors)
 
 
 @clients_bp.post("/<int:client_id>/notes")

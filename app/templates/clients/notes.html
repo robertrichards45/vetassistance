@@ -1,65 +1,72 @@
 {% extends "base.html" %}
-{% block title %}Client Notes - {{ client.display_name() }}{% endblock %}
+{% block title %}Notes | {{ client.display_name() }}{% endblock %}
 {% block content %}
 {% set active_tab = "notes" %}
 {% include "partials/_client_header.html" %}
 
-
-<div class="admin-wrap">
-  <div class="card-shell">
-    <div class="card-body-pad">
-      <form method="post" action="{{ url_for('clients.client_notes_post', client_id=client.id) }}" class="stack-form">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <label class="form-label">Add a note</label>
-        <textarea class="form-control" name="body" rows="4" placeholder="Add staff-only or client-visible notes." required></textarea>
-        <label class="form-label">Tags (optional)</label>
-        <input class="form-control" name="tags" placeholder="e.g., Evidence, Deadline, Follow-up">
-        <div style="margin-top:8px;">
-          <label><input type="checkbox" name="is_internal" value="1" checked> Staff-only note (client cannot see)</label>
-        </div>
-        <button class="btn btn-primary" type="submit" style="margin-top:8px;">Save Note</button>
-      </form>
-    </div>
-  </div>
-
-  <div class="card-shell" style="margin-top:12px;">
-    <div class="card-body-pad">
-      <div class="panel-title">All Notes</div>
+<div class="ws-grid">
+  <div>
+    <section class="ws-card">
+      <div class="ws-card-head"><h2>Case notes</h2><span class="muted small">{{ notes|length }} note{{ 's' if notes|length != 1 }}</span></div>
       {% if notes %}
-        <div class="table" style="margin-top:8px;">
-          <div class="thead" style="grid-template-columns: 120px 140px 1fr auto;">
-            <div>Type</div><div>Tags</div><div>Note</div><div></div>
-          </div>
-          {% for n in notes %}
-            <div class="trow" style="grid-template-columns: 120px 140px 1fr auto;">
-              <div class="pill {{ 'warn' if n.is_internal else 'ready' }}">{{ 'Staff-only' if n.is_internal else 'Client-visible' }}</div>
-              <div class="muted small">{{ n.tags or '—' }}</div>
-              <div>{{ n.body }}</div>
-              <div>
-                <details>
-                  <summary class="btn btn-outline-primary btn-sm" style="cursor:pointer;">Edit</summary>
-                  <form method="post" action="{{ url_for('clients.client_notes_edit', client_id=client.id, note_id=n.id) }}" style="margin-top:8px;">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <textarea class="form-control" name="body" rows="3" required>{{ n.body }}</textarea>
-                    <input class="form-control" name="tags" value="{{ n.tags or '' }}" style="margin-top:6px;">
-                    <div style="margin-top:6px;">
-                      <label><input type="checkbox" name="is_internal" value="1" {{ 'checked' if n.is_internal else '' }}> Staff-only</label>
-                    </div>
-                    <button class="btn btn-primary btn-sm" type="submit" style="margin-top:6px;">Save</button>
-                  </form>
-                  <form method="post" action="{{ url_for('clients.client_notes_delete', client_id=client.id, note_id=n.id) }}" onsubmit="return confirm('Delete this note?');" style="margin-top:6px;">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button class="btn btn-outline-primary btn-sm" type="submit">Delete</button>
-                  </form>
-                </details>
+      <ol class="note-feed">
+        {% for n in notes %}{% set a = authors.get(n.created_by_user_id) %}
+          <li>
+            <span class="avatar" aria-hidden="true">{{ ((a.full_name or a.email)[:1] if a else '?')|upper }}</span>
+            <div class="note-main">
+              <div class="note-meta">
+                <strong>{{ (a.full_name or a.email) if a else 'Team' }}</strong>
+                <span>{{ n.created_at|short_date('%b %d, %Y') }}</span>
+                {% if n.is_internal %}<span class="badge-dot badge-muted">Team only</span>{% else %}<span class="badge-dot badge-ok">Client can see</span>{% endif %}
+                {% for t in (n.tags or '').split(',') if t.strip() %}<span class="chip">{{ t.strip() }}</span>{% endfor %}
               </div>
+              <div class="note-body">{{ n.body }}</div>
+              <details class="inline-edit">
+                <summary>Edit</summary>
+                <form method="post" action="{{ url_for('clients.client_notes_edit', client_id=client.id, note_id=n.id) }}" class="stack-form">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <textarea class="form-control" name="body" rows="3" required aria-label="Note text">{{ n.body }}</textarea>
+                  <input class="form-control" name="tags" value="{{ n.tags or '' }}" placeholder="Tags" aria-label="Tags">
+                  <label class="check"><input type="checkbox" name="is_internal" value="1"{% if n.is_internal %} checked{% endif %}> Team only</label>
+                  <div class="inline-row">
+                    <button class="btn btn-primary btn-sm" type="submit">Save</button>
+                  </div>
+                </form>
+                <form method="post" action="{{ url_for('clients.client_notes_delete', client_id=client.id, note_id=n.id) }}" onsubmit="return confirm('Delete this note?');" style="margin-top:8px;">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="linkish danger" type="submit">Delete note</button>
+                </form>
+              </details>
             </div>
-          {% endfor %}
-        </div>
+          </li>
+        {% endfor %}
+      </ol>
       {% else %}
-        <div class="muted">No notes yet.</div>
+        <div class="ws-empty"><strong>No notes yet</strong>Write down what you learn on calls, what the veteran told you, and decisions the team made.</div>
       {% endif %}
-    </div>
+    </section>
+  </div>
+  <div>
+    <section class="ws-card note-compose">
+      <div class="ws-card-head"><h2>Add a note</h2></div>
+      <div class="ws-card-body">
+        <form method="post" action="{{ url_for('clients.client_notes_post', client_id=client.id) }}" class="stack-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label class="sr-only" for="nBody">Note</label>
+          <textarea id="nBody" class="form-control" name="body" rows="6" placeholder="What happened, what you learned, what's next." required></textarea>
+          <label class="form-label" for="nTags">Tags</label>
+          <input id="nTags" class="form-control" name="tags" placeholder="Evidence, Deadline, Follow-up">
+          <label class="check"><input type="checkbox" name="is_internal" value="1" checked> Team only <span class="muted small">(uncheck to show it in the client's portal)</span></label>
+          <button class="btn btn-primary" type="submit">Save note</button>
+        </form>
+      </div>
+    </section>
+    {% if client.notes %}
+    <section class="ws-card">
+      <div class="ws-card-head"><h2>Pinned note</h2><a href="{{ url_for('clients.view_client', client_id=client.id) }}#staff-notes">Edit</a></div>
+      <div class="ws-card-body note-body">{{ client.notes }}</div>
+    </section>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

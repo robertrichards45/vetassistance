@@ -1,179 +1,109 @@
-{% extends "layout.html" %}
-{% block title %}Letters - {{ client.display_name() }}{% endblock %}
+{% extends "base.html" %}
+{% block title %}Letters | {{ client.display_name() }}{% endblock %}
 {% block content %}
-<section class="section" style="max-width: 1200px; margin: 0 auto;">
 {% set active_tab = "letters" %}
 {% include "partials/_client_header.html" %}
 
-  <div class="files-grid">
-    <div class="panel">
-      <div class="panel-head">
-        <div>
-          <div class="panel-title">Create Letter</div>
-          <div class="panel-sub">Choose a template or write a custom message for the client portal.</div>
-        </div>
+<div class="ws-grid">
+  <div>
+    <section class="ws-card">
+      <div class="ws-card-head"><h2>Letters</h2><span class="muted small">{{ letters|length }} total · {{ letters|selectattr('is_visible_to_client')|list|length }} in the client portal</span></div>
+      {% if letters %}
+      <ul class="letter-feed">
+        {% for l in letters %}
+          <li>
+            <details>
+              <summary>
+                <span class="lf-title">{{ l.title }}</span>
+                <span class="lf-meta">
+                  {% if l.is_visible_to_client %}<span class="badge-dot badge-ok">In client portal</span>{% else %}<span class="badge-dot badge-muted">Team only</span>{% endif %}
+                  <span>{{ l.created_at|short_date('%b %d, %Y') }}</span>
+                </span>
+                <span class="lf-preview">{{ l.body[:180] }}{{ '…' if l.body|length > 180 }}</span>
+              </summary>
+              <div class="lf-body">{{ l.body }}</div>
+              <div class="lf-actions">
+                {% if l.is_visible_to_client %}
+                <form method="post" action="{{ url_for('letters.unshare_letter', client_id=client.id, letter_id=l.id) }}" onsubmit="return confirm('Remove this letter from the client portal?');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm" type="submit">Hide from client</button></form>
+                {% else %}
+                <form method="post" action="{{ url_for('letters.share_letter', client_id=client.id, letter_id=l.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-primary" type="submit">Share to portal</button></form>
+                {% endif %}
+                <form method="post" action="{{ url_for('letters.send_letter', client_id=client.id, letter_id=l.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm" type="submit">Email to client</button></form>
+                <form method="post" action="{{ url_for('letters.delete_letter', client_id=client.id, letter_id=l.id) }}" onsubmit="return confirm('Delete this letter?');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="linkish danger" type="submit">Delete</button></form>
+              </div>
+            </details>
+          </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+        <div class="ws-empty"><strong>No letters yet</strong>Write the veteran an update, a records request, or a statement draft. Letters you share show up in their portal.</div>
+      {% endif %}
+    </section>
+  </div>
+
+  <div>
+    <section class="ws-card">
+      <div class="ws-card-head"><h2>Write a letter</h2></div>
+      <div class="seg lt-seg" role="tablist" aria-label="How to write">
+        <button type="button" role="tab" aria-selected="true" data-pane="lpTemplate">Template</button>
+        <button type="button" role="tab" aria-selected="false" data-pane="lpWizard">Guided interview</button>
       </div>
-      <div class="panel-body">
-        <form method="post" action="{{ url_for('letters.generate_letter', client_id=client.id) }}" class="stack-form">
+      <div class="ws-card-body">
+        <form id="lpTemplate" method="post" action="{{ url_for('letters.generate_letter', client_id=client.id) }}" class="stack-form">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <label style="grid-column:1/-1;">
-            Letter type
-            <select name="letter_name" required>
-              <option value="" selected disabled>Select a letter</option>
-              {% for t in templates %}
-                <option value="{{ t.name }}">{{ t.name }}</option>
-              {% endfor %}
-              <option value="custom">Custom Letter</option>
-            </select>
-          </label>
-
-          <label style="grid-column:1/-1;">
-            Custom letter body (only used for Custom Letter)
-            <textarea name="custom_body" rows="6" placeholder="Write your custom letter here."></textarea>
-          </label>
-
-          <label class="form-label" style="display:flex;gap:8px;align-items:center;">
-            <input type="checkbox" name="share_to_client" value="1" checked>
-            Share to client portal
-          </label>
-
-          <label class="form-label" style="display:flex;gap:8px;align-items:center;">
-            <input type="checkbox" name="ai_polish" value="1">
-            Use AI to polish wording
-          </label>
-
-          <div style="grid-column:1/-1; display:flex; gap:10px; flex-wrap:wrap;">
-            <button class="btn btn-primary" type="submit">Create Letter</button>
-            <button class="btn btn-outline-primary" type="submit" form="quickUpdateForm">Post Quick Update</button>
+          <label class="form-label" for="ltName">Letter</label>
+          <select id="ltName" class="form-control" name="letter_name" required>
+            <option value="" selected disabled>Choose a letter</option>
+            <option value="custom">Write my own</option>
+            {% for t in templates %}<option value="{{ t.name }}">{{ t.name }}</option>{% endfor %}
+          </select>
+          <div id="ltCustom" hidden>
+            <label class="form-label" for="ltBody">Your letter</label>
+            <textarea id="ltBody" class="form-control" name="custom_body" rows="8" placeholder="1. What we reviewed&#10;2. What we need from you next&#10;3. Deadlines or priorities"></textarea>
           </div>
+          <label class="check"><input type="checkbox" name="share_to_client" value="1" checked> Show in client portal</label>
+          <label class="check"><input type="checkbox" name="ai_polish" value="1"> Polish the wording with AI</label>
+          <button class="btn btn-primary" type="submit">Create letter</button>
         </form>
 
-        <form method="post" action="{{ url_for('letters.post_letter', client_id=client.id) }}" id="quickUpdateForm" style="display:none;">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        </form>
-      </div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-head">
-        <div>
-          <div class="panel-title">Call Script Builder</div>
-          <div class="panel-sub">Follow the questions during a call and generate a letter draft.</div>
-        </div>
-      </div>
-      <div class="panel-body">
-        <form method="post" action="{{ url_for('letters.wizard_preview_letter', client_id=client.id) }}" id="wizardForm" class="stack-form">
+        <form id="lpWizard" method="post" action="{{ url_for('letters.wizard_preview_letter', client_id=client.id) }}" class="stack-form" hidden>
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="wizard_payload" id="wizardPayload">
-          <label style="grid-column:1/-1;">
-            Letter type
-            <select name="letter_name" id="wizardLetterType" required>
-              <option value="" selected disabled>Select a letter</option>
-              {% for name, cfg in (wizards or {}).items() %}
-                <option value="{{ name }}">{{ name }}</option>
-              {% endfor %}
-            </select>
-          </label>
-
-          <div class="muted small" style="grid-column:1/-1; margin-top:-6px;">
-            Call script: ask for specific dates, examples, and document names. Keep answers factual and concise.
-          </div>
-          <div id="wizardQuestions" style="grid-column:1/-1;"></div>
-
-          <label class="form-label" style="display:flex;gap:8px;align-items:center;">
-            <input type="checkbox" name="share_to_client" value="1" checked>
-            Share to client portal
-          </label>
-
-          <label class="form-label" style="display:flex;gap:8px;align-items:center;">
-            <input type="checkbox" name="ai_polish" value="1">
-            Use AI to polish wording
-          </label>
-
-          <div style="grid-column:1/-1; display:flex; gap:10px; flex-wrap:wrap;">
-            <button class="btn btn-primary" type="submit">Preview Draft</button>
-          </div>
+          <p class="muted small" style="margin:0;">Ask these questions on a call with the veteran, type their answers, and get a ready-to-edit draft.</p>
+          <label class="form-label" for="wizardLetterType">Letter</label>
+          <select id="wizardLetterType" class="form-control" name="letter_name" required>
+            <option value="" selected disabled>Choose a letter</option>
+            {% for name, cfg in (wizards or {}).items() %}<option value="{{ name }}">{{ name }}</option>{% endfor %}
+          </select>
+          <div id="wizardQuestions" class="wz-qs"></div>
+          <label class="check"><input type="checkbox" name="share_to_client" value="1" checked> Show in client portal</label>
+          <label class="check"><input type="checkbox" name="ai_polish" value="1"> Polish the wording with AI</label>
+          <button class="btn btn-primary" type="submit">Preview draft</button>
         </form>
       </div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-head">
-        <div>
-          <div class="panel-title">Quick Tips</div>
-          <div class="panel-sub">Short, actionable updates get the fastest client response.</div>
-        </div>
-      </div>
-      <div class="panel-body">
-        <div class="ai-box">
-          <div class="ai-title">Suggested structure</div>
-          <div class="ai-text">1) What we reviewed\n2) What we need next\n3) Deadlines or priorities</div>
-        </div>
-      </div>
-    </div>
+    </section>
   </div>
-
-  <div style="margin-top:14px;">
-    <div class="panel">
-      <div class="panel-head">
-        <div>
-          <div class="panel-title">Posted Letters</div>
-          <div class="panel-sub">Shared letters appear in the client portal.</div>
-        </div>
-      </div>
-      <div class="panel-body">
-        {% if letters %}
-          <div class="letter-list">
-            {% for l in letters %}
-              <div class="letter-card">
-                <div class="letter-head">
-                  <div>
-                    <div class="letter-title">{{ l.title }}</div>
-                    <div class="letter-meta">{{ l.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
-                  </div>
-                  {% if l.is_visible_to_client %}
-                    <div class="pill ready">Shared</div>
-                  {% else %}
-                    <div class="pill warn">Internal</div>
-                  {% endif %}
-                </div>
-                <div class="letter-body">{{ l.body }}</div>
-                <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
-                  <form method="post" action="{{ url_for('letters.send_letter', client_id=client.id, letter_id=l.id) }}">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button class="btn btn-outline-primary btn-sm" type="submit">Email to client</button>
-                  </form>
-                  {% if l.is_visible_to_client %}
-                  <form method="post" action="{{ url_for('letters.unshare_letter', client_id=client.id, letter_id=l.id) }}" onsubmit="return confirm('Unshare this letter from the client portal?');">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button class="btn btn-outline-primary btn-sm" type="submit">Unshare</button>
-                  </form>
-                  {% else %}
-                  <form method="post" action="{{ url_for('letters.share_letter', client_id=client.id, letter_id=l.id) }}">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button class="btn btn-outline-primary btn-sm" type="submit">Share</button>
-                  </form>
-                  {% endif %}
-                  <form method="post" action="{{ url_for('letters.delete_letter', client_id=client.id, letter_id=l.id) }}" onsubmit="return confirm('Delete this letter?');">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button class="btn btn-outline-primary btn-sm" type="submit">Delete</button>
-                  </form>
-                </div>
-              </div>
-            {% endfor %}
-          </div>
-        {% else %}
-          <div class="muted">No letters posted yet.</div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-</section>
+</div>
 
 <script>
 (function(){
+  var tabs=[].slice.call(document.querySelectorAll('.lt-seg [role=tab]'));
+  tabs.forEach(function(t){ t.addEventListener('click', function(){
+    tabs.forEach(function(o){ o.setAttribute('aria-selected', o===t?'true':'false'); document.getElementById(o.dataset.pane).hidden = o!==t; });
+  }); });
+  var sel=document.getElementById('ltName'), box=document.getElementById('ltCustom'), body=document.getElementById('ltBody');
+  function f(){ var c=sel.value==='custom'; box.hidden=!c; body.required=c; }
+  sel.addEventListener('change', f); f();
+})();
+</script>
+<script>
+(function(){
   const wizards = {{ (wizards or {}) | tojson }};
-  const form = document.getElementById('wizardForm');
+  const form = document.getElementById('lpWizard');
   const typeSelect = document.getElementById('wizardLetterType');
   const questionsWrap = document.getElementById('wizardQuestions');
   const payloadInput = document.getElementById('wizardPayload');
@@ -194,7 +124,7 @@
     wizard.questions.forEach(function(q){
       const wrapper = document.createElement('div');
       wrapper.className = 'wizard-question';
-      wrapper.style.marginBottom = '10px';
+      
       const label = document.createElement('label');
       label.style.display = 'block';
       label.textContent = 'Ask: ' + (q.label || q.id);
