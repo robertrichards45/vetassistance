@@ -172,7 +172,6 @@ def login():
 
 
 @diy_bp.post("/login")
-@csrf.exempt
 def login_post():
     email = (request.form.get("email") or "").strip().lower()
     password = request.form.get("password") or ""

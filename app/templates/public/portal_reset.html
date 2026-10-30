@@ -1,33 +1,20 @@
 {% extends "base.html" %}
-{% block title %}Reset Portal Password - {{ COMPANY_NAME }}{% endblock %}
+{% block title %}Choose a new password | {{ COMPANY_NAME }}{% endblock %}
 {% block content %}
 <div class="auth">
   {% include "partials/_auth_aside.html" %}
-  <section class="auth-card auth-legacy" aria-labelledby="ah">
-    <h1 id="ah">Reset your password</h1>
-    <p class="auth-sub">Create a new password to regain access.</p>
-
-
-<div>
-  <form method="post" action="{{ url_for('portal.portal_reset_post', token=token) }}">
-    {% if csrf_token is defined %}
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    {% endif %}
-    <div class="bf-field">
-      <label>New password</label>
-      <input class="form-control" type="password" name="password" minlength="8" required>
-    </div>
-    <div class="bf-field">
-      <label>Confirm new password</label>
-      <input class="form-control" type="password" name="confirm_password" minlength="8" required>
-    </div>
-    <div class="bf-actions" style="margin-top:10px;">
-      <button class="btn btn-primary" type="submit">Update password</button>
-      <a class="btn btn-outline-primary" href="{{ url_for('portal.portal_home') }}">Back to login</a>
-    </div>
-  </form>
-</div>
-
+  <section class="auth-card" aria-labelledby="rp-h">
+    <h1 id="rp-h">Choose a new password</h1>
+    <p class="auth-sub">Use at least eight characters, and don't reuse a password from another site.</p>
+    <form method="post" action="{{ url_for('portal.portal_reset_post', token=token) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="form-label" for="rpp">New password</label>
+      <input class="form-control" id="rpp" type="password" name="password" minlength="8" autocomplete="new-password" required autofocus>
+      <label class="form-label" for="rpc">Type it again</label>
+      <input class="form-control" id="rpc" type="password" name="confirm_password" minlength="8" autocomplete="new-password" required>
+      <button class="btn btn-primary auth-submit" type="submit">Save new password</button>
+    </form>
+    <p class="auth-alt"><a href="{{ url_for('portal.portal_home') }}">Back to sign in</a></p>
   </section>
 </div>
 {% endblock %}

@@ -133,3 +133,18 @@ def test_wrong_password_rejected(client):
 def test_pricing_page_redirects_home(client):
     resp = client.get("/pricing", headers=HTTPS)
     assert resp.status_code == 301
+
+
+@pytest.mark.parametrize("path", ["/portal/forgot", "/diy/login"])
+def test_signin_helper_pages_have_csrf(client, path):
+    html = client.get(path, headers=HTTPS).get_data(as_text=True)
+    assert 'name="csrf_token"' in html
+
+
+def test_diy_login_accepts_token_and_rejects_missing_one(client):
+    html = client.get("/diy/login", headers=HTTPS).get_data(as_text=True)
+    token = re.search(r'name="csrf_token"[^>]*value="([^"]+)"', html).group(1)
+    ok = client.post("/diy/login", data={"email": "nobody@test.local", "password": "x", "csrf_token": token}, headers=HTTPS)
+    assert ok.status_code != 400
+    bad = client.post("/diy/login", data={"email": "nobody@test.local", "password": "x"}, headers=HTTPS)
+    assert bad.status_code == 400

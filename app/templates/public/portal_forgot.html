@@ -1,32 +1,18 @@
 {% extends "base.html" %}
-{% block title %}Portal Password Help - {{ COMPANY_NAME }}{% endblock %}
+{% block title %}Reset your password | {{ COMPANY_NAME }}{% endblock %}
 {% block content %}
 <div class="auth">
   {% include "partials/_auth_aside.html" %}
-  <section class="auth-card auth-legacy" aria-labelledby="ah">
-    <h1 id="ah">Password help</h1>
-    <p class="auth-sub">Submit your email and we will help you reset your portal access.</p>
-
-
-<div>
-  <form method="post" action="{{ url_for('portal.portal_forgot_post') }}">
-    {% if csrf_token is defined %}
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    {% endif %}
-    <div class="bf-field">
-      <label>Email</label>
-      <input class="form-control" type="email" name="email" required>
-    </div>
-    <div class="bf-actions" style="margin-top:10px;">
-      <button class="btn btn-primary" type="submit">Request help</button>
-      <a class="btn btn-outline-primary" href="{{ url_for('portal.portal_home') }}">Back to login</a>
-    </div>
-  </form>
-  <div class="muted small" style="margin-top:10px;">
-    We will contact you at this email with next steps.
-  </div>
-</div>
-
+  <section class="auth-card" aria-labelledby="fp-h">
+    <h1 id="fp-h">Forgot your password?</h1>
+    <p class="auth-sub">Enter the email you use to sign in. We'll send you a link to choose a new password.</p>
+    <form method="post" action="{{ url_for('portal.portal_forgot_post') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="form-label" for="fpe">Email</label>
+      <input class="form-control" id="fpe" type="email" name="email" autocomplete="username" required autofocus>
+      <button class="btn btn-primary auth-submit" type="submit">Email me a reset link</button>
+    </form>
+    <p class="auth-alt">The link expires after a short time. Check your spam folder if it doesn't arrive. <a href="{{ url_for('portal.portal_home') }}">Back to sign in</a></p>
   </section>
 </div>
 {% endblock %}

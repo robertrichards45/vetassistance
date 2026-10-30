@@ -1,27 +1,20 @@
 {% extends "base.html" %}
-{% block title %}DIY Login{% endblock %}
+{% block title %}Sign in to the DIY toolkit | {{ COMPANY_NAME }}{% endblock %}
 {% block content %}
 <div class="auth">
   {% include "partials/_auth_aside.html" %}
-  <section class="auth-card auth-legacy" aria-labelledby="ah">
-    <h1 id="ah">Sign in to the DIY toolkit</h1>
-    <p class="auth-sub">Access your DIY tools and subscription.</p>
-
-
-<div class="admin-wrap">
-  <div class="card-shell">
-    <div class="card-body-pad">
-      <form method="post" action="{{ url_for('diy.login_post') }}" >
-        <label>Email</label>
-        <input name="email" type="email" required>
-        <label>Password</label>
-        <input name="password" type="password" required>
-        <button class="btn btn-primary" type="submit">Sign in</button>
-      </form>
-    </div>
-  </div>
-</div>
-
+  <section class="auth-card" aria-labelledby="dl-h">
+    <h1 id="dl-h">Sign in to the DIY toolkit</h1>
+    <p class="auth-sub">Your self-service tools, saved work and subscription.</p>
+    <form method="post" action="{{ url_for('diy.login_post') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="form-label" for="dle">Email</label>
+      <input class="form-control" id="dle" type="email" name="email" autocomplete="username" required autofocus>
+      <div class="auth-row"><label class="form-label" for="dlp">Password</label><a href="{{ url_for('portal.portal_forgot') }}">Forgot password?</a></div>
+      <input class="form-control" id="dlp" type="password" name="password" autocomplete="current-password" required>
+      <button class="btn btn-primary auth-submit" type="submit">Sign in</button>
+    </form>
+    <p class="auth-alt">New to the toolkit? <a href="{{ url_for('diy.register') }}">Create an account</a>.</p>
   </section>
 </div>
 {% endblock %}
