@@ -1,60 +1,58 @@
 {% extends "base.html" %}
-{% block title %}Comments - Director{% endblock %}
+{% block title %}Public comments{% endblock %}
 {% block content %}
-<div class="container-wide">
-  <div class="card-shell">
-    <div class="card-body-pad">
-      <h2 style="margin-top:0;">Public Comments</h2>
-      <div class="muted" style="margin-bottom:12px;">Approve comments before they show on the homepage.</div>
-      {% if items %}
-        <form method="post" action="{{ url_for('director.comments_bulk_approve') }}">
-          <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-            <button class="btn btn-primary btn-sm" type="submit">Approve selected</button>
-            <button class="btn btn-outline-danger btn-sm" type="submit" formaction="{{ url_for('director.comments_bulk_reject') }}">Reject selected</button>
-          </div>
-          <div class="table">
-            <div class="thead" style="grid-template-columns: .2fr 1.4fr .6fr .6fr .6fr;">
-              <div></div>
-              <div>Comment</div>
-              <div>Name</div>
-              <div>Status</div>
-              <div>Actions</div>
-            </div>
-            {% for c in items %}
-              <div class="trow" style="grid-template-columns: .2fr 1.4fr .6fr .6fr .6fr;">
-                <div>
-                  <input type="checkbox" name="comment_ids" value="{{ c.id }}">
-                </div>
-                <div>
-                  <div style="font-weight:800;color:#0B1F3A;">{{ c.comment }}</div>
-                  {% if c.branch %}<div class="muted small">{{ c.branch }}</div>{% endif %}
-                </div>
-                <div>{{ c.name }}</div>
-                <div>
-                  {% if c.is_approved %}
-                    <span class="pill ready">Approved</span>
-                  {% elif c.is_rejected %}
-                    <span class="pill bad">Rejected</span>
-                  {% else %}
-                    <span class="pill warn">Pending</span>
-                  {% endif %}
-                </div>
-                <div class="row" style="gap:8px;flex-wrap:wrap;">
-                  {% if not c.is_approved %}
-                  <button class="btn btn-primary btn-sm" type="submit" formaction="{{ url_for('director.comments_approve', comment_id=c.id) }}">Approve</button>
-                  {% endif %}
-                  {% if not c.is_rejected %}
-                  <button class="btn btn-outline-danger btn-sm" type="submit" formaction="{{ url_for('director.comments_reject', comment_id=c.id) }}">Reject</button>
-                  {% endif %}
-                </div>
-              </div>
-            {% endfor %}
-          </div>
-        </form>
-      {% else %}
-        <div class="muted">No comments yet.</div>
-      {% endif %}
-    </div>
-  </div>
+<div class="ws-head">
+  <div><h1>Public comments</h1><p>Comments veterans leave on the site. Only approved ones appear on the homepage.</p></div>
 </div>
+{% set pending = items|rejectattr('is_approved')|rejectattr('is_rejected')|list %}
+<form method="post" action="{{ url_for('director.comments_bulk_approve') }}" id="cmForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <nav class="ws-tabs" aria-label="Filter comments">
+    <a href="#" data-f="pending" aria-current="page">Waiting <span>{{ pending|length }}</span></a>
+    <a href="#" data-f="approved">Approved <span>{{ items|selectattr('is_approved')|list|length }}</span></a>
+    <a href="#" data-f="rejected">Rejected <span>{{ items|selectattr('is_rejected')|list|length }}</span></a>
+    <a href="#" data-f="">All <span>{{ items|length }}</span></a>
+  </nav>
+  <div class="bulk-bar" id="cmBulk" hidden>
+    <span id="cmCount">0 selected</span>
+    <button class="btn btn-sm btn-primary" type="submit">Approve</button>
+    <button class="btn btn-sm danger" type="submit" formaction="{{ url_for('director.comments_bulk_reject') }}">Reject</button>
+  </div>
+  <section class="ws-card">
+    {% if items %}
+    <ul class="ws-list cm-list">
+      {% for c in items %}{% set st = 'approved' if c.is_approved else ('rejected' if c.is_rejected else 'pending') %}
+      <li data-s="{{ st }}">
+        <input type="checkbox" class="cmsel" name="comment_ids" value="{{ c.id }}" aria-label="Select comment from {{ c.name }}">
+        <div class="main">
+          <div class="cm-text">“{{ c.comment }}”</div>
+          <div class="sub">{{ c.name or 'Anonymous' }}{% if c.branch %} · {{ c.branch }}{% endif %}</div>
+        </div>
+        <div class="meta cm-actions">
+          {% if st == 'approved' %}<span class="badge-dot badge-ok">On homepage</span>{% elif st == 'rejected' %}<span class="badge-dot badge-muted">Rejected</span>{% else %}<span class="badge-dot badge-warn">Waiting</span>{% endif %}
+          <span>
+          {% if not c.is_approved %}<button class="btn btn-sm btn-primary" type="submit" formaction="{{ url_for('director.comments_approve', comment_id=c.id) }}">Approve</button>{% endif %}
+          {% if not c.is_rejected %}<button class="btn btn-sm" type="submit" formaction="{{ url_for('director.comments_reject', comment_id=c.id) }}">Reject</button>{% endif %}
+          </span>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    <div class="ws-empty" id="cmNone" hidden><strong>Nothing here</strong>No comments in this view.</div>
+    {% else %}
+    <div class="ws-empty"><strong>No comments yet</strong>When visitors leave a comment on the site, it waits here for your approval.</div>
+    {% endif %}
+  </section>
+</form>
+<script>
+(function(){
+  var tabs=[].slice.call(document.querySelectorAll('#cmForm .ws-tabs a')), li=[].slice.call(document.querySelectorAll('.cm-list > li')), none=document.getElementById('cmNone');
+  var boxes=[].slice.call(document.querySelectorAll('.cmsel')), bulk=document.getElementById('cmBulk'), cnt=document.getElementById('cmCount');
+  function show(f){ var n=0; li.forEach(function(l){ var ok=!f||l.dataset.s===f; l.hidden=!ok; if(ok)n++; }); if(none) none.hidden=n>0; }
+  tabs.forEach(function(t){ t.addEventListener('click', function(e){ e.preventDefault(); tabs.forEach(function(o){ o.removeAttribute('aria-current'); }); t.setAttribute('aria-current','page'); show(t.dataset.f); }); });
+  function sync(){ var n=boxes.filter(function(b){return b.checked;}).length; bulk.hidden=!n; cnt.textContent=n+' selected'; }
+  boxes.forEach(function(b){ b.addEventListener('change', sync); });
+  show('pending');
+})();
+</script>
 {% endblock %}

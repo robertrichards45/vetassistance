@@ -1,105 +1,64 @@
 {% extends "base.html" %}
-{% block title %}Director - FAQ{% endblock %}
+{% block title %}FAQ editor{% endblock %}
 {% block content %}
-<section class="page-hero">
-  <div class="page-hero-inner">
-    <div>
-      <div class="page-kicker">Director</div>
-      <h1 class="page-title">FAQ Editor</h1>
-      <p class="page-sub">Manage public FAQ content.</p>
-    </div>
-    <div class="page-actions">
-      <a class="btn btn-outline-light" href="{{ url_for('director.dashboard') }}">Back</a>
-      <a class="btn btn-outline-light" href="{{ url_for('public.faq') }}">View FAQ</a>
-    </div>
-  </div>
-</section>
+<div class="ws-head">
+  <div><h1>FAQ editor</h1><p>Questions and answers shown on the public FAQ page, grouped by category.</p></div>
+  <div class="actions"><a class="btn" href="{{ url_for('public.faq') }}" target="_blank" rel="noopener">View public FAQ</a></div>
+</div>
 
-<div class="admin-wrap">
-  <div class="card-shell">
-    <div class="card-body-pad">
-      <div class="panel-title">Create FAQ</div>
-      <form method="post" action="{{ url_for('director.faq_create') }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <label>Question</label>
-        <input name="question" placeholder="Enter question">
-        <label style="margin-top:8px;">Answer</label>
-        <textarea name="answer" rows="4" placeholder="Enter answer"></textarea>
-        <div class="row" style="gap:12px;align-items:end;margin-top:8px;">
-          <div style="min-width:200px;">
-            <label>Category</label>
-            <input name="category" value="General">
-          </div>
-          <div style="min-width:120px;">
-            <label>Sort</label>
-            <input name="sort_order" type="number" value="0">
-          </div>
-          <div>
-            <label>Active</label>
-            <select name="is_active">
-              <option value="1" selected>Yes</option>
-              <option value="0">No</option>
-            </select>
-          </div>
-          <div>
-            <button class="btn btn-primary">Create</button>
-          </div>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <div class="card-shell">
-    <div class="card-body-pad">
-      <div class="panel-title">FAQ Items</div>
-      <div class="table" style="margin-top:10px;">
-        <div class="thead" style="grid-template-columns: 2fr 1fr 80px 80px 160px;">
-          <div>Question</div><div>Category</div><div>Sort</div><div>Active</div><div>Actions</div>
-        </div>
-        {% for it in items %}
-          <div class="trow" style="grid-template-columns: 2fr 1fr 80px 80px 160px;">
-            <div>
-              <form method="post" action="{{ url_for('director.faq_update', item_id=it.id) }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input name="question" value="{{ it.question }}">
-                <textarea name="answer" rows="3" style="margin-top:6px;">{{ it.answer }}</textarea>
-                <div class="row" style="gap:8px;align-items:end;margin-top:6px;">
-                  <div>
-                    <label>Category</label>
-                    <input name="category" value="{{ it.category }}">
-                  </div>
-                  <div>
-                    <label>Sort</label>
-                    <input name="sort_order" type="number" value="{{ it.sort_order }}">
-                  </div>
-                  <div>
-                    <label>Active</label>
-                    <select name="is_active">
-                      <option value="1" {% if it.is_active %}selected{% endif %}>Yes</option>
-                      <option value="0" {% if not it.is_active %}selected{% endif %}>No</option>
-                    </select>
-                  </div>
-                  <div>
-                    <button class="btn btn-outline-primary btn-sm">Save</button>
-                  </div>
-                </div>
-              </form>
-            </div>
-            <div class="muted small">{{ it.category }}</div>
-            <div class="muted small">{{ it.sort_order }}</div>
-            <div class="pill {{ 'ready' if it.is_active else 'warn' }}">{{ 'Yes' if it.is_active else 'No' }}</div>
-            <div>
-              <form method="post" action="{{ url_for('director.faq_delete', item_id=it.id) }}" onsubmit="return confirm('Delete this FAQ item?');">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="btn btn-outline-secondary btn-sm" type="submit">Delete</button>
-              </form>
-            </div>
-          </div>
-        {% else %}
-          <div class="muted" style="padding:12px;">No FAQ items yet.</div>
+<div class="ws-grid">
+  <div>
+    {% set groups = items|groupby('category') %}
+    {% for cat, rows in groups %}
+    <section class="ws-card">
+      <div class="ws-card-head"><h2>{{ cat or 'General' }}</h2><span class="muted small">{{ rows|length }} question{{ 's' if rows|length != 1 }}</span></div>
+      <ul class="faq-admin">
+        {% for it in rows|sort(attribute='sort_order') %}
+        <li>
+          <details>
+            <summary>
+              <span class="fa-q">{{ it.question }}</span>
+              <span class="fa-meta">{% if it.is_active %}<span class="badge-dot badge-ok">Live</span>{% else %}<span class="badge-dot badge-muted">Hidden</span>{% endif %}<span class="muted small">#{{ it.sort_order }}</span></span>
+            </summary>
+            <form method="post" action="{{ url_for('director.faq_update', item_id=it.id) }}" class="form-grid">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <div class="full"><label class="form-label">Question</label><input class="form-control" name="question" value="{{ it.question }}" required></div>
+              <div class="full"><label class="form-label">Answer</label><textarea class="form-control" name="answer" rows="5">{{ it.answer }}</textarea></div>
+              <div><label class="form-label">Category</label><input class="form-control" name="category" value="{{ it.category }}" list="faqCats"></div>
+              <div class="form-grid tight">
+                <div><label class="form-label">Order</label><input class="form-control" name="sort_order" type="number" value="{{ it.sort_order }}"></div>
+                <div><label class="form-label">Show</label><select class="form-control" name="is_active"><option value="1"{% if it.is_active %} selected{% endif %}>Live</option><option value="0"{% if not it.is_active %} selected{% endif %}>Hidden</option></select></div>
+              </div>
+              <div class="full inline-row"><button class="btn btn-primary btn-sm" type="submit">Save</button></div>
+            </form>
+            <form method="post" action="{{ url_for('director.faq_delete', item_id=it.id) }}" onsubmit="return confirm('Delete this question?');" class="fa-del">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="linkish danger" type="submit">Delete question</button>
+            </form>
+          </details>
+        </li>
         {% endfor %}
+      </ul>
+    </section>
+    {% else %}
+    <section class="ws-card"><div class="ws-empty"><strong>No questions yet</strong>Add the questions veterans ask most: cost, what documents to bring, how long claims take.</div></section>
+    {% endfor %}
+  </div>
+  <div>
+    <section class="ws-card note-compose">
+      <div class="ws-card-head"><h2>Add a question</h2></div>
+      <div class="ws-card-body">
+        <form method="post" action="{{ url_for('director.faq_create') }}" class="stack-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label class="form-label" for="fq">Question</label><input id="fq" class="form-control" name="question" required>
+          <label class="form-label" for="fa">Answer</label><textarea id="fa" class="form-control" name="answer" rows="6"></textarea>
+          <label class="form-label" for="fc">Category</label><input id="fc" class="form-control" name="category" value="General" list="faqCats">
+          <label class="form-label" for="fs">Order</label><input id="fs" class="form-control" name="sort_order" type="number" value="0">
+          <input type="hidden" name="is_active" value="1">
+          <button class="btn btn-primary" type="submit">Add question</button>
+        </form>
       </div>
-    </div>
+    </section>
   </div>
 </div>
+<datalist id="faqCats">{% for cat in items|map(attribute='category')|unique %}<option value="{{ cat }}">{% endfor %}</datalist>
 {% endblock %}

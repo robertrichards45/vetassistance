@@ -1,171 +1,75 @@
 {% extends "base.html" %}
-{% block title %}Director - Templates{% endblock %}
+{% block title %}Template library{% endblock %}
 {% block content %}
-
-<section class="page-hero">
-  <div class="page-hero-inner">
-    <div>
-      <div class="page-kicker">Director</div>
-      <h1 class="page-title">Template Library</h1>
-      <p class="page-sub">Create and manage reusable templates for letters and documents.</p>
-    </div>
-    <div class="page-actions">
-      <a class="btn btn-outline-light" href="{{ url_for('director.dashboard') }}">Back</a>
-      <form method="post" action="{{ url_for('director.seed_templates') }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button class="btn btn-outline-light" type="submit">Seed Defaults</button>
-      </form>
-    </div>
-  </div>
-</section>
-
-<div class="admin-wrap">
-  <div class="admin-grid split-40">
-    <div class="card-shell sticky-card">
-      <div class="card-body-pad">
-        <div class="panel-title">Create Template</div>
-        <form method="post" action="{{ url_for('director.templates_create') }}" class="template-form mt-2">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-          <label class="form-label">Name</label>
-          <input class="form-control" name="name" required>
-
-          <label class="form-label">Category</label>
-          <input class="form-control" name="category" placeholder="General">
-
-          <label class="form-label full">Body</label>
-          <textarea class="form-control full" name="body" rows="8" placeholder="Template body supports variables like $client_name and $today." required></textarea>
-
-          <label class="form-label full" style="display:flex; gap:8px; align-items:center;">
-            <input type="checkbox" name="is_active" value="1" checked>
-            Active
-          </label>
-
-          <div class="d-flex gap-2 flex-wrap mt-3 full">
-            <button class="btn btn-primary" type="submit">Create Template</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <div class="card-shell">
-      <div class="card-body-pad">
-        <div class="panel-title">Existing Templates</div>
-        <div class="template-search">
-          <div class="template-search-head">
-            <div class="template-search-label">Find a template</div>
-            <div class="template-count">{{ templates|length }} total</div>
-          </div>
-          <input id="templateFilter" class="template-filter" placeholder="Search by name, category, or keyword">
-          <div class="template-help">Examples: evidence, education, records</div>
-          <div class="template-search-actions">
-            <div class="template-chips">
-              <button class="template-chip active" type="button" data-filter="">All</button>
-              {% set ns = namespace(cats=[]) %}
-              {% for t in templates %}
-                {% if t.category not in ns.cats %}
-                  {% set ns.cats = ns.cats + [t.category] %}
-                {% endif %}
-              {% endfor %}
-              {% for cat in ns.cats %}
-                <button class="template-chip" type="button" data-filter="{{ cat }}">{{ cat }}</button>
-              {% endfor %}
-            </div>
-            <button class="template-clear" type="button" id="templateClear">Clear</button>
-          </div>
-        </div>
-        {% if templates %}
-          <div class="template-list" style="margin-top:10px;">
-            {% set ns = namespace(category="") %}
-            {% for t in templates %}
-              {% if t.category != ns.category %}
-                <div class="template-group">{{ t.category }}</div>
-                {% set ns.category = t.category %}
-              {% endif %}
-              <details class="template-item"
-                data-name="{{ t.name|e }}"
-                data-category="{{ t.category|e }}"
-                data-body="{{ (t.body or '')|replace('\n', ' ')|e }}"
-              >
-                <summary>
-                  <span>{{ t.name }}</span>
-                  <span class="template-meta">{{ t.category }} | {{ "Active" if t.is_active else "Inactive" }}</span>
-                </summary>
-                <div class="template-help" style="margin-top:8px;">Preview: {{ (t.body or '')|truncate(140, True, '...') }}</div>
-                <form method="post" action="{{ url_for('director.templates_update', template_id=t.id) }}" class="template-form mt-2">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-                  <label class="form-label">Name</label>
-                  <input class="form-control" name="name" value="{{ t.name }}" required>
-
-                  <label class="form-label">Category</label>
-                  <input class="form-control" name="category" value="{{ t.category }}">
-
-                  <label class="form-label full">Body</label>
-                  <textarea class="form-control full" name="body" rows="8" required>{{ t.body }}</textarea>
-
-                  <label class="form-label full" style="display:flex; gap:8px; align-items:center;">
-                    <input type="checkbox" name="is_active" value="1" {{ "checked" if t.is_active else "" }}>
-                    Active
-                  </label>
-
-                  <div class="d-flex gap-2 flex-wrap mt-3 full">
-                    <button class="btn btn-primary" type="submit">Save</button>
-                  </div>
-                </form>
-                <form method="post" action="{{ url_for('director.templates_delete', template_id=t.id) }}" style="margin-top:10px;" onsubmit="return confirm('Delete this template?');">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button class="btn btn-outline-primary" type="submit">Delete</button>
-                </form>
-              </details>
-            {% endfor %}
-          </div>
-        {% else %}
-          <div class="muted" style="margin-top:10px;">No templates yet. Create one or seed defaults.</div>
-        {% endif %}
-      </div>
-    </div>
+<div class="ws-head">
+  <div><h1>Template library</h1><p>Reusable letters and documents your team fills for a client from <em>Build a document → From a template</em>. Use <code>$client_name</code> and <code>$today</code> to fill details automatically.</p></div>
+  <div class="actions">
+    <form method="post" action="{{ url_for('director.seed_templates') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn" type="submit">Add starter templates</button></form>
   </div>
 </div>
 
+<div class="ws-grid">
+  <div>
+    <section class="ws-card">
+      <div class="doc-toolbar tpl-toolbar">
+        <label class="sr-only" for="tplQ">Search templates</label>
+        <input id="tplQ" class="form-control" type="search" placeholder="Search names and text">
+        <label class="sr-only" for="tplCat">Category</label>
+        <select id="tplCat" class="form-control"><option value="">All categories ({{ templates|length }})</option>{% for cat, rows in templates|groupby('category') %}<option value="{{ cat }}">{{ cat or 'General' }} ({{ rows|length }})</option>{% endfor %}</select>
+      </div>
+      {% if templates %}
+      <ul class="faq-admin" id="tplList">
+        {% for t in templates %}
+        <li data-n="{{ (t.name ~ ' ' ~ (t.body or ''))|lower|e }}" data-c="{{ t.category }}">
+          <details>
+            <summary>
+              <span><span class="fa-q">{{ t.name }}</span><span class="muted small tpl-prev">{{ (t.body or '')|replace('\n',' ')|truncate(110, True, '…') }}</span></span>
+              <span class="fa-meta"><span class="chip">{{ t.category or 'General' }}</span>{% if t.is_active %}<span class="badge-dot badge-ok">In use</span>{% else %}<span class="badge-dot badge-muted">Off</span>{% endif %}</span>
+            </summary>
+            <form method="post" action="{{ url_for('director.templates_update', template_id=t.id) }}" class="form-grid">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <div><label class="form-label">Name</label><input class="form-control" name="name" value="{{ t.name }}" required></div>
+              <div><label class="form-label">Category</label><input class="form-control" name="category" value="{{ t.category }}" list="tplCats"></div>
+              <div class="full"><label class="form-label">Text</label><textarea class="form-control cb-text" name="body" rows="12" required>{{ t.body }}</textarea></div>
+              <label class="check full"><input type="checkbox" name="is_active" value="1"{% if t.is_active %} checked{% endif %}> Available to the team</label>
+              <div class="full"><button class="btn btn-primary btn-sm" type="submit">Save</button></div>
+            </form>
+            <form method="post" action="{{ url_for('director.templates_delete', template_id=t.id) }}" onsubmit="return confirm('Delete this template?');" class="fa-del">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="linkish danger" type="submit">Delete template</button>
+            </form>
+          </details>
+        </li>
+        {% endfor %}
+      </ul>
+      <div class="ws-empty" id="tplNone" hidden><strong>No templates match</strong>Try another word or category.</div>
+      {% else %}
+      <div class="ws-empty"><strong>No templates yet</strong>Add starter templates, or write your own on the right.</div>
+      {% endif %}
+    </section>
+  </div>
+  <div>
+    <section class="ws-card note-compose">
+      <div class="ws-card-head"><h2>New template</h2></div>
+      <div class="ws-card-body">
+        <form method="post" action="{{ url_for('director.templates_create') }}" class="stack-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label class="form-label" for="tn">Name</label><input id="tn" class="form-control" name="name" required>
+          <label class="form-label" for="tc">Category</label><input id="tc" class="form-control" name="category" placeholder="General" list="tplCats">
+          <label class="form-label" for="tb">Text</label><textarea id="tb" class="form-control" name="body" rows="10" placeholder="Dear $client_name,&#10;&#10;…" required></textarea>
+          <label class="check"><input type="checkbox" name="is_active" value="1" checked> Available to the team</label>
+          <button class="btn btn-primary" type="submit">Create template</button>
+        </form>
+      </div>
+    </section>
+  </div>
+</div>
+<datalist id="tplCats">{% for cat in templates|map(attribute='category')|unique %}<option value="{{ cat }}">{% endfor %}</datalist>
 <script>
 (function(){
-  const input = document.getElementById("templateFilter");
-  const clearBtn = document.getElementById("templateClear");
-  const chips = document.querySelectorAll(".template-chip");
-  const items = document.querySelectorAll(".template-item");
-  if (!input || !items.length) return;
-  function applyFilter(q){
-    const query = (q || "").trim().toLowerCase();
-    items.forEach(function(item){
-      const name = (item.dataset.name || "").toLowerCase();
-      const category = (item.dataset.category || "").toLowerCase();
-      const body = (item.dataset.body || "").toLowerCase();
-      const hit = !query || name.includes(query) || category.includes(query) || body.includes(query);
-      item.style.display = hit ? "" : "none";
-    });
-  }
-  input.addEventListener("input", function(){
-    applyFilter(input.value);
-  });
-  if (clearBtn){
-    clearBtn.addEventListener("click", function(){
-      input.value = "";
-      applyFilter("");
-      chips.forEach(function(ch){ ch.classList.remove("active"); });
-      const allChip = document.querySelector(".template-chip[data-filter='']");
-      if (allChip) allChip.classList.add("active");
-    });
-  }
-  chips.forEach(function(chip){
-    chip.addEventListener("click", function(){
-      chips.forEach(function(c){ c.classList.remove("active"); });
-      chip.classList.add("active");
-      input.value = chip.dataset.filter || "";
-      applyFilter(input.value);
-    });
-  });
+  var q=document.getElementById('tplQ'), c=document.getElementById('tplCat'), li=[].slice.call(document.querySelectorAll('#tplList > li')), none=document.getElementById('tplNone');
+  if(!li.length) return;
+  function f(){ var v=q.value.toLowerCase().trim(), n=0; li.forEach(function(l){ var ok=(!v||l.dataset.n.indexOf(v)>=0)&&(!c.value||l.dataset.c===c.value); l.hidden=!ok; if(ok)n++; }); none.hidden=n>0; }
+  q.addEventListener('input', f); c.addEventListener('change', f);
 })();
 </script>
-
 {% endblock %}

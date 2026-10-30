@@ -189,7 +189,7 @@ def traffic():
         total=total,
         unique=unique,
         top_paths=top_paths,
-        daily=daily,
+        daily=[(str(d)[:10], int(c or 0)) for d, c in daily],
     )
 
 @director_bp.post("/users/create")

@@ -1,120 +1,60 @@
 {% extends "base.html" %}
-{% block title %}Onboarding Items - {{ COMPANY_NAME }}{% endblock %}
+{% block title %}Team onboarding{% endblock %}
 {% block content %}
-
-<section class="page-hero">
-  <div class="page-hero-inner">
-    <div>
-      <div class="page-kicker">Director</div>
-      <h1 class="page-title">Onboarding Items</h1>
-      <p class="page-sub">Manage employee training tasks, links, and required status.</p>
-    </div>
-    <div class="page-actions">
-      <a class="btn btn-outline-light" href="{{ url_for('director.dashboard') }}">Back</a>
-    </div>
-  </div>
-</section>
-
-<div class="row g-3">
-  <div class="col-lg-4">
-    <div class="card-shell">
-      <div class="card-body-pad">
-        <div class="panel-title">Add item</div>
-        <form method="post" action="{{ url_for('director.onboarding_items_create') }}">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <label class="form-label">Title</label>
-          <input class="form-control" name="title" required>
-          <label class="form-label">Description</label>
-          <textarea class="form-control" name="description" rows="4"></textarea>
-          <label class="form-label">Task URL</label>
-          <input class="form-control" name="task_url" required placeholder="/employee/hub/standards">
-          <label class="form-label">Sort order</label>
-          <input class="form-control" name="sort_order" type="number" value="0">
-          <div class="d-flex gap-2 mt-2">
-            <label class="form-check">
-              <input class="form-check-input" type="checkbox" name="is_active" value="1" checked>
-              <span class="form-check-label">Active</span>
-            </label>
-            <label class="form-check">
-              <input class="form-check-input" type="checkbox" name="is_required" value="1" checked>
-              <span class="form-check-label">Required</span>
-            </label>
-          </div>
-          <div class="mt-3">
-            <button class="btn btn-primary" type="submit">Create</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-lg-8">
-    <div class="card-shell">
-      <div class="card-body-pad">
-        <div class="panel-title">Current items</div>
-        <div class="table">
-          <div class="thead" style="grid-template-columns: 2fr 2fr 120px 120px;">
-            <div>Item</div><div>Task URL</div><div>Status</div><div>Actions</div>
-          </div>
-          {% for item in items %}
-            <div class="trow" style="grid-template-columns: 2fr 2fr 120px 120px;">
-              <div>
-                <strong>{{ item.title }}</strong>
-                <div class="muted small">{{ item.description }}</div>
-              </div>
-              <div class="mono">{{ item.task_url }}</div>
-              <div>
-                <span class="pill {{ 'ready' if item.is_active else 'warn' }}">{{ 'Active' if item.is_active else 'Inactive' }}</span>
-              </div>
-              <div>
-                <button class="btn tiny secondary" type="button" onclick="toggleEdit('{{ item.id }}')">Edit</button>
-              </div>
-            </div>
-            <div id="edit-{{ item.id }}" class="card" style="display:none;margin-top:8px;padding:12px;">
-              <form method="post" action="{{ url_for('director.onboarding_items_update', item_id=item.id) }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <label class="form-label">Title</label>
-                <input class="form-control" name="title" value="{{ item.title }}">
-                <label class="form-label">Description</label>
-                <textarea class="form-control" name="description" rows="3">{{ item.description }}</textarea>
-                <label class="form-label">Task URL</label>
-                <input class="form-control" name="task_url" value="{{ item.task_url }}">
-                <label class="form-label">Sort order</label>
-                <input class="form-control" name="sort_order" type="number" value="{{ item.sort_order }}">
-                <div class="d-flex gap-2 mt-2">
-                  <label class="form-check">
-                    <input class="form-check-input" type="checkbox" name="is_active" value="1" {% if item.is_active %}checked{% endif %}>
-                    <span class="form-check-label">Active</span>
-                  </label>
-                  <label class="form-check">
-                    <input class="form-check-input" type="checkbox" name="is_required" value="1" {% if item.is_required %}checked{% endif %}>
-                    <span class="form-check-label">Required</span>
-                  </label>
-                </div>
-                <div class="d-flex gap-2 mt-3 flex-wrap">
-                  <button class="btn btn-primary" type="submit">Save</button>
-                </div>
-              </form>
-              <form method="post" action="{{ url_for('director.onboarding_items_delete', item_id=item.id) }}" style="margin-top:8px;">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="btn btn-outline-primary" type="submit">Delete</button>
-              </form>
-            </div>
-          {% else %}
-            <div class="muted" style="padding:16px;">No items yet.</div>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
-  </div>
+<div class="ws-head">
+  <div><h1>Team onboarding</h1><p>The checklist every new team member works through in the playbook. Required items must be finished before they're fully onboarded.</p></div>
+  <div class="actions"><a class="btn" href="{{ url_for('employee.hub') }}">Open the playbook</a></div>
 </div>
 
-<script>
-function toggleEdit(id){
-  const el = document.getElementById("edit-" + id);
-  if(!el) return;
-  el.style.display = (el.style.display === "none" || !el.style.display) ? "block" : "none";
-}
-</script>
-
+<div class="ws-grid">
+  <div>
+    <section class="ws-card">
+      <div class="ws-card-head"><h2>Checklist</h2><span class="muted small">{{ items|selectattr('is_active')|list|length }} active · {{ items|selectattr('is_required')|list|length }} required</span></div>
+      {% if items %}
+      <ol class="faq-admin ob-list">
+        {% for item in items|sort(attribute='sort_order') %}
+        <li>
+          <details>
+            <summary>
+              <span><span class="fa-q">{{ item.title }}</span>{% if item.description %}<span class="muted small tpl-prev">{{ item.description|truncate(120, True, '…') }}</span>{% endif %}</span>
+              <span class="fa-meta">{% if item.is_required %}<span class="chip">Required</span>{% endif %}{% if item.is_active %}<span class="badge-dot badge-ok">Active</span>{% else %}<span class="badge-dot badge-muted">Off</span>{% endif %}</span>
+            </summary>
+            <form method="post" action="{{ url_for('director.onboarding_items_update', item_id=item.id) }}" class="form-grid">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <div class="full"><label class="form-label">Title</label><input class="form-control" name="title" value="{{ item.title }}" required></div>
+              <div class="full"><label class="form-label">What to do</label><textarea class="form-control" name="description" rows="3">{{ item.description }}</textarea></div>
+              <div><label class="form-label">Link to the page</label><input class="form-control mono" name="task_url" value="{{ item.task_url }}"></div>
+              <div><label class="form-label">Order</label><input class="form-control" name="sort_order" type="number" value="{{ item.sort_order }}"></div>
+              <div class="full cb-checks"><label class="check"><input type="checkbox" name="is_active" value="1"{% if item.is_active %} checked{% endif %}> Active</label><label class="check"><input type="checkbox" name="is_required" value="1"{% if item.is_required %} checked{% endif %}> Required</label></div>
+              <div class="full"><button class="btn btn-primary btn-sm" type="submit">Save</button> <a class="btn btn-sm" href="{{ item.task_url }}" target="_blank" rel="noopener">Open link</a></div>
+            </form>
+            <form method="post" action="{{ url_for('director.onboarding_items_delete', item_id=item.id) }}" onsubmit="return confirm('Delete this item?');" class="fa-del">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="linkish danger" type="submit">Delete item</button>
+            </form>
+          </details>
+        </li>
+        {% endfor %}
+      </ol>
+      {% else %}
+      <div class="ws-empty"><strong>No onboarding items yet</strong>Add the pages a new teammate should read first: standards, compliance, the evidence guide.</div>
+      {% endif %}
+    </section>
+  </div>
+  <div>
+    <section class="ws-card note-compose">
+      <div class="ws-card-head"><h2>Add an item</h2></div>
+      <div class="ws-card-body">
+        <form method="post" action="{{ url_for('director.onboarding_items_create') }}" class="stack-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label class="form-label" for="ot">Title</label><input id="ot" class="form-control" name="title" required>
+          <label class="form-label" for="od">What to do</label><textarea id="od" class="form-control" name="description" rows="3"></textarea>
+          <label class="form-label" for="ou">Link to the page</label><input id="ou" class="form-control mono" name="task_url" required placeholder="/employee/hub/standards">
+          <label class="form-label" for="os">Order</label><input id="os" class="form-control" name="sort_order" type="number" value="{{ (items|length) * 10 }}">
+          <div class="cb-checks"><label class="check"><input type="checkbox" name="is_active" value="1" checked> Active</label><label class="check"><input type="checkbox" name="is_required" value="1" checked> Required</label></div>
+          <button class="btn btn-primary" type="submit">Add item</button>
+        </form>
+      </div>
+    </section>
+  </div>
+</div>
 {% endblock %}

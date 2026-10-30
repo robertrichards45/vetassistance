@@ -412,6 +412,8 @@ def create_app():
 
     from app.services.bot_guard import form_token as _bot_token
     app.jinja_env.globals["bot_token"] = _bot_token
+    from datetime import datetime as _dt
+    app.jinja_env.globals["now_utc"] = _dt.utcnow
     from app.services.case_stages import STAGES, stage_key, stage_index, stage_label
     app.jinja_env.globals.update(CASE_STAGES=STAGES, stage_key=stage_key, stage_index=stage_index, stage_label=stage_label)
 

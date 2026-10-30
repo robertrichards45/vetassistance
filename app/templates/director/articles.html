@@ -1,38 +1,24 @@
 {% extends "base.html" %}
-{% block title %}Director - Articles{% endblock %}
+{% block title %}Articles{% endblock %}
 {% block content %}
-<section class="page-hero">
-  <div class="page-hero-inner">
-    <div>
-      <div class="page-kicker">Director</div>
-      <h1 class="page-title">Articles</h1>
-      <p class="page-sub">Create and manage VA education pages.</p>
-    </div>
-    <div class="page-actions">
-      <a class="btn btn-outline-light" href="{{ url_for('director.dashboard') }}">Back</a>
-      <a class="btn btn-primary" href="{{ url_for('director.articles_new') }}">New Article</a>
-    </div>
-  </div>
-</section>
-
-<div class="admin-wrap">
-  <div class="card-shell">
-    <div class="card-body-pad">
-      <div class="table">
-        <div class="thead" style="grid-template-columns: 2fr 2fr auto;">
-          <div>Title</div><div>Summary</div><div></div>
-        </div>
-        {% for a in articles %}
-          <div class="trow" style="grid-template-columns: 2fr 2fr auto;">
-            <div><strong>{{ a.title }}</strong><div class="muted small">{{ a.slug }}</div></div>
-            <div class="muted small">{{ a.summary }}</div>
-            <div><a class="btn btn-outline-primary btn-sm" href="{{ url_for('director.articles_edit', slug=a.slug) }}">Edit</a></div>
-          </div>
-        {% else %}
-          <div class="muted" style="padding:12px;">No articles yet.</div>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
+<div class="ws-head">
+  <div><h1>Articles</h1><p>Guides on the public site. Good articles answer the exact questions veterans type into Google, which is how new visitors find you.</p></div>
+  <div class="actions"><a class="btn" href="{{ url_for('public.article_list') }}" target="_blank" rel="noopener">View on site</a><a class="btn btn-primary" href="{{ url_for('director.articles_new') }}">New article</a></div>
 </div>
+<section class="ws-card">
+  <div class="doc-toolbar tpl-toolbar" style="grid-template-columns:1fr;"><label class="sr-only" for="arQ">Search articles</label><input id="arQ" class="form-control" type="search" placeholder="Search {{ articles|length }} articles"></div>
+  {% if articles %}
+  <ul class="ws-list" id="arList">
+    {% for a in articles %}
+    <li data-n="{{ (a.title ~ ' ' ~ (a.summary or ''))|lower|e }}">
+      <div class="main"><a href="{{ url_for('director.articles_edit', slug=a.slug) }}">{{ a.title }}</a><div class="sub">{{ a.summary }}</div></div>
+      <div class="meta"><a href="{{ url_for('public.article_detail', slug=a.slug) }}" target="_blank" rel="noopener">View</a></div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="ws-empty"><strong>No articles yet</strong>Start with the questions you answer most often on calls.</div>
+  {% endif %}
+</section>
+<script>(function(){var q=document.getElementById('arQ'),li=[].slice.call(document.querySelectorAll('#arList > li'));q.addEventListener('input',function(){var v=q.value.toLowerCase().trim();li.forEach(function(l){l.hidden=v&&l.dataset.n.indexOf(v)<0;});});})();</script>
 {% endblock %}

@@ -1,78 +1,56 @@
 {% extends "base.html" %}
-{% block title %}Director - Invite Links{% endblock %}
+{% block title %}Invite links{% endblock %}
 {% block content %}
-
-<section class="page-hero">
-  <div class="page-hero-inner">
-    <div>
-      <div class="page-kicker">Director</div>
-      <h1 class="page-title">Invite Links</h1>
-      <p class="page-sub">Create secure one-time invites for clients or employees.</p>
-    </div>
-    <div class="page-actions">
-      <a class="btn btn-outline-light" href="{{ url_for('director.dashboard') }}">Back</a>
-      <a class="btn btn-outline-light" href="{{ url_for('director.users') }}">Users</a>
-    </div>
-  </div>
-</section>
-
-<div class="admin-wrap">
-  {% if not EMAIL_STATUS.provider or EMAIL_STATUS.missing_sender %}
-    <div class="card-shell">
-      <div class="card-body-pad">
-        <div class="panel-title">Email not configured</div>
-        <div class="muted">Email delivery needs a provider and sender address. <a href="{{ url_for('email_logs.index') }}">Open Email settings</a> to check the configuration and send a test.</div>
-      </div>
-    </div>
-  {% endif %}
-
-  <div class="admin-grid split-40">
-    <div class="card-shell">
-      <div class="card-body-pad">
-        <div class="panel-title">Create Invite</div>
-        <form method="post" action="{{ url_for('invites.create') }}" class="stack-form mt-2">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-          <label class="form-label">Email</label>
-          <input class="form-control" name="email" type="email" required>
-
-          <label class="form-label">Role</label>
-          <select class="form-control" name="role">
-            <option value="CLIENT">Client Portal</option>
-            <option value="EMPLOYEE">Employee</option>
-          </select>
-
-          <div class="d-flex gap-2 flex-wrap mt-3">
-            <button class="btn btn-primary" type="submit">Create Link</button>
-            <div class="muted small">Links are one-time use and tokens are never stored in plaintext.</div>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <div class="card-shell">
-      <div class="card-body-pad">
-        <div class="panel-title">Recent Invites</div>
-        <div class="table">
-          <div class="thead" style="grid-template-columns: 2fr 1fr 1fr;">
-            <div>Email</div><div>Role</div><div>Status</div>
-          </div>
-          {% for i in invites %}
-            <div class="trow" style="grid-template-columns: 2fr 1fr 1fr;">
-              <div>
-                <strong>{{ i.email }}</strong>
-                <div class="muted small">{{ i.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
-              </div>
-              <div class="pill ready">{{ i.role }}</div>
-              <div class="pill {{ 'ready' if i.is_used else 'warn' }}">{{ 'USED' if i.is_used else 'OPEN' }}</div>
-            </div>
-          {% else %}
-            <div class="muted" style="padding:16px;">No invites yet.</div>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
-  </div>
+<div class="ws-head">
+  <div><h1>Invite links</h1><p>Send a one-time sign-up link to a new client or team member. Links expire in 7 days and are never stored in plain text.</p></div>
+  <div class="actions"><a class="btn" href="{{ url_for('director.users') }}">Team and logins</a></div>
 </div>
 
+{% if not EMAIL_STATUS.provider or EMAIL_STATUS.missing_sender %}
+<div class="callout warn" style="margin-bottom:20px;"><strong>Email isn't sending yet</strong>Invites can't be delivered until email is set up. <a href="{{ url_for('email_logs.index') }}">Open Email settings</a>.</div>
+{% endif %}
+
+{% set open_n = invites|rejectattr('is_used')|list|length %}
+<div class="ws-grid">
+  <div>
+    <section class="ws-card">
+      <div class="ws-card-head"><h2>Sent invites</h2><span class="muted small">{{ open_n }} waiting · {{ invites|length - open_n }} accepted</span></div>
+      {% if invites %}
+      <ul class="ws-list">
+        {% for i in invites %}
+          <li>
+            <span class="avatar" aria-hidden="true">{{ (i.email[:1])|upper }}</span>
+            <div class="main"><div class="ttl">{{ i.email }}</div><div class="sub">{{ 'Team member' if i.role == 'EMPLOYEE' else 'Client portal' }} · sent {{ i.created_at|short_date('%b %d, %Y') }}</div></div>
+            <div class="meta">
+              {% if i.is_used %}<span class="badge-dot badge-ok">Accepted{% if i.used_at %} {{ i.used_at|short_date }}{% endif %}</span>
+              {% elif (now_utc() - i.created_at).days >= 7 %}<span class="badge-dot badge-muted">Expired</span>
+              {% else %}<span class="badge-dot badge-warn">Waiting</span>{% endif %}
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+        <div class="ws-empty"><strong>No invites yet</strong>Invite a client so they can upload documents and message you, or invite a teammate to work cases.</div>
+      {% endif %}
+    </section>
+  </div>
+  <div>
+    <section class="ws-card">
+      <div class="ws-card-head"><h2>Send an invite</h2></div>
+      <div class="ws-card-body">
+        <form method="post" action="{{ url_for('invites.create') }}" class="stack-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label class="form-label" for="invEmail">Email</label>
+          <input id="invEmail" class="form-control" name="email" type="email" required autocomplete="off">
+          <span class="form-label">Account type</span>
+          <div class="seg" role="radiogroup" aria-label="Account type">
+            <label><input type="radio" name="role" value="CLIENT" checked> Client portal</label>
+            <label><input type="radio" name="role" value="EMPLOYEE"> Team member</label>
+          </div>
+          <button class="btn btn-primary" type="submit">Send invite</button>
+        </form>
+      </div>
+    </section>
+  </div>
+</div>
 {% endblock %}

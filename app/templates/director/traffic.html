@@ -1,66 +1,35 @@
 {% extends "base.html" %}
-{% block title %}Director - Traffic{% endblock %}
+{% block title %}Website traffic{% endblock %}
 {% block content %}
-<section class="page-hero">
-  <div class="page-hero-inner">
-    <div>
-      <div class="page-kicker">Director</div>
-      <h1 class="page-title">Traffic</h1>
-      <p class="page-sub">Last 30 days of real visitor traffic (staff + bots excluded).</p>
-    </div>
-    <div class="page-actions">
-      <a class="btn btn-outline-light" href="{{ url_for('director.dashboard') }}">Back</a>
-      <a class="btn btn-outline-light" href="{{ url_for('director.users') }}">Users</a>
-    </div>
-  </div>
-</section>
-
-<div class="admin-wrap">
-  <div class="admin-grid split-40">
-    <div class="card-shell">
-      <div class="card-body-pad">
-        <div class="panel-title">Summary</div>
-        <div class="muted" style="margin-top:8px;">Total views (real): <strong>{{ total }}</strong></div>
-        <div class="muted" style="margin-top:6px;">Unique visitors (real): <strong>{{ unique }}</strong></div>
+<div class="ws-head">
+  <div><h1>Website traffic</h1><p>Real visitors over the last 30 days. Your team and known bots are left out.</p></div>
+</div>
+{% set days = daily|list %}{% set peak = (days|map(attribute=1)|max) if days else 0 %}
+<div class="ws-metrics">
+  <div class="ws-metric"><span>Page views</span><strong>{{ '{:,}'.format(total) }}</strong></div>
+  <div class="ws-metric"><span>Unique visitors</span><strong>{{ '{:,}'.format(unique) }}</strong></div>
+  <div class="ws-metric"><span>Busiest day</span><strong class="sm">{% if days %}{% for d, c in days if c == peak %}{% if loop.first %}{{ d }}{% endif %}{% endfor %}{% else %}—{% endif %}</strong><small class="muted">{{ peak }} visitor{{ 's' if peak != 1 }}</small></div>
+  <div class="ws-metric"><span>Views per visitor</span><strong>{{ '%.1f'|format(total / unique) if unique else '—' }}</strong></div>
+</div>
+<div class="ws-grid">
+  <section class="ws-card">
+    <div class="ws-card-head"><h2>Visitors per day</h2></div>
+    <div class="ws-card-body">
+      {% if days %}
+      <div class="bars" role="img" aria-label="Unique visitors per day, last 30 days">
+        {% for d, c in days %}<div class="bar" style="--h:{{ (c / peak * 100) if peak else 0 }}%" title="{{ d }}: {{ c }}"><i></i><span>{{ d[-5:] }}</span></div>{% endfor %}
       </div>
+      {% else %}<div class="ws-empty" style="padding:0;">No visits recorded yet.</div>{% endif %}
     </div>
-    <div class="card-shell">
-      <div class="card-body-pad">
-        <div class="panel-title">Top Pages</div>
-        <div class="table" style="margin-top:10px;">
-          <div class="thead" style="grid-template-columns: 2fr 1fr;">
-            <div>Path</div><div>Views</div>
-          </div>
-          {% for path, cnt in top_paths %}
-            <div class="trow" style="grid-template-columns: 2fr 1fr;">
-              <div class="muted">{{ path }}</div>
-              <div class="pill ready">{{ cnt }}</div>
-            </div>
-          {% else %}
-            <div class="muted" style="padding:16px;">No data yet.</div>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="card-shell">
-    <div class="card-body-pad">
-      <div class="panel-title">Daily Unique Visitors</div>
-      <div class="table" style="margin-top:10px;">
-        <div class="thead" style="grid-template-columns: 1fr 1fr;">
-          <div>Date</div><div>Unique</div>
-        </div>
-        {% for day, cnt in daily %}
-          <div class="trow" style="grid-template-columns: 1fr 1fr;">
-            <div class="muted">{{ day }}</div>
-            <div class="pill ready">{{ cnt }}</div>
-          </div>
-        {% else %}
-          <div class="muted" style="padding:16px;">No data yet.</div>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
+  </section>
+  <section class="ws-card">
+    <div class="ws-card-head"><h2>Top pages</h2></div>
+    {% set tp = top_paths|list %}{% set tmax = (tp|map(attribute=1)|max) if tp else 0 %}
+    {% if tp %}
+    <ul class="ws-list hbars">
+      {% for path, cnt in tp %}<li><div class="main"><div class="ttl mono">{{ path }}</div><i style="width:{{ (cnt / tmax * 100) if tmax else 0 }}%"></i></div><div class="meta">{{ cnt }}</div></li>{% endfor %}
+    </ul>
+    {% else %}<div class="ws-empty">No data yet.</div>{% endif %}
+  </section>
 </div>
 {% endblock %}
