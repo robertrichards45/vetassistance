@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Accept invitation | {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<div class="auth">
+  {% include "partials/_auth_aside.html" %}
+  <section class="auth-card" aria-labelledby="inv-h">
+    <h1 id="inv-h">Set up your account</h1>
+    <p class="auth-sub">You've been invited to join Veteran Benefits Assistance as {{ 'a client' if invite.role == 'CLIENT' else 'a team member' }}. This link expires after seven days and works only once.</p>
+    <p><strong>Account email:</strong> {{ invite.email }}</p>
+    <form method="post" action="{{ url_for('invites.accept', token=request.view_args.token) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="form-label" for="invname">Full name</label>
+      <input class="form-control" type="text" id="invname" name="full_name" maxlength="255" autocomplete="name" required>
+      <label class="form-label" for="invpass">Choose a password (at least eight characters)</label>
+      <input class="form-control" type="password" id="invpass" name="password" minlength="8" autocomplete="new-password" required>
+      <label class="form-label" for="invconfirm">Confirm password</label>
+      <input class="form-control" type="password" id="invconfirm" name="confirm_password" minlength="8" autocomplete="new-password" required>
+      <button class="btn btn-primary auth-submit" type="submit">Activate my account</button>
+    </form>
+    <p class="auth-alt">Already have an account? <a href="{{ url_for('auth.login') }}">Sign in</a>.</p>
+  </section>
+</div>
+{% endblock %}
