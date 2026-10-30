@@ -253,6 +253,28 @@ def pricing_actions():
         flash("Pricing item updated.", "success")
         return redirect(url_for("pricing.list_pricing"))
 
+    if action == "update":
+        name = (request.form.get("name") or "").strip()
+        if name:
+            item.name = name[:200]
+        if item.is_percent:
+            try:
+                item.percent_of_backpay = max(0, min(100, int(request.form.get("percent_of_backpay") or 0)))
+            except ValueError:
+                flash("Percent must be a whole number.", "error")
+                return redirect(url_for("pricing.list_pricing"))
+        elif request.form.get("price_dollars") is not None:
+            item.price_cents = _parse_price_cents(request.form.get("price_dollars") or "")
+        try:
+            item.sort_order = int(request.form.get("sort_order") or item.sort_order or 0)
+        except ValueError:
+            pass
+        if request.form.get("description") is not None:
+            item.description = (request.form.get("description") or "").strip()
+        db.commit()
+        flash("Pricing item saved.", "success")
+        return redirect(url_for("pricing.list_pricing"))
+
     if action == "delete":
         db.delete(item)
         db.commit()

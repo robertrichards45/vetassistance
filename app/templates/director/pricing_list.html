@@ -101,6 +101,22 @@
                   {% if p.description %}
                     <div class="small text-muted" style="max-width:620px;">{{ p.description }}</div>
                   {% endif %}
+                  <details class="price-edit" style="margin-top:6px;">
+                    <summary class="small" style="cursor:pointer;color:var(--link,#14325A);font-weight:700;">Edit</summary>
+                    <form method="post" style="display:grid;gap:8px;margin-top:8px;max-width:620px;">
+                      <input type="hidden" name="action" value="update">
+                      <input type="hidden" name="item_id" value="{{ p.id }}">
+                      <label class="small">Service name <input class="form-control" name="name" value="{{ p.name }}" required></label>
+                      {% if p.is_percent %}
+                      <label class="small">Percent of backpay <input class="form-control" type="number" min="0" max="100" name="percent_of_backpay" value="{{ p.percent_of_backpay or 0 }}"></label>
+                      {% else %}
+                      <label class="small">Flat price (USD) <input class="form-control" name="price_dollars" value="{{ '%.2f'|format((p.price_cents or 0) / 100) }}"></label>
+                      {% endif %}
+                      <label class="small">Sort order <input class="form-control" type="number" name="sort_order" value="{{ p.sort_order or 0 }}"></label>
+                      <label class="small">Description <textarea class="form-control" name="description" rows="3">{{ p.description or '' }}</textarea></label>
+                      <div><button class="btn btn-sm btn-primary" type="submit">Save changes</button></div>
+                    </form>
+                  </details>
                 </td>
 
                 <td>

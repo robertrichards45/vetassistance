@@ -88,3 +88,19 @@ def test_add_team_member_generates_password(app):
                                                "role": "EMPLOYEE"}, headers=H, follow_redirects=True)
     body = r.get_data(as_text=True)
     assert "Temporary password:" in body and "ChangeMe123" not in body
+
+
+def test_director_can_edit_pricing_percent(app):
+    from app.models import PricingItem
+    db = SessionLocal()
+    org = db.query(Client).first().org_id
+    it = PricingItem(org_id=org, name="Claim support", is_percent=True, percent_of_backpay=20, price_cents=0, active=True,
+                     description="Fee: 20%")
+    db.add(it); db.commit(); iid = it.id; db.close()
+    d, _ = login(app, "director")
+    tok = token(d, "/director/pricing")
+    d.post("/director/pricing", data={"csrf_token": tok, "action": "update", "item_id": str(iid), "name": "Claim support",
+                                      "percent_of_backpay": "15", "description": "Fee: 15%"}, headers=H)
+    db = SessionLocal()
+    assert db.get(PricingItem, iid).percent_of_backpay == 15
+    db.close()
