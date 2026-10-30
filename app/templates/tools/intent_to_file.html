@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Intent to File reminders | {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<section class="pub-hero">
+  <p class="kicker">Free tool</p>
+  <h1>Don't let your Intent to File run out.</h1>
+  <p>An Intent to File holds your start date for back pay for one year while you gather evidence. Tell us when you filed it and we'll email you before the deadline.</p>
+  <div class="pub-trust"><span>Free</span><span>3 reminders, then nothing</span><span>Stop any time</span></div>
+</section>
+<div class="pub-grid">
+  <div>
+    <section class="ws-card">
+      <div class="ws-card-head"><h2>How an Intent to File works</h2></div>
+      <div class="ws-card-body">
+        <ol class="pub-steps">
+          <li><div><strong>You tell VA you plan to file</strong><span class="muted small">Online at VA.gov, by phone at 800-827-1000, or with VA Form 21-0966.</span></div></li>
+          <li><div><strong>VA holds your start date</strong><span class="muted small">If your claim is approved, back pay can start from the date VA received your Intent to File.</span></div></li>
+          <li><div><strong>File the full claim within a year</strong><span class="muted small">Miss the deadline and your start date moves to the day VA receives your claim. That can mean months of lost back pay.</span></div></li>
+        </ol>
+        <p class="muted small" style="margin:14px 0 0;">Not sure if you have one? Check your claim status on VA.gov or call VA. An Intent to File covers disability compensation, pension or survivor benefits, depending on the type you chose.</p>
+      </div>
+    </section>
+  </div>
+  <div>
+    <section class="ws-card">
+      <div class="ws-card-head"><h2>Get reminders</h2></div>
+      <div class="ws-card-body">
+        <form method="post" class="stack-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label class="form-label" for="itfDate">Date you submitted your Intent to File</label>
+          <input id="itfDate" class="form-control" type="date" name="filed_on" required>
+          <label class="form-label" for="itfEmail">Email</label>
+          <input id="itfEmail" class="form-control" type="email" name="email" autocomplete="email" required>
+          <button class="btn btn-primary" type="submit">Remind me</button>
+          <p class="muted small" style="margin:0;">We'll email you 60, 30 and 7 days before the deadline. We use your email only for these reminders.</p>
+        </form>
+      </div>
+    </section>
+    <section class="ws-card"><div class="ws-card-body"><strong>Haven't filed one yet?</strong><p class="muted small" style="margin:6px 0 12px;">Filing one today can protect months of back pay while you get your evidence together.</p><a class="btn" href="https://www.va.gov/resources/your-intent-to-file-a-va-claim/" rel="noopener">How to file on VA.gov ↗</a></div></section>
+  </div>
+</div>
+{% endblock %}

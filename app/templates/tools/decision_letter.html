@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}{{ meta_title }} | {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<section class="pub-hero">
+  <p class="kicker">Free tool</p>
+  <h1>{{ 'Your decision letter, in plain English.' if result else 'Understand your VA decision letter.' }}</h1>
+  <p>{% if result %}Read this next to your letter. If anything here doesn't match it, the letter is what counts.{% else %}Upload or paste your letter. You'll see what VA granted or denied, why, and the options you have, with your deadline. Nothing you upload is saved.{% endif %}</p>
+  {% if not result %}<div class="pub-trust"><span>Free, no account</span><span>Nothing is stored</span><span>About 30 seconds</span></div>{% endif %}
+</section>
+
+{% if not result %}
+<div class="pub-grid">
+  <section class="ws-card">
+    <div class="ws-card-head"><h2>Your letter</h2></div>
+    <div class="ws-card-body">
+      <form method="post" enctype="multipart/form-data" class="stack-form" id="dlForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label class="form-label" for="dlFile">Upload the PDF from VA.gov</label>
+        <input id="dlFile" class="form-control" type="file" name="letter_file" accept=".pdf,.txt,application/pdf,text/plain">
+        <p class="muted small" style="margin:0;">Or paste the text of the letter:</p>
+        <label class="sr-only" for="dlText">Letter text</label>
+        <textarea id="dlText" class="form-control" name="letter_text" rows="10" placeholder="Paste everything from &quot;We made a decision&quot; through the end of the reasons."></textarea>
+        <button class="btn btn-primary" type="submit" id="dlGo">Explain my letter</button>
+        <p class="muted small" style="margin:0;">We remove anything that looks like a Social Security or file number before reading it. The text is sent to our AI provider to write the summary and is not saved by us.</p>
+      </form>
+    </div>
+  </section>
+  <div>
+    <section class="ws-card"><div class="ws-card-head"><h2>Where to find your letter</h2></div><div class="ws-card-body">
+      <ol class="steps-list"><li>Sign in at <a href="https://www.va.gov/" rel="noopener">VA.gov</a>.</li><li>Go to <strong>Download your VA letters and documents</strong> or <strong>Check your claim or appeal status</strong>.</li><li>Download the decision letter (PDF) and upload it here.</li></ol>
+      <p class="muted small" style="margin:10px 0 0;">Paper letter only? Type or paste the "What we decided" and "Reasons for decision" parts.</p>
+    </div></section>
+    <div class="callout">This tool explains what your letter says. It isn't legal advice, and we are not accredited by VA or affiliated with it.</div>
+  </div>
+</div>
+{% else %}
+<div class="pub-grid">
+  <div>
+    <section class="ws-card">
+      <div class="ws-card-head"><h2>What VA decided</h2>{% if result.combined_rating %}<span class="badge-dot badge-ok">Combined rating {{ result.combined_rating }}</span>{% endif %}</div>
+      <div class="ws-card-body">
+        <p style="margin-top:0;">{{ result.summary }}</p>
+        {% if result.decisions %}
+        <ul class="ws-list dl-items">
+          {% for it in result.decisions %}
+          {% set tone = {'granted':'badge-ok','increased':'badge-ok','continued':'badge-muted','deferred':'badge-warn','denied':'badge-bad','reduced':'badge-bad'}.get(it.outcome,'badge-muted') %}
+          <li><div class="main"><div class="ttl">{{ it.condition }}</div><div class="sub wrap">{{ it.reason }}{% if it.effective_date %} · Effective {{ it.effective_date }}{% endif %}</div></div>
+            <div class="meta"><span class="badge-dot {{ tone }}">{{ it.outcome|capitalize }}{% if it.percent %} {{ it.percent }}{% endif %}</span></div></li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </div>
+    </section>
+    {% if result.evidence_gaps %}
+    <section class="ws-card"><div class="ws-card-head"><h2>What VA said was missing</h2></div><div class="ws-card-body"><ul class="steps-list">{% for g in result.evidence_gaps %}<li>{{ g }}</li>{% endfor %}</ul></div></section>
+    {% endif %}
+    {% if result.questions %}
+    <section class="ws-card"><div class="ws-card-head"><h2>Double-check these</h2></div><div class="ws-card-body"><ul class="steps-list">{% for q in result.questions %}<li>{{ q }}</li>{% endfor %}</ul></div></section>
+    {% endif %}
+  </div>
+  <div>
+    <section class="ws-card">
+      <div class="ws-card-head"><h2>Your options</h2></div>
+      <div class="ws-card-body">
+        {% if result.review_deadline %}<div class="callout" style="margin-top:0;"><strong>Deadline:</strong> to keep your effective date, file a Supplemental Claim, Higher-Level Review or Board Appeal by <strong>{{ result.review_deadline }}</strong> (one year from the decision date, {{ result.decision_date }}). Confirm the date on your letter.</div>{% endif %}
+        <ul class="ws-list">{% for st in result.next_steps %}<li><div class="main"><div class="ttl">{{ st.option }}</div><div class="sub wrap">{{ st.fits_when }}</div></div></li>{% endfor %}</ul>
+        <a class="btn btn-primary" href="{{ url_for('onboard.become_client') }}" style="margin-top:12px;">Get help with your next step</a>
+        <a class="btn" href="{{ url_for('tools.decision_letter') }}" style="margin-top:8px;">Explain another letter</a>
+      </div>
+    </section>
+    <p class="muted small">AI-written summary of the text you gave us. It can make mistakes; your letter is the official record. Not legal advice.</p>
+  </div>
+</div>
+{% endif %}
+<script>
+(function(){var f=document.getElementById('dlForm');if(!f)return;f.addEventListener('submit',function(){var b=document.getElementById('dlGo');b.disabled=true;b.textContent='Reading your letter…';});})();
+</script>
+{% endblock %}

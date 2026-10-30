@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ meta_title }} | {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<section class="pub-hero no-print">
+  <p class="kicker">Free tool</p>
+  <h1>Walk into your C&amp;P exam prepared.</h1>
+  <p>Pick your condition and print a one-page sheet: what the examiner measures, what to describe, and what to bring.</p>
+</section>
+<nav class="cp-pick no-print" aria-label="Choose a condition">
+  {% for k, s in sheets.items() %}<a class="cp-chip{% if k == key %} is-on{% endif %}" href="{{ url_for('tools.cp_exam_prep', condition=k) }}">{{ s.title }}</a>{% endfor %}
+</nav>
+{% if sheet %}
+<article class="ws-card cp-sheet">
+  <div class="ws-card-head"><h2>C&amp;P exam prep: {{ sheet.title }}</h2><button class="btn btn-sm no-print" type="button" onclick="window.print()">Print</button></div>
+  <div class="ws-card-body">
+    <p><strong>What the examiner looks at:</strong> {{ sheet.measures }}</p>
+    <h3>Be ready to describe</h3>
+    <ul class="cp-lines">{% for d in sheet.describe %}<li><span>{{ d }}</span><i></i></li>{% endfor %}</ul>
+    <h3>Bring</h3>
+    <ul class="cp-checks">{% for b in sheet.bring + bring %}<li>{{ b }}</li>{% endfor %}</ul>
+    <h3>During the exam</h3>
+    <ul class="steps-list">{% for t in tips %}<li>{{ t }}</li>{% endfor %}</ul>
+    <p class="muted small">Write short notes on the lines above before your exam. Be honest and specific; never exaggerate.
+      {% if sheet.guide %}More detail: vetassistance.org/blog/{{ sheet.guide }}{% endif %}</p>
+  </div>
+</article>
+<p class="no-print">{% if sheet.guide %}<a href="{{ url_for('public.article_detail', slug=sheet.guide) }}">Read the full {{ sheet.title|lower }} rating guide</a> · {% endif %}<a href="{{ url_for('onboard.become_client') }}">Get help preparing your claim</a></p>
+{% else %}
+<div class="ws-empty" style="margin-bottom:40px;"><strong>Choose a condition above</strong>Your sheet appears here, ready to print.</div>
+{% endif %}
+{% endblock %}

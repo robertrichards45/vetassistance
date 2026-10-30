@@ -311,6 +311,8 @@ def create_app():
     app.register_blueprint(claims_bp)
     from app.routes.visits import visits_bp, page_token
     app.register_blueprint(visits_bp)
+    from app.routes.tools import tools_bp
+    app.register_blueprint(tools_bp)
     app.jinja_env.globals["visit_token"] = page_token
 
     def safe_url_for(endpoint: str, **values) -> str:
@@ -458,4 +460,6 @@ def create_app():
     _error_alerts(app)
     from app.services.uptime_watch import start as _uptime_watch
     _uptime_watch(app)
+    from app.services.daily_jobs import start as _daily_jobs
+    _daily_jobs(app)
     return app
