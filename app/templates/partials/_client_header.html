@@ -1,0 +1,68 @@
+{# Case header for staff client pages. Needs: client. Optional: portal_user, active_tab. #}
+{% set k = stage_key(client.status) %}{% set si = stage_index(client.status) %}
+{% set is_guest = (client.account_type and client.account_type.lower() == "guest") or (not client.email) or (client.email_verified is false) %}
+<nav class="crumbs" aria-label="Breadcrumb"><a href="{{ url_for('clients.list_clients') }}">Clients</a><span aria-hidden="true">/</span><span>{{ client.display_name() }}</span></nav>
+<header class="case-head">
+  <div class="case-id">
+    <span class="avatar avatar-lg" aria-hidden="true">{{ (client.first_name[:1] ~ client.last_name[:1])|upper or '?' }}</span>
+    <div>
+      <h1>{{ client.display_name() }}</h1>
+      <p class="case-facts">
+        <span class="badge-dot{% if k == 'closed' %} badge-muted{% elif k in ['filed','waiting','decision'] %} badge-ok{% elif k == 'intake' %} badge-warn{% endif %}">{{ stage_label(client.status) }}</span>
+        {% if client.service_branch %}<span>{{ client.service_branch }}</span>{% endif %}
+        {% if client.va_rating_percent %}<span>{{ client.va_rating_percent }}% VA rating</span>{% endif %}
+        {% if client.claim_number %}<span>Claim {{ client.claim_number }}</span>{% endif %}
+        {% if client.phone %}<a href="tel:{{ client.phone }}">{{ client.phone }}</a>{% endif %}
+        {% if client.email %}<a href="mailto:{{ client.email }}">{{ client.email }}</a>{% endif %}
+        {% if portal_user is defined and portal_user and portal_user.last_login_at %}<span>Portal login {{ portal_user.last_login_at|short_date }}</span>{% endif %}
+        {% if is_guest %}<span class="badge-dot badge-bad">Guest account</span>{% endif %}
+        {% if client.is_archived %}<span class="badge-dot badge-muted">Archived</span>{% endif %}
+      </p>
+    </div>
+  </div>
+  <div class="case-actions">
+    <a class="btn" href="{{ url_for('messages.staff_thread', client_id=client.id) }}">Message</a>
+    <details class="menu">
+      <summary class="btn">Build a document</summary>
+      <div class="menu-list" role="menu">
+        <a href="{{ safe_url_for('forms.intake', client_id=client.id) }}">Intake form</a>
+        <a href="{{ safe_url_for('forms.va_packet', client_id=client.id) }}">VA forms packet</a>
+        <a href="{{ safe_url_for('nexus.builder', client_id=client.id) }}">Nexus letter builder</a>
+        <a href="{{ safe_url_for('letters.staff_letters', client_id=client.id) }}">Letters</a>
+        <a href="{{ safe_url_for('templates.for_client', client_id=client.id) }}">From a template</a>
+        <a href="{{ safe_url_for('cue.staff_builder', client_id=client.id) }}">CUE motion</a>
+        <a href="{{ safe_url_for('cue.staff_filing_guide', client_id=client.id) }}">Which filing is right?</a>
+        <a href="{{ safe_url_for('artifacts.for_client', client_id=client.id) }}">Generated documents</a>
+        <a href="{{ safe_url_for('agreements.for_client', client_id=client.id) }}">Agreements</a>
+      </div>
+    </details>
+    <a class="btn btn-primary" href="{{ safe_url_for('ai.client_ai', client_id=client.id) }}">AI guidance</a>
+  </div>
+</header>
+
+<section class="case-stage ws-card" aria-label="Case stage">
+  <ol class="track track-compact">
+    {% for sk, sl, _ in CASE_STAGES %}
+      <li class="{% if loop.index0 < si %}done{% elif loop.index0 == si %}now{% endif %}">{{ sl }}</li>
+    {% endfor %}
+  </ol>
+  <form method="post" action="{{ url_for('clients.set_stage', client_id=client.id) }}" class="case-stage-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="stageSel">Move case to</label>
+    <select id="stageSel" name="stage" class="form-control">
+      {% for sk, sl, _ in CASE_STAGES %}<option value="{{ sk }}"{% if sk == k %} selected{% endif %}>{{ sl }}</option>{% endfor %}
+    </select>
+    <input class="form-control" name="note" placeholder="Note for the client (optional)" maxlength="400">
+    <button class="btn btn-primary" type="submit">Update stage</button>
+  </form>
+</section>
+
+{% set tab = active_tab if active_tab is defined else 'overview' %}
+<nav class="ws-tabs" aria-label="Client sections">
+  <a href="{{ url_for('clients.view_client', client_id=client.id) }}"{% if tab == 'overview' %} aria-current="page"{% endif %}>Overview</a>
+  <a href="{{ safe_url_for('documents.client_documents', client_id=client.id) }}"{% if tab == 'documents' %} aria-current="page"{% endif %}>Documents</a>
+  <a href="{{ safe_url_for('tasks.staff_tasks', client_id=client.id) }}"{% if tab == 'tasks' %} aria-current="page"{% endif %}>Checklist</a>
+  <a href="{{ url_for('messages.staff_thread', client_id=client.id) }}"{% if tab == 'messages' %} aria-current="page"{% endif %}>Messages</a>
+  <a href="{{ url_for('clients.client_notes', client_id=client.id) }}"{% if tab == 'notes' %} aria-current="page"{% endif %}>Notes</a>
+  <a href="{{ safe_url_for('letters.staff_letters', client_id=client.id) }}"{% if tab == 'letters' %} aria-current="page"{% endif %}>Letters</a>
+</nav>

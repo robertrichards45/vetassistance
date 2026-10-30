@@ -107,8 +107,8 @@ def home():
 
 @public_bp.get("/pricing")
 def pricing():
-    pricing_items = _get_pricing_items()
-    return render_template("public/pricing.html", pricing_items=pricing_items, meta_title="Pricing | VA Claims Support", meta_description="Transparent pricing for VA claims organization, guidance, and support services.")
+    # Pricing is no longer published; send old links and bookmarks to the homepage.
+    return redirect(url_for("public.home"), code=301)
 
 
 
@@ -252,7 +252,6 @@ def sitemap_xml():
     today = datetime.date.today().isoformat()
     routes = [
         url_for("public.home"),
-        url_for("public.pricing"),
         url_for("public.benefits_hub"),
         url_for("public.crsc"),
         url_for("public.guides"),

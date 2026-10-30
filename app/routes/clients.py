@@ -28,8 +28,18 @@ def list_clients():
     if not show_archived:
         stmt = stmt.where(Client.is_archived == False)
     if q:
-        stmt = stmt.where((Client.first_name.ilike(f"%{q}%")) | (Client.last_name.ilike(f"%{q}%")) | (Client.email.ilike(f"%{q}%")))
-    clients = db.execute(stmt.order_by(Client.created_at.desc())).scalars().all()
+        like = f"%{q}%"
+        stmt = stmt.where((Client.first_name.ilike(like)) | (Client.last_name.ilike(like)) | (Client.email.ilike(like))
+                          | (Client.phone.ilike(like)) | (Client.claim_number.ilike(like)) | (Client.full_legal_name.ilike(like)))
+    from app.services.case_stages import STAGES, stage_key
+    stage = (request.args.get("stage") or "").strip()
+    all_clients = db.execute(stmt.order_by(Client.created_at.desc())).scalars().all()
+    stage_counts = {k: 0 for k, _, _ in STAGES}
+    for c in all_clients:
+        stage_counts[stage_key(c.status)] += 1
+    clients = [c for c in all_clients if stage_key(c.status) == stage] if stage in stage_counts else all_clients
+    reps = {u.id: u for u in db.query(User).filter(User.org_id == current_user.org_id,
+                                                  User.role.in_([Role.DIRECTOR, Role.EMPLOYEE])).all()}
     user_ids = [c.portal_user_id for c in clients if c.portal_user_id]
     users = db.query(User).filter(User.id.in_(user_ids)).all() if user_ids else []
     user_map = {u.id: u for u in users}
@@ -70,7 +80,9 @@ def list_clients():
                     crsc_map[c.id] = {"label": "Not started", "class": "pill warn", "sort": "not_started"}
                 else:
                     crsc_map[c.id] = {"label": "Not flagged", "class": "pill", "sort": "not_flagged"}
-    return render_template("clients/list.html", clients=clients, q=q, show_archived=show_archived, user_map=user_map, crsc_map=crsc_map)
+    return render_template("clients/list.html", clients=clients, q=q, show_archived=show_archived, user_map=user_map,
+                           crsc_map=crsc_map, stages=STAGES, stage=stage, stage_counts=stage_counts,
+                           total=len(all_clients), stage_key=stage_key, reps=reps)
 
 @clients_bp.get("/new")
 @login_required
@@ -483,6 +495,33 @@ def assign_rep(client_id: int):
     audit_log(current_user.org_id, current_user.id, "CLIENT_ASSIGNED", "Client", c.id, detail=str(c.assigned_user_id))
     flash("Assigned representative updated.", "success")
     return redirect(url_for("clients.view_client", client_id=c.id))
+
+@clients_bp.post("/<int:client_id>/stage")
+@login_required
+@require_roles(Role.DIRECTOR, Role.EMPLOYEE)
+def set_stage(client_id: int):
+    """Move a case to a pipeline stage and post the change to the client's claim updates."""
+    from app.models.claim_update import ClaimUpdate
+    from app.services.case_stages import STAGE_LABELS, STAGE_CLIENT_TEXT, stage_key
+    db = SessionLocal()
+    c = db.get(Client, client_id)
+    if not c or c.org_id != current_user.org_id:
+        return "Not found", 404
+    key = (request.form.get("stage") or "").strip()
+    if key not in STAGE_LABELS:
+        flash("Choose a stage.", "error")
+        return redirect(url_for("clients.view_client", client_id=c.id))
+    if stage_key(c.status) == key and c.status == STAGE_LABELS[key]:
+        return redirect(url_for("clients.view_client", client_id=c.id))
+    c.status = STAGE_LABELS[key]
+    note = (request.form.get("note") or "").strip() or STAGE_CLIENT_TEXT[key]
+    db.add(ClaimUpdate(org_id=c.org_id, client_id=c.id, status_key=key, status_label=STAGE_LABELS[key],
+                       note=note, source_role="STAFF", created_by_user_id=current_user.id))
+    db.commit()
+    audit_log(current_user.org_id, current_user.id, "CLIENT_STAGE", "Client", c.id, detail=key)
+    flash(f"Moved to \u201c{STAGE_LABELS[key]}\u201d. The client will see this update in their portal.", "success")
+    return redirect(url_for("clients.view_client", client_id=c.id))
+
 
 @clients_bp.post("/<int:client_id>/archive")
 @login_required

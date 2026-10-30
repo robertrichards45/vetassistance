@@ -1,0 +1,73 @@
+{# Command palette: Ctrl/Cmd+K. Searches every sidebar destination, plus clients for staff. #}
+<div class="cmdk" id="cmdk" role="dialog" aria-modal="true" aria-label="Search">
+  <div class="cmdk-box">
+    <div class="cmdk-input">
+      <svg aria-hidden="true"><use href="#i-search"/></svg>
+      <input id="cmdkInput" type="search" autocomplete="off" spellcheck="false"
+             placeholder="{% if current_user.role and current_user.role.value in ['DIRECTOR','EMPLOYEE'] %}Search clients, pages, and actions{% else %}Search pages and tools{% endif %}"
+             aria-controls="cmdkList">
+    </div>
+    <div class="cmdk-list" id="cmdkList" role="listbox"></div>
+  </div>
+</div>
+<script>
+(function(){
+  var isStaff = {{ 'true' if current_user.role and current_user.role.value in ['DIRECTOR','EMPLOYEE'] else 'false' }};
+  var searchUrl = "{{ safe_url_for('search.api_search') }}";
+  var actions = isStaff ? [
+    {label:"Add a new client", href:"{{ safe_url_for('clients.new_client') }}", hint:"Action"},
+    {label:"Open intake queue", href:"{{ safe_url_for('intakes.queue') }}", hint:"Action"}
+  ] : [];
+  var box = document.getElementById('cmdk'), input = document.getElementById('cmdkInput'), list = document.getElementById('cmdkList');
+  var pages = Array.prototype.map.call(document.querySelectorAll('.app-nav a'), function(a){
+    return {label:a.querySelector('span').textContent.trim(), href:a.getAttribute('href'), hint:"Page"};
+  });
+  var active = 0, items = [], timer = null, seq = 0;
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function render(groups){
+    items = []; var html = '';
+    groups.forEach(function(g){
+      if(!g.rows.length) return;
+      html += '<div class="cmdk-group">'+esc(g.title)+'</div>';
+      g.rows.forEach(function(r){ items.push(r);
+        html += '<a class="cmdk-item" role="option" href="'+esc(r.href)+'" data-i="'+(items.length-1)+'"><span>'+esc(r.label)+'</span>'+(r.hint?'<small>'+esc(r.hint)+'</small>':'')+'</a>';
+      });
+    });
+    list.innerHTML = html || '<div class="cmdk-empty">No matches. Try a last name, email, phone, or claim number.</div>';
+    active = 0; mark();
+  }
+  function mark(){ var els = list.querySelectorAll('.cmdk-item'); els.forEach(function(e,i){ e.classList.toggle('active', i===active); e.setAttribute('aria-selected', i===active); }); if(els[active]) els[active].scrollIntoView({block:'nearest'}); }
+  function filter(q){
+    q = q.trim().toLowerCase();
+    var match = function(r){ return !q || r.label.toLowerCase().indexOf(q) !== -1; };
+    var base = [{title:'Go to', rows:pages.filter(match).slice(0,8)}, {title:'Actions', rows:actions.filter(match)}];
+    render(base);
+    if(isStaff && q.length >= 2 && searchUrl !== '#'){
+      clearTimeout(timer); var my = ++seq;
+      timer = setTimeout(function(){
+        fetch(searchUrl + '?q=' + encodeURIComponent(q), {headers:{'Accept':'application/json'}, credentials:'same-origin'})
+          .then(function(r){ return r.ok ? r.json() : {clients:[]}; })
+          .then(function(d){ if(my !== seq) return;
+            var rows = (d.clients||[]).map(function(c){ return {label:c.name, href:c.url, hint:c.detail}; });
+            render([{title:'Clients', rows:rows}].concat(base));
+          }).catch(function(){});
+      }, 160);
+    }
+  }
+  function open(){ box.classList.add('open'); input.value=''; filter(''); setTimeout(function(){ input.focus(); }, 10); }
+  function close(){ box.classList.remove('open'); }
+  window.openCommandPalette = open;
+  document.addEventListener('keydown', function(e){
+    if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); box.classList.contains('open') ? close() : open(); }
+    else if(e.key==='/' && !box.classList.contains('open') && !/input|textarea|select/i.test((document.activeElement||{}).tagName||'') && !(document.activeElement||{}).isContentEditable){ e.preventDefault(); open(); }
+    else if(box.classList.contains('open')){
+      if(e.key==='Escape'){ close(); }
+      else if(e.key==='ArrowDown'){ e.preventDefault(); active=Math.min(active+1, items.length-1); mark(); }
+      else if(e.key==='ArrowUp'){ e.preventDefault(); active=Math.max(active-1, 0); mark(); }
+      else if(e.key==='Enter' && items[active]){ e.preventDefault(); window.location.href = items[active].href; }
+    }
+  });
+  input.addEventListener('input', function(){ filter(input.value); });
+  box.addEventListener('click', function(e){ if(e.target===box) close(); });
+})();
+</script>

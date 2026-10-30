@@ -1,18 +1,8 @@
 {% extends "layout.html" %}
 {% block title %}Documents - {{ client.display_name() }}{% endblock %}
 {% block content %}
-<div class="doc-head">
-  <div class="doc-brand">
-    <img src="{{ url_for('static', filename='brand/banner.png') }}" alt="{{ COMPANY_NAME }}">
-    <div>
-      <div class="doc-title">Documents</div>
-      <div class="doc-sub">{{ client.display_name() }}</div>
-    </div>
-  </div>
-  <div class="row-actions">
-    <a class="btn secondary" href="{{ url_for('clients.view_client', client_id=client.id) }}">Back</a>
-  </div>
-</div>
+{% set active_tab = "documents" %}
+{% include "partials/_client_header.html" %}
 
 <div class="grid2">
   <div class="card">

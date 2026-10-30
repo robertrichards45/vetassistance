@@ -265,6 +265,9 @@ def create_app():
     from app.routes.diy import diy_bp
     app.register_blueprint(diy_bp)
 
+    from app.routes.search import search_bp
+    app.register_blueprint(search_bp)
+
     def safe_url_for(endpoint: str, **values) -> str:
         aliases = {
             "public_home": "public.home",
@@ -310,7 +313,6 @@ def create_app():
         brand_name = os.environ.get("BRAND_NAME") or app.config.get("SITE_NAME", "")
         unread_messages = 0
         if getattr(_current_user, "is_authenticated", False):
-            db = None
             try:
                 from datetime import datetime
                 from sqlalchemy import func, or_
@@ -337,9 +339,8 @@ def create_app():
                     unread_messages = int(q.scalar() or 0)
             except Exception:
                 unread_messages = 0
-            finally:
-                if db is not None:
-                    db.close()
+            # Note: SessionLocal is a scoped session shared with the view that is
+            # rendering; it is cleaned up in teardown_appcontext, never closed here.
         return {
             "SITE": site,
             "COMPANY_NAME": brand_name,
@@ -350,6 +351,15 @@ def create_app():
             "safe_url_for": safe_url_for,
             "UNREAD_MESSAGES": unread_messages,
         }
+
+    from app.services.case_stages import STAGES, stage_key, stage_index, stage_label
+    app.jinja_env.globals.update(CASE_STAGES=STAGES, stage_key=stage_key, stage_index=stage_index, stage_label=stage_label)
+
+    @app.template_filter("short_date")
+    def short_date(dt, fmt: str = "%b %d"):
+        """Date in Eastern time without the trailing zone label (for badges and lists)."""
+        out = format_et(dt, fmt)
+        return out[:-3] if out.endswith(" ET") else out
 
     @app.template_filter("format_et")
     def format_et(dt, fmt: str = "%Y-%m-%d %H:%M"):

@@ -1,15 +1,8 @@
 {% extends "layout.html" %}
 {% block title %}Messages - {{ client.display_name() }}{% endblock %}
 {% block content %}
-<div class="row">
-  <div>
-    <h2>Secure Messages</h2>
-    <div class="muted small">{{ client.display_name() }}</div>
-  </div>
-  <div class="row-actions">
-    <a class="btn secondary" href="{{ url_for('clients.view_client', client_id=client.id) }}">Back to Client</a>
-  </div>
-</div>
+{% set active_tab = "messages" %}
+{% include "partials/_client_header.html" %}
 
 <div class="chat card">
   {% for m in messages %}

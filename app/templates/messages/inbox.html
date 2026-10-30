@@ -1,49 +1,35 @@
 {% extends "layout.html" %}
-{% block title %}Inbox - {{ BRAND_NAME }}{% endblock %}
+{% block title %}Messages | {{ COMPANY_NAME }}{% endblock %}
 {% block content %}
-<div class="row">
+{% set unread_rows = rows|selectattr('unread')|list %}
+<div class="ws-head">
   <div>
-    <h2>Inbox</h2>
-    <div class="muted small">Assigned client messages in one place.</div>
-  </div>
-  <div class="row-actions">
-    <a class="btn secondary" href="{{ url_for('employee.dashboard') }}">Dashboard</a>
+    <h1>Messages</h1>
+    <p>{% if unread_rows %}{{ unread_rows|length }} conversation{{ 's' if unread_rows|length != 1 }} waiting on a reply.{% else %}You're all caught up.{% endif %}</p>
   </div>
 </div>
 
-<div class="card">
-  <div class="table">
-    <div class="thead" style="grid-template-columns: 2fr 2fr 120px 140px;">
-      <div>Client</div><div>Latest Message</div><div>Unread</div><div></div>
-    </div>
+<section class="ws-card">
+  {% if rows %}
+  <ul class="ws-list inbox">
     {% for r in rows %}
-      <div class="trow" style="grid-template-columns: 2fr 2fr 120px 140px;">
-        <div>
-          <strong>{{ r.client.display_name() }}</strong>
-          <div class="muted small">{{ r.client.email }}</div>
-        </div>
-        <div class="muted small">
-          {% if r.last %}
-            <div><strong>{{ r.last.sender_role }}</strong> - {{ r.last.body[:120] }}{% if r.last.body|length > 120 %}...{% endif %}</div>
-            <div class="muted small">{{ r.last.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
-          {% else %}
-            <div class="muted">No messages yet.</div>
-          {% endif %}
-        </div>
-        <div>
-          {% if r.unread > 0 %}
-            <span class="pill warn">{{ r.unread }} new</span>
-          {% else %}
-            <span class="pill ready">0</span>
-          {% endif %}
-        </div>
-        <div>
-          <a class="btn tiny" href="{{ url_for('messages.staff_thread', client_id=r.client.id) }}">Open Thread</a>
+    <li class="{% if r.unread > 0 %}is-unread{% endif %}">
+      <span class="avatar" aria-hidden="true">{{ (r.client.first_name[:1] or '?')|upper }}</span>
+      <div class="main">
+        <a href="{{ url_for('messages.staff_thread', client_id=r.client.id) }}">{{ r.client.display_name() }}</a>
+        <div class="sub">
+          {% if r.last %}{{ 'Client' if r.last.sender_role == 'CLIENT' else 'Team' }}: {{ r.last.body }}{% else %}No messages yet{% endif %}
         </div>
       </div>
-    {% else %}
-      <div class="muted" style="padding:16px;">No conversations yet.</div>
+      <div class="meta">
+        {% if r.last %}{{ r.last.created_at|short_date }}{% endif %}
+        {% if r.unread > 0 %}<span class="badge-dot badge-bad">{{ r.unread }} new</span>{% endif %}
+      </div>
+    </li>
     {% endfor %}
-  </div>
-</div>
+  </ul>
+  {% else %}
+  <div class="ws-empty"><strong>No conversations yet</strong>When a client sends a message from their portal, it shows up here.</div>
+  {% endif %}
+</section>
 {% endblock %}

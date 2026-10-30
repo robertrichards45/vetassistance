@@ -19,9 +19,9 @@
   {% for section in sections %}
     <div class="hub-card">
       <div class="hub-card-title">{{ section.title }}</div>
-      {% if section.items %}
+      {% if section['items'] %}
         <ul class="hub-card-list">
-          {% for item in section.items %}
+          {% for item in section['items'] %}
             <li>{{ item }}</li>
           {% endfor %}
         </ul>

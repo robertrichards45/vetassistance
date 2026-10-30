@@ -1,18 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Client Notes - {{ client.display_name() }}{% endblock %}
 {% block content %}
-<section class="page-hero">
-  <div class="page-hero-inner">
-    <div>
-      <div class="page-kicker">Client</div>
-      <h1 class="page-title">Notes</h1>
-      <p class="page-sub">{{ client.display_name() }}</p>
-    </div>
-    <div class="page-actions">
-      <a class="btn btn-outline-light" href="{{ url_for('clients.view_client', client_id=client.id) }}">Back</a>
-    </div>
-  </div>
-</section>
+{% set active_tab = "notes" %}
+{% include "partials/_client_header.html" %}
+
 
 <div class="admin-wrap">
   <div class="card-shell">

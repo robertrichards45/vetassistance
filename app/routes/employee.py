@@ -37,13 +37,93 @@ employee_bp = Blueprint("employee", __name__, url_prefix="/employee")
 @login_required
 @require_roles(Role.DIRECTOR, Role.EMPLOYEE)
 def dashboard():
+    """Today: what needs attention across the caseload, in one screen."""
+    from datetime import timedelta
+    from sqlalchemy import func, or_
+    from app.models import ClientTask, MessageThread, Message, User
+    from app.models.intake import IntakeRecord, IntakeStatus
+    from app.services.case_stages import STAGES, stage_key
+
     db = SessionLocal()
-    assigned = db.query(Client).filter(
-        Client.org_id == current_user.org_id,
-        Client.assigned_user_id == current_user.id,
-        Client.is_archived == False,  # noqa: E712
-    ).order_by(Client.created_at.desc()).all()
-    return render_template("employee/dashboard.html", assigned=assigned)
+    is_director = current_user.role == Role.DIRECTOR
+    scope = db.query(Client).filter(Client.org_id == current_user.org_id, Client.is_archived == False)  # noqa: E712
+    if not is_director:
+        scope = scope.filter(Client.assigned_user_id == current_user.id)
+    clients = scope.all()
+    client_ids = [c.id for c in clients]
+    by_id = {c.id: c for c in clients}
+
+    stage_counts = {k: 0 for k, _, _ in STAGES}
+    for c in clients:
+        stage_counts[stage_key(c.status)] += 1
+    open_cases = len(clients) - stage_counts["closed"]
+
+    now = datetime.utcnow()
+    tasks = []
+    overdue = 0
+    if client_ids:
+        rows = (
+            db.query(ClientTask)
+            .filter(ClientTask.org_id == current_user.org_id, ClientTask.client_id.in_(client_ids),
+                    ClientTask.is_completed == False)  # noqa: E712
+            .order_by(ClientTask.due_date.is_(None), ClientTask.due_date.asc(), ClientTask.created_at.asc())
+            .limit(40)
+            .all()
+        )
+        for t in rows:
+            state = "none"
+            if t.due_date:
+                if t.due_date < now:
+                    state, overdue = "overdue", overdue + 1
+                elif t.due_date < now + timedelta(days=3):
+                    state = "soon"
+            tasks.append({"task": t, "client": by_id.get(t.client_id), "state": state})
+
+    unread = []
+    if client_ids:
+        threads = db.query(MessageThread).filter(MessageThread.org_id == current_user.org_id,
+                                                 MessageThread.client_id.in_(client_ids)).all()
+        for th in threads:
+            q = db.query(Message).filter(Message.thread_id == th.id, Message.sender_role == "CLIENT")
+            if th.last_staff_seen_at:
+                q = q.filter(Message.created_at > th.last_staff_seen_at)
+            last = q.order_by(Message.created_at.desc()).first()
+            if last:
+                unread.append({"client": by_id.get(th.client_id), "message": last, "count": q.count()})
+        unread.sort(key=lambda r: r["message"].created_at, reverse=True)
+
+    new_intakes = db.query(func.count(IntakeRecord.id)).filter(IntakeRecord.status == IntakeStatus.NEW).scalar() or 0
+    unassigned = []
+    if is_director:
+        unassigned = (
+            db.query(Client)
+            .filter(Client.org_id == current_user.org_id, Client.is_archived == False,  # noqa: E712
+                    Client.assigned_user_id.is_(None))
+            .order_by(Client.created_at.desc()).limit(6).all()
+        )
+    recent = sorted(clients, key=lambda c: c.created_at or now, reverse=True)[:6]
+    reps = {u.id: u for u in db.query(User).filter(User.org_id == current_user.org_id).all()}
+    hour = (datetime.now().hour)
+    greeting = "Good morning" if hour < 12 else ("Good afternoon" if hour < 17 else "Good evening")
+    return render_template(
+        "employee/dashboard.html",
+        greeting=greeting,
+        is_director=is_director,
+        stages=STAGES,
+        stage_counts=stage_counts,
+        open_cases=open_cases,
+        tasks=tasks[:8],
+        task_total=len(tasks),
+        overdue=overdue,
+        unread=unread[:6],
+        unread_total=sum(r["count"] for r in unread),
+        new_intakes=new_intakes,
+        unassigned=unassigned,
+        recent=recent,
+        reps=reps,
+        stage_key=stage_key,
+        now=now,
+    )
 
 
 @employee_bp.get("/clients")

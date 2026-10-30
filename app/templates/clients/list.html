@@ -1,27 +1,32 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block title %}Clients | {{ COMPANY_NAME }}{% endblock %}
 {% block content %}
-<section class="page-hero">
-  <div class="page-hero-inner">
-    <div>
-      <div class="page-kicker">Workspace</div>
-      <h1 class="page-title">Clients</h1>
-      <p class="page-sub">Search, manage, and control portal access.</p>
-    </div>
-    <div class="page-actions">
-      <a class="btn btn-outline-light" href="{{ url_for('clients.new_client') }}">New Client</a>
-    </div>
+<div class="ws-head">
+  <div>
+    <h1>Clients</h1>
+    <p>{{ total }} {{ 'archived' if show_archived else 'active' }} client{{ 's' if total != 1 }}. Click a stage to filter.</p>
   </div>
-</section>
-
-<div class="card-shell mb-3">
-  <div class="card-body-pad">
-    <form method="get" class="d-flex gap-2 flex-wrap">
-      <input class="form-control" name="q" value="{{ q }}" placeholder="Search name or email" style="min-width:260px;">
-      <button class="btn btn-primary" type="submit">Search</button>
-    </form>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('clients.list_clients', archived='0' if show_archived else '1') }}">{{ 'Show active' if show_archived else 'Show archived' }}</a>
+    <a class="btn btn-primary" href="{{ url_for('clients.new_client') }}">New client</a>
   </div>
 </div>
+
+<nav class="ws-tabs" aria-label="Filter by stage">
+  <a href="{{ url_for('clients.list_clients', q=q or None, archived='1' if show_archived else None) }}"{% if not stage %} aria-current="page"{% endif %}>All <span>{{ total }}</span></a>
+  {% for key, label, _ in stages %}
+    <a href="{{ url_for('clients.list_clients', stage=key, q=q or None, archived='1' if show_archived else None) }}"{% if stage == key %} aria-current="page"{% endif %}>{{ label }} <span>{{ stage_counts[key] }}</span></a>
+  {% endfor %}
+</nav>
+
+<form method="get" class="ws-filter" role="search">
+  {% if stage %}<input type="hidden" name="stage" value="{{ stage }}">{% endif %}
+  {% if show_archived %}<input type="hidden" name="archived" value="1">{% endif %}
+  <label class="sr-only" for="clientSearch">Search clients</label>
+  <input id="clientSearch" class="form-control" name="q" value="{{ q }}" placeholder="Search by name, email, phone, or claim number">
+  <button class="btn btn-primary" type="submit">Search</button>
+  {% if q %}<a class="btn" href="{{ url_for('clients.list_clients', stage=stage or None) }}">Clear</a>{% endif %}
+</form>
 
 <div class="card-shell">
   <div class="card-body-pad">
@@ -45,6 +50,8 @@
           <tr>
             <th style="width:36px;"><input type="checkbox" id="selectAllClients" title="Select all"></th>
             <th><button type="button" class="sort-btn" data-sort="name">Name</button></th>
+            <th>Stage</th>
+            <th>Rep</th>
             <th><button type="button" class="sort-btn" data-sort="email">Email</button></th>
             <th><button type="button" class="sort-btn" data-sort="account">Account</button></th>
             <th><button type="button" class="sort-btn" data-sort="portal">Portal</button></th>
@@ -70,6 +77,8 @@
             <td style="font-weight:900;color:var(--heading);">
               <a href="{{ url_for('clients.view_client', client_id=c.id) }}">{{ c.display_name() }}</a>
             </td>
+            <td>{% set k = stage_key(c.status) %}<span class="badge-dot{% if k == 'closed' %} badge-muted{% elif k in ['filed','waiting','decision'] %} badge-ok{% elif k == 'intake' %} badge-warn{% endif %}">{% for sk, sl, _ in stages %}{% if sk == k %}{{ sl }}{% endif %}{% endfor %}</span></td>
+            <td class="text-muted">{% set r = reps.get(c.assigned_user_id) %}{{ (r.full_name or r.email) if r else 'Unassigned' }}</td>
             <td class="text-muted">{{ c.email }}</td>
             <td>
               {% if (c.account_type and c.account_type.lower() == "guest") or (not c.email) or (c.email_verified is false) %}
@@ -124,7 +133,7 @@
             </td>
           </tr>
         {% else %}
-          <tr><td colspan="{{ 9 if current_user.is_director else 8 }}" class="text-muted">No clients yet.</td></tr>
+          <tr><td colspan="{{ 11 if current_user.is_director else 10 }}" class="text-muted">No clients match. Try another stage or search.</td></tr>
         {% endfor %}
         </tbody>
       </table>

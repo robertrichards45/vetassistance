@@ -29,18 +29,15 @@
   <meta name="twitter:title" content="{{ page_title }}">
   <meta name="twitter:description" content="{{ page_desc }}">
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="dns-prefetch" href="https://fonts.googleapis.com">
-  <link rel="dns-prefetch" href="https://fonts.gstatic.com">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700;800&display=swap">
-
-  <link rel="preload" as="style" href="{{ url_for('static', filename='css/app.css') }}?v=3" onload="this.onload=null;this.rel='stylesheet'">
-  <noscript><link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=3"></noscript>
+  <link rel="preload" href="{{ url_for('static', filename='fonts/source-sans-3-latin-wght-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="{{ url_for('static', filename='fonts/barlow-semi-condensed-latin-700-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}?v=5">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ds.css') }}?v=1">
   {% if HAS_SKIN %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/skin.css') }}">
   {% endif %}
-  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" sizes="any">
+  <link rel="icon" href="{{ url_for('static', filename='brand/logo.svg') }}" type="image/svg+xml">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
   <link rel="apple-touch-icon-precomposed" href="{{ url_for('static', filename='apple-touch-icon-precomposed.png') }}">
   <script type="application/ld+json">
@@ -297,13 +294,51 @@
 </head>
 
 <body>
+  {% set use_shell = current_user.is_authenticated %}
+  {% include "partials/_icons.html" %}
   <a class="skip-link" href="#main">Skip to main content</a>
-  <div class="shell">
+  {% if use_shell %}
+  {% set _name = (current_user.full_name or current_user.email or "") %}
+  <div class="app" id="app">
+    <aside class="app-side" id="appSide">
+      <a class="app-brand" href="{{ safe_url_for('portal.dashboard') if current_user.role and current_user.role.value == 'CLIENT' else (safe_url_for('diy.tools') if current_user.role and current_user.role.value == 'DIY' else safe_url_for('employee.dashboard')) }}">
+        <img src="{{ url_for('static', filename='brand/logo-on-dark.svg') }}" alt="" width="30" height="30">
+        <div><strong>Veteran Benefits</strong><span>{% if current_user.role and current_user.role.value == 'CLIENT' %}Client portal{% elif current_user.role and current_user.role.value == 'DIY' %}Toolkit{% else %}Staff workspace{% endif %}</span></div>
+      </a>
+      {% include "partials/_shell_nav.html" %}
+      <div class="app-side-foot">
+        <a class="app-crisis" href="https://www.veteranscrisisline.net/" target="_blank" rel="noopener"><strong>Veterans Crisis Line</strong>Call 988, press 1 &middot; Text 838255</a>
+      </div>
+    </aside>
+    <div class="app-main">
+      <header class="app-top">
+        <button class="app-menu-btn" type="button" id="appMenuBtn" aria-controls="appSide" aria-expanded="false"><svg aria-hidden="true"><use href="#i-menu"/></svg><span class="sr-only">Open menu</span></button>
+        <button class="app-search" type="button" onclick="window.openCommandPalette && window.openCommandPalette()"><svg aria-hidden="true"><use href="#i-search"/></svg><span>{% if current_user.role and current_user.role.value in ['DIRECTOR','EMPLOYEE'] %}Search clients and pages{% else %}Search{% endif %}</span><kbd>Ctrl K</kbd></button>
+        <div class="app-top-actions">
+          {% if current_user.role and current_user.role.value in ['DIRECTOR','EMPLOYEE'] %}
+          <a class="app-icon-btn" href="{{ safe_url_for('messages.inbox') }}" title="Messages"><svg aria-hidden="true"><use href="#i-inbox"/></svg>{% if UNREAD_MESSAGES %}<span class="dot">{{ UNREAD_MESSAGES }}</span>{% endif %}<span class="sr-only">Messages</span></a>
+          {% elif current_user.role and current_user.role.value == 'CLIENT' %}
+          <a class="app-icon-btn" href="{{ safe_url_for('portal.messages') }}" title="Messages"><svg aria-hidden="true"><use href="#i-inbox"/></svg><span class="sr-only">Messages</span></a>
+          {% endif %}
+          <div class="app-user" id="appUser">
+            <button type="button" aria-haspopup="true" aria-expanded="false"><span class="avatar" aria-hidden="true">{{ (_name[:1] or "?")|upper }}</span><span class="name">{{ (current_user.full_name or current_user.email)|truncate(24, True, "…") }}</span></button>
+            <div class="app-user-menu" role="menu">
+              <div class="who"><strong>{{ current_user.full_name or "Signed in" }}</strong>{{ current_user.email }}</div>
+              {% if current_user.role and current_user.role.value == 'CLIENT' %}<a href="{{ safe_url_for('portalx.profile') }}">Profile</a>{% endif %}
+              <a href="{{ safe_url_for('account_change_password') }}">Change password</a>
+              <a href="{{ url_for('public.home') }}">Public website</a>
+              <a href="{{ safe_url_for('logout') }}">Log out</a>
+            </div>
+          </div>
+        </div>
+      </header>
+      <main class="app-content" id="main" tabindex="-1">
+  {% else %}
 
     <header class="topbar">
       <div class="topbar-inner">
         <a class="brand" href="{{ safe_url_for('public_home') }}">
-          <img class="brand-logo" src="{{ url_for('static', filename='brand/logo.png') }}" alt="" width="38" height="38">
+          <img class="brand-logo" src="{{ url_for('static', filename='brand/logo.svg') }}" alt="" width="38" height="38">
           <div>
             <div class="brand-title">{{ COMPANY_NAME }}</div>
             <div class="brand-sub">{{ SITE.home_hero_kicker or "Veterans Helping Veterans" }}</div>
@@ -339,7 +374,6 @@
                 <a class="nav-dropitem" href="{{ url_for('public.faq') }}">FAQ</a>
               </div>
             </div>
-            <a href="{{ safe_url_for('public.pricing') }}">Pricing</a>
             <a href="{{ url_for('public.home') }}#crisis">Crisis help</a>
             <a href="{{ url_for('portal.portal_home') }}">Log in</a>
             <a class="nav-cta" href="{{ url_for('onboard.become_client') }}">Get started</a>
@@ -436,6 +470,7 @@
     </header>
 
     <main class="content-wrap" id="main" tabindex="-1">
+  {% endif %}
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
           <div style="margin-bottom:14px;">
@@ -447,12 +482,29 @@
       {% endwith %}
 
       {% block content %}{% endblock %}
+  {% if use_shell %}
+      </main>
+    </div>
+  </div>
+  {% include "partials/_cmdk.html" %}
+  <script>
+  (function(){
+    var app=document.getElementById("app"), btn=document.getElementById("appMenuBtn");
+    if(btn){ btn.addEventListener("click", function(e){ e.stopPropagation(); var o=app.classList.toggle("nav-open"); btn.setAttribute("aria-expanded", String(o)); }); }
+    document.addEventListener("click", function(e){ if(app.classList.contains("nav-open") && !e.target.closest("#appSide")){ app.classList.remove("nav-open"); if(btn) btn.setAttribute("aria-expanded","false"); } });
+    var u=document.getElementById("appUser");
+    if(u){ var b=u.querySelector("button"); b.addEventListener("click", function(e){ e.stopPropagation(); var o=u.classList.toggle("open"); b.setAttribute("aria-expanded", String(o)); });
+      document.addEventListener("click", function(e){ if(!u.contains(e.target)){ u.classList.remove("open"); b.setAttribute("aria-expanded","false"); } }); }
+    document.addEventListener("keydown", function(e){ if(e.key==="Escape"){ app.classList.remove("nav-open"); if(u) u.classList.remove("open"); } });
+  })();
+  </script>
+  {% else %}
     </main>
 
     <footer class="site-footer">
       <div class="ft">
         <div class="ft-brand">
-          <img src="{{ url_for('static', filename='brand/logo.png') }}" alt="" width="40" height="40">
+          <img src="{{ url_for('static', filename='brand/logo-on-dark.svg') }}" alt="" width="40" height="40">
           <div>
             <strong style="color:#fff;">{{ COMPANY_NAME }}</strong>
             <p>Veterans helping veterans.<br>
@@ -475,7 +527,7 @@
             <li><a href="{{ url_for('public.guides') }}">Guides</a></li>
             <li><a href="{{ url_for('public.article_list') }}">Articles</a></li>
             <li><a href="{{ url_for('public.faq') }}">FAQ</a></li>
-            <li><a href="{{ safe_url_for('public.pricing') }}">Pricing</a></li>
+            <li><a href="{{ url_for('public.contact') }}">Contact us</a></li>
           </ul>
         </nav>
         <nav aria-label="Account">
@@ -495,6 +547,7 @@
     </footer>
 
   </div>
+  {% endif %}
 
   {% block scripts %}{% endblock %}
 

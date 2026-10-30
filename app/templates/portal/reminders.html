@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Reminders | {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<div class="ws-head">
+  <div>
+    <h1>Reminders</h1>
+    <p>Dates and follow-ups your team scheduled for your claim. We'll also email you before each one.</p>
+  </div>
+</div>
+<section class="ws-card">
+  {% if reminders %}
+    <ul class="ws-list">
+      {% for r in reminders %}
+        <li>
+          <div class="main">
+            <strong>{{ r.subject or "Reminder" }}</strong>
+            {% if r.body %}<div class="sub" style="white-space:normal">{{ r.body }}</div>{% endif %}
+          </div>
+          <div class="meta">
+            {% if r.send_at %}{{ r.send_at|short_date("%b %d, %Y") }}{% endif %}
+            {% if r.status == "sent" %}<span class="badge-dot badge-ok">Sent</span>{% else %}<span class="badge-dot">Scheduled</span>{% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="ws-empty"><strong>No reminders yet</strong>When your team schedules a deadline or follow-up for your claim, it will show up here.</div>
+  {% endif %}
+</section>
+{% endblock %}

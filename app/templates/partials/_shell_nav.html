@@ -1,0 +1,74 @@
+{# Sidebar navigation for signed-in users. Links use safe_url_for so a missing route never breaks the page. #}
+{% set ep = request.endpoint or '' %}
+{% macro navlink(endpoint, label, icon, match=None, count=0, anchor='') -%}
+  {%- set href = safe_url_for(endpoint) -%}
+  {%- if href != '#' -%}
+  {%- set prefixes = match or [endpoint] -%}
+  {%- set ns = namespace(on=false) -%}
+  {%- for p in prefixes %}{% if ep == p or (p.endswith(('.', '_')) and ep.startswith(p)) %}{% set ns.on = true %}{% endif %}{% endfor -%}
+  <a href="{{ href }}{{ anchor }}"{% if ns.on %} aria-current="page"{% endif %}>
+    <svg aria-hidden="true"><use href="#i-{{ icon }}"/></svg><span>{{ label }}</span>
+    {%- if count %}<span class="count" aria-label="{{ count }} unread">{{ count }}</span>{% endif %}
+  </a>
+  {%- endif -%}
+{%- endmacro %}
+
+{% set role = current_user.role.value if current_user.role else '' %}
+<nav class="app-nav" aria-label="Main">
+{% if role in ['DIRECTOR', 'EMPLOYEE'] %}
+  <div class="app-nav-label">Work</div>
+  {{ navlink('employee.dashboard', 'Today', 'today') }}
+  {{ navlink('clients.list_clients', 'Clients', 'users', match=['clients.', 'employee.client_detail', 'employee.client_files', 'employee.client_letters', 'documents.', 'letters.', 'nexus.', 'ai.']) }}
+  {{ navlink('messages.inbox', 'Messages', 'inbox', match=['messages.'], count=UNREAD_MESSAGES) }}
+  {{ navlink('intakes.queue', 'Intake queue', 'tray', match=['intakes.']) }}
+  {{ navlink('cue.staff_list', 'CUE motions', 'scale', match=['cue.']) }}
+
+  <div class="app-nav-label">Tools</div>
+  {{ navlink('cfr.ratings_chart', 'Rating chart', 'chart', match=['cfr.']) }}
+  {{ navlink('public.intelligent_benefits', 'Benefits research', 'compass') }}
+  {{ navlink('public.crsc', 'CRSC & combat pay', 'medal') }}
+  {{ navlink('employee.hub', 'Team playbook', 'book', match=['employee.hub', 'employee.hub_']) }}
+
+  {% if current_user.is_director %}
+  <div class="app-nav-label">Admin</div>
+  {{ navlink('director.dashboard', 'Overview', 'gear') }}
+  {{ navlink('director.users', 'Team', 'team') }}
+  {{ navlink('invites.index', 'Invites', 'person', match=['invites.']) }}
+  {{ navlink('billing.overview', 'Billing', 'card', match=['billing.']) }}
+  {{ navlink('metrics.index', 'Metrics', 'chart', match=['metrics.', 'director.traffic']) }}
+  {{ navlink('site_admin.edit', 'Website', 'globe', match=['site_admin.', 'director.articles', 'director.faq', 'director.comments', 'resources.resources_admin', 'pricing.']) }}
+  {{ navlink('director.templates', 'Templates', 'file', match=['director.templates', 'templates.']) }}
+  {{ navlink('email_logs.index', 'Email log', 'inbox', match=['email_logs.']) }}
+  {% endif %}
+
+{% elif role == 'CLIENT' %}
+  <div class="app-nav-label">My claim</div>
+  {{ navlink('portal.dashboard', 'Overview', 'today') }}
+  {{ navlink('portalx.evidence_checklist', 'Evidence checklist', 'check', match=['portalx.evidence_checklist', 'portalx.checklist']) }}
+  {{ navlink('portalx.claim_tracker', 'Claim updates', 'route') }}
+  {{ navlink('portal.messages', 'Messages', 'inbox') }}
+  {{ navlink('portalx.letters', 'Letters', 'file') }}
+  {{ navlink('portalx.doc_scan', 'Scan a document', 'scan') }}
+
+  <div class="app-nav-label">Plan ahead</div>
+  {{ navlink('portalx.reminders', 'Reminders', 'bell') }}
+  {{ navlink('portal.va_calls', 'VA call log', 'phone') }}
+  {{ navlink('portalx.notes', 'My notes', 'note') }}
+  {{ navlink('portal.crsc_dashboard', 'CRSC', 'medal') }}
+  {{ navlink('cue.portal_filing_guide', 'Which filing is right?', 'compass', match=['cue.portal_filing_guide']) }}
+
+  <div class="app-nav-label">Account</div>
+  {{ navlink('portalx.profile', 'Profile', 'person') }}
+  {{ navlink('agreements.portal_list', 'Agreements', 'pen', match=['agreements.portal_list', 'agreements.portal_view']) }}
+
+{% else %}
+  <div class="app-nav-label">Toolkit</div>
+  {{ navlink('diy.tools', 'My tools', 'today') }}
+  {{ navlink('cfr.ratings_chart', 'Rating chart', 'chart', match=['cfr.']) }}
+  {{ navlink('resources.benefits_finder', 'Benefits Finder', 'compass') }}
+  {{ navlink('public.guides', 'Guides', 'book') }}
+  {{ navlink('public.faq', 'FAQ', 'help') }}
+  <div class="app-nav-label">Account</div>
+  {{ navlink('diy.billing', 'Billing', 'card') }}
+{% endif %}
+</nav>

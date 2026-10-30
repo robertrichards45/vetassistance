@@ -6,7 +6,7 @@
 
   <section class="hm-hero">
     <div class="hm-hero-copy">
-      <p class="hm-kicker"><img src="{{ url_for('static', filename='brand/logo.png') }}" alt="" width="22" height="22"> Veteran-run. Veterans helping veterans.</p>
+      <p class="hm-kicker">Veteran-run. Veterans helping veterans.</p>
       <h1>Build a VA claim with no missing evidence.</h1>
       <p class="hm-lede">We help you gather your records, find the gaps the VA will look for, and put together a clean, organized claim packet. Everything stays in a secure portal you can check any time.</p>
       <div class="hm-actions">
@@ -78,29 +78,17 @@
     </div>
   </section>
 
-  <section class="hm-pricing" aria-labelledby="pricing-title">
+  <section class="hm-trust" aria-labelledby="trust-title">
     <div class="hm-packet-head">
-      <h2 id="pricing-title">Pricing</h2>
-      <p>Start with a free review. You'll see the fee in writing before you sign anything.</p>
+      <h2 id="trust-title">Why veterans trust us</h2>
+      <p>We built this because we went through the claims process ourselves.</p>
     </div>
-    {% if pricing_items %}
-      <div class="hm-price-list">
-        {% for item in pricing_items[:3] %}
-          <article class="hm-price{% if loop.first %} is-free{% endif %}">
-            <h3>{{ item.name }}</h3>
-            {% if item.is_percent %}
-              <p class="amt">{{ item.percent_of_backpay }}% <span>of backpay</span></p>
-            {% else %}
-              <p class="amt">{% if (item.price_cents or 0) == 0 %}Free{% else %}${{ "%.2f"|format((item.price_cents or 0) / 100) }}{% endif %}</p>
-            {% endif %}
-            <p>{{ item.description or "Details on the pricing page." }}</p>
-          </article>
-        {% endfor %}
-      </div>
-    {% else %}
-      <p class="hm-muted">Pricing is being updated. <a href="{{ url_for('public.contact') }}">Contact us</a> for current options.</p>
-    {% endif %}
-    <a class="hm-link" href="{{ url_for('public.pricing') }}">See full pricing</a>
+    <dl class="hm-packet-list">
+      <div><dt>Run by veterans</dt><dd>The people working your file have filed their own claims and know what the VA looks for.</dd></div>
+      <div><dt>Your information stays protected</dt><dd>Documents and Social Security numbers are encrypted, and only your assigned team can see your file.</dd></div>
+      <div><dt>Nothing hidden</dt><dd>The eligibility review is free, and you'll see any fee in writing before you sign anything.</dd></div>
+      <div><dt>You stay in control</dt><dd>Track every step, every document, and every message in your own portal.</dd></div>
+    </dl>
   </section>
 
   {% if comments %}
@@ -218,7 +206,7 @@
 .hm-tools-row span{color:var(--slate);line-height:1.5;}
 
 /* Pricing */
-.hm-pricing{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:20px 56px;}
+.hm-pricing,.hm-trust{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:20px 56px;}
 .hm-price-list{display:grid;gap:14px;}
 .hm-price{padding:20px 22px;border:1px solid var(--line);border-radius:10px;background:#fff;}
 .hm-price.is-free{border-color:var(--navy);border-width:2px;}
@@ -248,7 +236,7 @@
 .hm-final .hm-fine{font-size:.9rem;margin-top:28px;max-width:80ch;}
 
 @media (max-width: 980px){
-  .hm-hero,.hm-packet,.hm-pricing{grid-template-columns:1fr;gap:36px;}
+  .hm-hero,.hm-packet,.hm-pricing,.hm-trust{grid-template-columns:1fr;gap:36px;}
   .hm-folder{max-width:520px;}
   .hm-tools-row{grid-template-columns:repeat(2,minmax(0,1fr));}
   .hm-link{grid-column:1;}

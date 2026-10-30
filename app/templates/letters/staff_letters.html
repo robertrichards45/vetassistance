@@ -2,15 +2,8 @@
 {% block title %}Letters - {{ client.display_name() }}{% endblock %}
 {% block content %}
 <section class="section" style="max-width: 1200px; margin: 0 auto;">
-  <div class="section-header">
-    <div>
-      <h2>Portal Letters</h2>
-      <p class="muted">{{ client.display_name() }}</p>
-    </div>
-    <div class="section-actions">
-      <a class="btn secondary" href="{{ url_for('clients.view_client', client_id=client.id) }}">Back</a>
-    </div>
-  </div>
+{% set active_tab = "letters" %}
+{% include "partials/_client_header.html" %}
 
   <div class="files-grid">
     <div class="panel">

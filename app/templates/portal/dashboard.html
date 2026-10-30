@@ -1,181 +1,156 @@
 {% extends "layout.html" %}
 {% block title %}Client Portal - {{ COMPANY_NAME }}{% endblock %}
 {% block content %}
-<div class="row">
+{% set first = client.first_name or (current_user.full_name or '').split(' ')[0] %}
+{% set si = stage_index(client.status) %}
+{% set open_tasks = tasks|rejectattr('is_completed')|list %}
+<div class="ws-head">
   <div>
-    <h2>Client Portal</h2>
-    <div class="muted small">{{ client.display_name() }}</div>
+    <h1>Welcome back{% if first %}, {{ first }}{% endif %}</h1>
+    <p>{% if is_guest %}Finish setting up your account to unlock uploads and messages.{% else %}Here's where your claim stands and what to do next.{% endif %}</p>
   </div>
-  <div class="row-actions">
-    <a class="btn secondary" href="{{ url_for('portalx.profile') }}">Profile</a>
-    <a class="btn secondary" href="{{ url_for('portalx.claim_tracker') }}">Claim Tracker</a>
-    <a class="btn secondary" href="{{ url_for('portalx.evidence_checklist') }}">Checklist</a>
-    <a class="btn secondary" href="{{ url_for('portalx.doc_scan') }}">Doc Scan</a>
-    <a class="btn secondary" href="{{ url_for('portalx.reminders') }}">Reminders</a>
-    <a class="btn secondary" href="{{ url_for('portal.va_calls') }}">Call Log</a>
-    <a class="btn secondary" href="{{ url_for('portalx.notes') }}">Notes</a>
-    <a class="btn secondary" href="{{ url_for('portal.crsc_dashboard') }}">CRSC Dashboard</a>
-    <a class="btn secondary" href="{{ url_for('cue.portal_filing_guide') }}">Which Filing Is Right?</a>
-    {% if not is_guest %}
-      <a class="btn secondary" href="{{ url_for('billing.overview') }}">Pay Now</a>
-      <a class="btn secondary" href="{{ url_for('portal.messages') }}">Messages</a>
-      <a class="btn secondary" href="{{ url_for('agreements.portal_list') }}">Agreements</a>
-    {% endif %}
-  </div>
-</div>
-
-<div class="grid2" style="margin-top:12px;">
-  <div class="card">
-    <h3>Case status</h3>
-    <div class="muted small">Current status and reference details.</div>
-    <div style="margin-top:10px;">
-      {% if is_guest %}
-        <div class="muted">Status updates unlock after you add and verify an email address.</div>
-      {% else %}
-        <div><strong>Status:</strong> {{ client.status or "Intake in progress" }}</div>
-        {% if client.claim_number %}
-          <div><strong>Claim #:</strong> {{ client.claim_number }}</div>
-        {% endif %}
-        <div class="muted small" style="margin-top:6px;">We will update this as your case moves forward.</div>
-      {% endif %}
-    </div>
-  </div>
-
-  <div class="card">
-    <h3>Tasks</h3>
-    <div class="muted small">{{ tasks_done }} of {{ tasks_total }} completed</div>
-    {% set progress = (tasks_done / tasks_total * 100) if tasks_total else 0 %}
-    <div class="progress" style="margin-top:8px;">
-      <div class="progress-bar" style="width: {{ progress }}%;"></div>
-    </div>
-    <div style="margin-top:10px;">
-      {% if tasks %}
-        {% for t in tasks %}
-          <div class="mini" style="margin-bottom:8px;">
-            <div><strong>{{ t.title }}</strong>{% if t.is_completed %} <span class="pill ready">Done</span>{% endif %}</div>
-            {% if t.instructions %}
-              <div class="muted small">{{ t.instructions }}</div>
-            {% endif %}
-            {% if t.due_date %}
-              <div class="muted small">Due: {{ t.due_date.strftime('%Y-%m-%d') }}</div>
-            {% endif %}
-            {% if not t.is_completed %}
-              <div style="margin-top:6px;">
-                <form method="post" action="{{ url_for('portal.complete_task', task_id=t.id) }}">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button class="btn btn-outline-primary btn-sm" type="submit">Mark Complete</button>
-                </form>
-              </div>
-            {% endif %}
-          </div>
-        {% endfor %}
-      {% else %}
-        <div class="muted">No tasks yet.</div>
-      {% endif %}
-    </div>
-  </div>
-</div>
-
-
-<div class="grid2" style="margin-top:14px;">
   {% if not is_guest %}
-  <div class="card">
-    <h3>Upload documents</h3>
-    <p class="muted small">Upload decision letters, exams, treatment records, DBQs, statements, and anything relevant.</p>
-    <div class="muted small" style="margin-bottom:8px;">
-      Accepted: PDF, JPG, PNG, DOCX, MP3, WAV, M4A, MP4, MOV, WEBM, OGG. Max file size depends on your phone. Do not upload your SSN card unless we request it.
-    </div>
-    <form id="clientUploadForm" method="post" action="{{ url_for('portal.upload') }}" enctype="multipart/form-data">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <div class="dropzone" id="clientDropzone">
-        <div class="dz-title">Drop files here</div>
-        <div class="muted small">or tap to browse - multiple files allowed</div>
-        <label for="clientFiles" class="btn btn-outline-primary btn-sm" id="clientPickBtn" style="margin-top:10px;">Select files</label>
-        <input id="clientFiles" class="file-input-overlay" type="file" name="file" multiple accept=".pdf,.png,.jpg,.jpeg,.docx,.mp3,.wav,.m4a,.mp4,.mov,.webm,.ogg">
-      </div>
-      <div id="clientQueue" class="queue"></div>
-      <button class="btn" id="clientUploadBtn" style="margin-top:10px;">Upload</button>
-      <div id="clientUploadStatus" class="muted small" style="margin-top:8px; display:none;">Uploading...</div>
-      <div id="clientUploadProgress" class="upload-progress" style="display:none;">
-        <div id="clientUploadProgressBar" class="upload-progress-bar"></div>
-      </div>
-      <div id="clientUploadProgressText" class="upload-progress-text" style="display:none;">0%</div>
-    </form>
-  </div>
-
-  <div class="card">
-    <h3>Recent messages</h3>
-    <div class="muted small">Your last few messages:</div>
-    <div style="margin-top:10px;">
-      {% for m in messages %}
-        <div class="mini">
-          <div class="muted small">{{ m.sender_role }} - {{ m.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
-          <div>{{ m.body }}</div>
-        </div>
-      {% else %}
-        <div class="muted">No messages yet.</div>
-      {% endfor %}
-    </div>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('portal.messages') }}">Message your team</a>
+    <a class="btn btn-primary" href="#upload">Upload documents</a>
   </div>
   {% endif %}
 </div>
 
-<div class="grid2" style="margin-top:14px;">
-  {% if not is_guest %}
-  <div class="card">
-    <h3>Documents you uploaded</h3>
-    {% if docs_uploaded %}
-      <div class="table">
-        <div class="thead" style="grid-template-columns: 2fr 1fr 1fr;"><div>File</div><div>Status</div><div>Uploaded</div></div>
-        {% for d in docs_uploaded %}
-          <div class="trow" style="grid-template-columns: 2fr 1fr 1fr;">
-            <div><strong>{{ d.filename }}</strong></div>
-            <div class="pill ready">{{ d.status or 'Received' }}</div>
-            <div class="muted small">{{ d.created_at|format_et }}</div>
-          </div>
-        {% endfor %}
-      </div>
-    {% else %}
-      <div class="muted">No uploads yet.</div>
-    {% endif %}
-  </div>
-
-  <div class="card">
-    <h3>Documents we shared</h3>
-    {% if docs_shared %}
-      <div class="table">
-        <div class="thead" style="grid-template-columns: 2fr 1fr 1fr;"><div>File</div><div>Type</div><div>Download</div></div>
-        {% for d in docs_shared %}
-          <div class="trow" style="grid-template-columns: 2fr 1fr 1fr;">
-            <div><strong>{{ d.filename }}</strong></div>
-            <div class="muted small">{{ d.category or 'Document' }}</div>
-            <div><a class="btn secondary" href="{{ url_for('portal.download_shared', doc_id=d.id) }}">Download</a></div>
-          </div>
-        {% endfor %}
-      </div>
-    {% else %}
-      <div class="muted">No shared documents yet.</div>
-    {% endif %}
-  </div>
-  {% endif %}
-</div>
-
-{% if not is_guest %}
-<div class="card" style="margin-top:14px;">
-  <h3>Recent letters</h3>
-  <div class="muted small">Updates posted by your team.</div>
-  <div style="margin-top:10px;">
-    {% for l in letters %}
-      <div class="mini">
-        <div><strong>{{ l.title }}</strong></div>
-        <div class="muted small">{{ l.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
-      </div>
-    {% else %}
-      <div class="muted">No letters yet.</div>
-    {% endfor %}
-  </div>
-</div>
+{% if is_guest %}
+<div class="flash flash-warning" style="margin-bottom:20px">Add and verify your email address in <a href="{{ url_for('portalx.profile') }}">your profile</a> to upload documents, see claim updates, and message your team.</div>
 {% endif %}
+
+<section class="ws-card pt-card" aria-labelledby="track-h">
+  <div class="ws-card-body">
+    <div class="pt-head">
+      <div>
+        <h2 id="track-h">Your claim: {{ stage_label(client.status) }}</h2>
+        <p>{% for sk, sl, text in CASE_STAGES %}{% if loop.index0 == si %}{{ text }}{% endif %}{% endfor %}</p>
+      </div>
+      <dl class="pt-facts">
+        {% if client.claim_number %}<div><dt>VA claim number</dt><dd>{{ client.claim_number }}</dd></div>{% endif %}
+        {% if rep %}<div><dt>Your representative</dt><dd>{{ rep.full_name or rep.email }}</dd></div>{% endif %}
+      </dl>
+    </div>
+    <ol class="track" aria-label="Claim progress">
+      {% for sk, sl, _ in CASE_STAGES %}
+        <li class="{% if loop.index0 < si %}done{% elif loop.index0 == si %}now{% endif %}"{% if loop.index0 == si %} aria-current="step"{% endif %}>{{ sl }}</li>
+      {% endfor %}
+    </ol>
+    {% if latest_update %}
+    <div class="pt-update">
+      <strong>Latest update &middot; {{ latest_update.created_at|short_date("%b %d, %Y") }}</strong>
+      <p>{{ latest_update.note or latest_update.status_label }}</p>
+      <a href="{{ url_for('portalx.claim_tracker') }}">See all updates</a>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+<div class="ws-grid" style="margin-top:20px">
+  <div>
+    <section class="ws-card" aria-labelledby="next-h">
+      <div class="ws-card-head"><h2 id="next-h">Your next steps</h2><span class="muted small">{{ tasks_done }} of {{ tasks_total }} done</span></div>
+      {% if tasks_total %}<div class="pt-bar" role="progressbar" aria-valuemin="0" aria-valuemax="{{ tasks_total }}" aria-valuenow="{{ tasks_done }}"><span style="width:{{ (tasks_done / tasks_total * 100)|round(0) }}%"></span></div>{% endif %}
+      {% if open_tasks %}
+      <ul class="ws-list">
+        {% for t in open_tasks %}
+        <li class="pt-task">
+          <div class="main">
+            <strong>{{ t.title }}</strong>
+            {% if t.instructions %}<div class="sub" style="white-space:normal">{{ t.instructions }}</div>{% endif %}
+            {% if t.due_date %}<div class="sub">Due {{ t.due_date|short_date("%B %d") }}</div>{% endif %}
+          </div>
+          <form method="post" action="{{ url_for('portal.complete_task', task_id=t.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-sm" type="submit">Mark done</button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+      {% elif tasks_total %}
+      <div class="ws-empty"><strong>You're all caught up</strong>Your team will add a step here if they need anything else.</div>
+      {% else %}
+      <div class="ws-empty"><strong>Nothing to do yet</strong>Your team will add steps here as your claim moves forward.</div>
+      {% endif %}
+    </section>
+
+    {% if not is_guest %}
+    <section class="ws-card" id="upload" aria-labelledby="up-h">
+      <div class="ws-card-head"><h2 id="up-h">Upload documents</h2></div>
+      <div class="ws-card-body">
+        <p class="muted" style="margin-top:0">Decision letters, medical records, exam results, statements, photos of paperwork. Please don't upload your Social Security card unless we ask.</p>
+        <form id="clientUploadForm" method="post" action="{{ url_for('portal.upload') }}" enctype="multipart/form-data">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="dropzone pt-drop" id="clientDropzone">
+            <div class="dz-title">Drag files here</div>
+            <div class="muted small">or</div>
+            <label for="clientFiles" class="btn btn-sm" id="clientPickBtn">Choose files</label>
+            <input id="clientFiles" class="file-input-overlay" type="file" name="file" multiple accept=".pdf,.png,.jpg,.jpeg,.docx,.mp3,.wav,.m4a,.mp4,.mov,.webm,.ogg">
+            <div class="muted small" style="margin-top:8px">PDF, photos, Word, audio, or video. Several at once is fine.</div>
+          </div>
+          <div id="clientQueue" class="queue"></div>
+          <button class="btn btn-primary" id="clientUploadBtn" style="margin-top:12px;">Upload</button>
+          <div id="clientUploadStatus" class="muted small" style="margin-top:8px; display:none;">Uploading...</div>
+          <div id="clientUploadProgress" class="upload-progress" style="display:none;"><div id="clientUploadProgressBar" class="upload-progress-bar"></div></div>
+          <div id="clientUploadProgressText" class="upload-progress-text" style="display:none;">0%</div>
+        </form>
+      </div>
+    </section>
+    {% endif %}
+  </div>
+
+  <div>
+    {% if not is_guest %}
+    <section class="ws-card" aria-labelledby="pm-h">
+      <div class="ws-card-head"><h2 id="pm-h">Messages</h2><a href="{{ url_for('portal.messages') }}">Open</a></div>
+      {% if messages %}
+      <ul class="ws-list">
+        {% for m in messages[-3:] %}
+        <li>
+          <span class="avatar" aria-hidden="true" style="{% if m.sender_role == 'CLIENT' %}background:#7A8A9C{% endif %}">{{ 'Y' if m.sender_role == 'CLIENT' else 'T' }}</span>
+          <div class="main"><strong>{{ 'You' if m.sender_role == 'CLIENT' else 'Your team' }}</strong><div class="sub">{{ m.body }}</div></div>
+          <div class="meta">{{ m.created_at|short_date }}</div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="ws-empty"><strong>No messages yet</strong><a href="{{ url_for('portal.messages') }}">Send your team a question</a> any time.</div>
+      {% endif %}
+    </section>
+
+    <section class="ws-card" aria-labelledby="sh-h">
+      <div class="ws-card-head"><h2 id="sh-h">From your team</h2></div>
+      {% if docs_shared or letters %}
+      <ul class="ws-list">
+        {% for l in letters %}
+        <li><div class="main"><a href="{{ url_for('portalx.letters') }}">{{ l.title }}</a><div class="sub">Letter &middot; {{ l.created_at|short_date }}</div></div></li>
+        {% endfor %}
+        {% for d in docs_shared %}
+        <li><div class="main"><strong>{{ d.filename }}</strong><div class="sub">{{ d.category or 'Document' }}</div></div><a class="btn btn-sm" href="{{ url_for('portal.download_shared', doc_id=d.id) }}">Download</a></li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="ws-empty"><strong>Nothing shared yet</strong>Letters and documents your team prepares will appear here.</div>
+      {% endif %}
+    </section>
+
+    <section class="ws-card" aria-labelledby="yu-h">
+      <div class="ws-card-head"><h2 id="yu-h">Your uploads</h2></div>
+      {% if docs_uploaded %}
+      <ul class="ws-list">
+        {% for d in docs_uploaded[:8] %}
+        <li><div class="main"><strong>{{ d.filename }}</strong><div class="sub">{{ d.created_at|short_date("%b %d, %Y") }}</div></div><span class="badge-dot badge-ok">Received</span></li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="ws-empty"><strong>No uploads yet</strong>Files you upload show here so you know we have them.</div>
+      {% endif %}
+    </section>
+    {% endif %}
+  </div>
+</div>
 
 <script>
 (function(){
@@ -313,8 +288,6 @@
   #clientPickBtn{width:100%;}
   .row-actions{display:flex;gap:8px;flex-wrap:wrap;}
 }
-.progress{height:10px;border-radius:999px;background:rgba(15,23,42,.08);overflow:hidden}
-.progress-bar{height:100%;background:linear-gradient(135deg,#2b77c4,#0f3058);border-radius:999px}
 .drop-overlay{
   position:fixed;
   inset:0;

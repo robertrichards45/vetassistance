@@ -15,7 +15,6 @@ HTTPS = {"X-Forwarded-Proto": "https", "X-Forwarded-For": "203.0.113.7", "Host":
 
 PUBLIC_PAGES = [
     "/",
-    "/pricing",
     "/faq",
     "/guides",
     "/crsc",
@@ -71,6 +70,7 @@ def test_homepage_content_and_seo(client):
     canonical = re.search(r'rel="canonical" href="([^"]+)"', html).group(1)
     assert canonical.startswith("https://"), canonical
     assert "og-image.png" in html
+    assert "/pricing" not in html.split("<main")[0], "pricing should not be in the public nav"
 
 
 def test_no_ads_anywhere(client):
@@ -128,3 +128,8 @@ def test_wrong_password_rejected(client):
         follow_redirects=True,
     )
     assert b"Invalid email" in resp.data
+
+
+def test_pricing_page_redirects_home(client):
+    resp = client.get("/pricing", headers=HTTPS)
+    assert resp.status_code == 301

@@ -303,8 +303,16 @@ def dashboard():
     if not is_guest:
         thread = _get_or_create_thread(db, c)
         msgs = db.query(Message).filter_by(org_id=current_user.org_id, client_id=c.id, thread_id=thread.id).order_by(Message.created_at.desc()).limit(10).all()
+    from app.models.claim_update import ClaimUpdate
+    latest_update = None
+    if not is_guest:
+        latest_update = (db.query(ClaimUpdate).filter_by(org_id=current_user.org_id, client_id=c.id)
+                         .order_by(ClaimUpdate.created_at.desc()).first())
+    rep = db.get(User, c.assigned_user_id) if c.assigned_user_id else None
     return render_template(
         "portal/dashboard.html",
+        latest_update=latest_update,
+        rep=rep,
         client=c,
         is_guest=is_guest,
         public_client_id=_public_client_id(c),

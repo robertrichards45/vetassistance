@@ -1,44 +1,8 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block title %}Client | {{ client.display_name() }}{% endblock %}
 {% block content %}
-<section class="page-hero">
-  <div class="page-hero-inner">
-    <div>
-      <div class="page-kicker">Client</div>
-      <h1 class="page-title">{{ client.display_name() }}</h1>
-      <p class="page-sub">
-        Email: {{ client.email or "—" }} | Phone: {{ client.phone or "—" }}
-        {% if portal_user and portal_user.last_login_at %}
-          | Last login: {{ portal_user.last_login_at.strftime('%Y-%m-%d %H:%M') }}
-        {% else %}
-          | Last login: —
-        {% endif %}
-      </p>
-      {% if (client.account_type and client.account_type.lower() == "guest") or (not client.email) or (client.email_verified is false) %}
-        <div class="pill pill-bad" style="margin-top:8px;">Guest Account - Email Not On File</div>
-        <div class="muted small" style="margin-top:6px;">Intake and AI screening allowed. Claims and document uploads require verification.</div>
-      {% endif %}
-    </div>
-    <div class="page-actions">
-      <a class="btn btn-outline-light" href="{{ url_for('messages.staff_thread', client_id=client.id) }}">Messages</a>
-      <a class="btn btn-outline-light" href="{{ url_for('clients.client_notes', client_id=client.id) }}">Notes</a>
-      <a class="btn btn-outline-light" href="{{ url_for('documents.client_documents', client_id=client.id) }}">Documents</a>
-      <a class="btn btn-outline-light" href="{{ url_for('tasks.staff_tasks', client_id=client.id) }}">Checklist</a>
-      <a class="btn btn-outline-light" href="{{ url_for('letters.staff_letters', client_id=client.id) }}">Letters</a>
-      <a class="btn btn-outline-light" href="{{ url_for('artifacts.for_client', client_id=client.id) }}">Generated Docs</a>
-      <a class="btn btn-outline-light" href="{{ url_for('portal.portal_home', next=url_for('billing.overview')) }}">Pay Bill</a>
-      <a class="btn btn-outline-light" href="{{ url_for('forms.intake', client_id=client.id) }}">Intake Form</a>
-      <a class="btn btn-outline-light" href="{{ url_for('forms.va_packet', client_id=client.id) }}">VA Forms Packet</a>
-      <a class="btn btn-outline-light" href="{{ url_for('nexus.builder', client_id=client.id) }}">Nexus Builder</a>
-      <a class="btn btn-outline-light" href="{{ url_for('cue.staff_builder', client_id=client.id) }}">CUE Motion Builder</a>
-      <a class="btn btn-outline-light" href="{{ url_for('cue.staff_filing_guide', client_id=client.id) }}">Which Filing Is Right?</a>
-      <a class="btn btn-outline-light" href="{{ url_for('agreements.for_client', client_id=client.id) }}">Agreements</a>
-      <a class="btn btn-outline-light" href="{{ url_for('templates.for_client', client_id=client.id) }}">Templates</a>
-      <a class="btn btn-outline-light" href="#staff-notes">Notes</a>
-      <a class="btn btn-primary" href="{{ url_for('ai.client_ai', client_id=client.id) }}">AI Guidance</a>
-    </div>
-  </div>
-</section>
+{% set active_tab = "overview" %}
+{% include "partials/_client_header.html" %}
 
 <div class="row g-3">
   <div class="col-lg-6">
@@ -49,7 +13,7 @@
         <form method="post" action="{{ url_for('clients.assign_rep', client_id=client.id) }}" style="margin-top:10px;">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <select name="assigned_user_id" class="form-control">
-            <option value="">? Unassigned ?</option>
+            <option value="">Unassigned</option>
             {% for u in employees %}
               <option value="{{ u.id }}" {{ "selected" if client.assigned_user_id == u.id else "" }}>{{ u.full_name or u.email }} ({{ u.role.value }})</option>
             {% endfor %}
