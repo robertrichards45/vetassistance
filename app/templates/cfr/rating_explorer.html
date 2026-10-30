@@ -76,6 +76,7 @@
   var JUSTIFY_URL = "{{ url_for('cfr.justification') }}";
   var IS_STAFF = {{ 'true' if is_staff else 'false' }};
   var ASK_URL = "{{ safe_url_for('assistant.index') }}";
+  var LIB_URL = "{{ safe_url_for('library.index') }}";
   var SAVE_URL = "{{ url_for('cfr.save_worksheet', client_id=0) }}".replace(/0$/, '');
   var CSRF = (document.querySelector('meta[name="csrf-token"]')||{}).content || '';
   var POPULAR = ['6260','9411','8100','5237','6847','5260','5257','8520','7101','7206','5269','6100'];
@@ -166,7 +167,7 @@
     history.replaceState(null,'','#dc-'+dc);
     list.querySelectorAll('li[data-dc]').forEach(function(li){ li.classList.toggle('on', li.dataset.dc===dc); });
     var h='<div class="rx-title"><div><span class="badge-dot badge-muted">DC '+c.diagnostic_code+'</span> <span class="muted small">'+esc(c.system)+' &middot; 38 CFR '+esc(c.cfr_section)+'</span><h2>'+esc(c.condition)+'</h2></div>'+
-      '<div class="rx-actions"><a class="btn btn-sm" href="'+esc(c.source_url)+'" target="_blank" rel="noopener">Official text</a><button class="btn btn-sm" type="button" id="rxCopy">Copy criteria</button>'+
+      '<div class="rx-actions">'+(IS_STAFF && LIB_URL!=='#' ? '<a class="btn btn-sm btn-primary" href="'+LIB_URL+'/'+c.diagnostic_code+'">Full guide &amp; write-up</a>' : '')+'<a class="btn btn-sm" href="'+esc(c.source_url)+'" target="_blank" rel="noopener">Official text</a><button class="btn btn-sm" type="button" id="rxCopy">Copy criteria</button>'+
       (IS_STAFF && ASK_URL!=='#' ? '<a class="btn btn-sm" href="'+ASK_URL+'?q='+encodeURIComponent('What evidence supports a higher rating for '+c.condition+' (DC '+c.diagnostic_code+')? What should a C&P exam document?')+'">Ask AI</a>' : '')+
       '<button class="btn btn-sm btn-mobile-back" type="button" id="rxBack">Back to list</button></div></div>';
     if(c.instruction) h+='<div class="callout" style="margin:0 0 14px"><strong>How it\'s rated</strong>'+esc(c.instruction)+(c.see_also&&byDc[c.see_also]?' <button type="button" class="chip" data-dc="'+c.see_also+'">Open DC '+c.see_also+'</button>':'')+'</div>';

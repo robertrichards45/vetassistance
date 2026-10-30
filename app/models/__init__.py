@@ -46,3 +46,4 @@ from .diy import DIYAccount, DIYSubscription, DIYDocument, DIYDocumentScan, DIYC
 from .public_comment import PublicComment
 from .va_call_log import VACallLog
 from .staff_task import StaffTask
+from .condition_guide import ConditionGuide

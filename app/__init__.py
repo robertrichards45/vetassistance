@@ -276,6 +276,9 @@ def create_app():
     from app.routes.assistant import assistant_bp
     app.register_blueprint(assistant_bp)
 
+    from app.routes.library import library_bp
+    app.register_blueprint(library_bp)
+
     def safe_url_for(endpoint: str, **values) -> str:
         aliases = {
             "public_home": "public.home",

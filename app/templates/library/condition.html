@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}{{ c.condition }} (DC {{ c.diagnostic_code }}) | {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<nav class="crumbs" aria-label="Breadcrumb"><a href="{{ url_for('library.index') }}">Condition library</a><span aria-hidden="true">/</span><span>{{ c.system }}</span><span aria-hidden="true">/</span><span>DC {{ c.diagnostic_code }}</span></nav>
+<div class="ws-head">
+  <div>
+    <h1>{{ c.condition }}</h1>
+    <p><span class="badge-dot badge-muted">DC {{ c.diagnostic_code }}</span> &nbsp;{{ c.system }} &middot; 38 CFR &sect; {{ c.cfr_section }}</p>
+  </div>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('library.section', sec=c.cfr_section) }}#dc-{{ c.diagnostic_code }}">Official text</a>
+    <a class="btn" href="{{ url_for('cfr.ratings_chart') }}#dc-{{ c.diagnostic_code }}">Calculator</a>
+    <a class="btn btn-primary" href="#writeup">Write it up</a>
+  </div>
+</div>
+
+<div class="ws-grid lib-cond">
+  <div>
+    <section class="ws-card" aria-labelledby="rate-h">
+      <div class="ws-card-head"><h2 id="rate-h">How it's rated</h2><span class="muted small">Official criteria</span></div>
+      <div class="ws-card-body">
+        {% if c.instruction %}<div class="callout" style="margin-bottom:14px"><strong>Rating instruction</strong>{{ c.instruction }}{% if c.see_also %} <a href="{{ url_for('library.condition', dc=c.see_also) }}">Open DC {{ c.see_also }}</a>{% endif %}</div>{% endif %}
+        {% if c.criteria %}
+          <ol class="rx-ladder">{% for r in c.criteria %}<li style="grid-template-columns:62px 1fr"><span class="pct">{{ r.percent }}%</span><span class="txt">{{ r.text }}</span></li>{% endfor %}</ol>
+        {% endif %}
+        {% for f in formulas %}
+          <h3 class="rx-sub">{{ f.name }}</h3>
+          <ol class="rx-ladder">{% for r in f.criteria %}<li style="grid-template-columns:62px 1fr"><span class="pct">{{ r.percent }}%</span><span class="txt">{{ r.text }}</span></li>{% endfor %}</ol>
+          {% if f.notes %}<details class="acc rx-notes"><summary>Formula notes ({{ f.notes|length }})</summary><div><ul>{% for n in f.notes %}<li>{{ n }}</li>{% endfor %}</ul></div></details>{% endif %}
+        {% endfor %}
+        {% if not c.criteria and not formulas and not c.instruction %}
+          <div class="callout warn"><strong>See the official text</strong>This code is rated by reference to another code or a table.</div>
+        {% endif %}
+        {% if c.notes %}<details class="acc rx-notes" open><summary>Notes ({{ c.notes|length }})</summary><div><ul>{% for n in c.notes %}<li>{{ n }}</li>{% endfor %}</ul></div></details>{% endif %}
+      </div>
+    </section>
+
+    <section class="ws-card" id="guide" aria-labelledby="guide-h">
+      <div class="ws-card-head"><h2 id="guide-h">Plain-English guide</h2>
+        {% if guide %}<span class="muted small">AI-written from the official criteria &middot; {{ guide_row.updated_at|short_date("%b %d, %Y") }}</span>{% endif %}</div>
+      {% if guide %}
+        {% if guide.overview %}<div class="sec"><p style="margin:0">{{ guide.overview }}</p></div>{% endif %}
+        {% if guide.levels %}
+        <div class="sec"><h3>What each level looks like</h3>
+          <ol class="lv-list">{% for l in guide.levels %}<li><span class="pct">{{ l.percent }}%</span><div><p>{{ l.in_plain_english }}</p>
+            {% if l.evidence_that_supports_it %}<p class="muted small" style="margin-top:4px"><strong>Supporting evidence:</strong> {{ l.evidence_that_supports_it|join('; ') }}</p>{% endif %}</div></li>{% endfor %}</ol></div>
+        {% endif %}
+        <div class="sec two-col">
+          {% if guide.exam_checklist %}<div><h3>The C&amp;P exam should document</h3><ul>{% for x in guide.exam_checklist %}<li>{{ x }}</li>{% endfor %}</ul></div>{% endif %}
+          {% if guide.common_mistakes %}<div><h3>Common reasons it's underrated</h3><ul>{% for x in guide.common_mistakes %}<li>{{ x }}</li>{% endfor %}</ul></div>{% endif %}
+          {% if guide.writeup_tips %}<div><h3>Write-up tips</h3><ul>{% for x in guide.writeup_tips %}<li>{{ x }}</li>{% endfor %}</ul></div>{% endif %}
+          {% if guide.common_secondary_conditions %}<div><h3>Often claimed secondary</h3><ul>{% for x in guide.common_secondary_conditions %}<li>{{ x }}</li>{% endfor %}</ul></div>{% endif %}
+        </div>
+        <p class="muted small sec" style="margin:0">Check the guide against the official criteria above before relying on it.
+          {% if current_user.is_director %}<form method="post" action="{{ url_for('library.make_guide', dc=c.diagnostic_code) }}" style="display:inline"><button class="linkish" type="submit">Regenerate</button></form>{% endif %}</p>
+      {% elif guide_row and guide_row.status in ('QUEUED', 'RUNNING') %}
+        <div class="sec cr-running" id="guideRunning" data-url="{{ url_for('library.guide_status', dc=c.diagnostic_code) }}" style="border:0;margin:0"><div class="spinner" aria-hidden="true"></div><div><strong>Writing the guide…</strong><div class="muted small">About 30 seconds. This page updates by itself.</div></div></div>
+      {% else %}
+        <div class="ws-empty">
+          {% if guide_row and guide_row.status == 'FAILED' %}<div class="callout bad" style="margin-bottom:10px"><strong>The guide couldn't be written</strong>{{ guide_row.error }}</div>{% endif %}
+          <strong>No guide yet</strong>Generate a plain-English guide: what each level means, the evidence that supports it, what the exam must document, and common mistakes. It's saved for the whole team.
+          <form method="post" action="{{ url_for('library.make_guide', dc=c.diagnostic_code) }}" style="margin-top:12px"><button class="btn btn-primary" type="submit"{% if not ai_ok %} disabled{% endif %}>Write the guide</button>{% if not ai_ok %} <span class="muted small">AI isn't set up</span>{% endif %}</form>
+        </div>
+      {% endif %}
+    </section>
+
+    <section class="ws-card" id="writeup" aria-labelledby="wu-h">
+      <div class="ws-card-head"><h2 id="wu-h">Write-up builder</h2></div>
+      <form class="ws-card-body form-grid" id="wuForm" data-url="{{ url_for('library.writeup', dc=c.diagnostic_code) }}" data-save="{{ url_for('library.save_writeup', dc=c.diagnostic_code) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="full"><fieldset class="seg" aria-label="Type of write-up">
+          {% for k, v in kinds.items() %}<label><input type="radio" name="kind" value="{{ k }}"{% if loop.first %} checked{% endif %}> {{ v[0] }}</label>{% endfor %}
+        </fieldset></div>
+        <div><label class="form-label" for="wuClient">Client</label>
+          <select id="wuClient" class="form-control" name="client_id"><option value="">No client (general)</option>{% for cl in clients %}<option value="{{ cl.id }}"{% if selected_client == cl.id|string %} selected{% endif %}>{{ cl.display_name() }}</option>{% endfor %}</select></div>
+        <div><label class="form-label" for="wuTarget">Target rating</label>
+          <select id="wuTarget" class="form-control" name="target"><option value="">Let the facts decide</option>
+            {% set pcts = (c.criteria|map(attribute='percent')|list) + (formulas|map(attribute='criteria')|sum(start=[])|map(attribute='percent')|list) %}
+            {% for p in pcts|unique|sort(reverse=true) %}<option value="{{ p }}%">{{ p }}%</option>{% endfor %}</select></div>
+        <div class="full"><label class="form-label" for="wuFacts">Facts and findings from the file</label>
+          <textarea id="wuFacts" class="form-control" name="facts" rows="5" placeholder="e.g. 9/12/2026 C&amp;P exam: flexion 0-40 degrees with pain at 30, flare-ups weekly per veteran, uses knee brace. Private MRI 6/2026 shows meniscus tear."></textarea>
+          <p class="hint">Only what's in the record. The draft won't invent findings and will say what's missing.</p></div>
+        <div class="full"><button class="btn btn-primary" type="submit"{% if not ai_ok %} disabled{% endif %}>Draft write-up</button> <span class="muted small" id="wuMsg" aria-live="polite"></span></div>
+      </form>
+      <div class="sec" id="wuOutWrap" hidden>
+        <label class="sr-only" for="wuOut">Draft</label>
+        <textarea id="wuOut" class="form-control wu-out" rows="16"></textarea>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+          <button class="btn btn-sm" type="button" id="wuCopy">Copy</button>
+          <button class="btn btn-sm" type="button" id="wuSave">Save to client's letters (not shared)</button>
+          <span class="muted small" id="wuSaveMsg" aria-live="polite"></span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div>
+    <section class="ws-card" aria-labelledby="rules-h">
+      <div class="ws-card-head"><h2 id="rules-h">Rules that apply</h2></div>
+      <ul class="ws-list rules">
+        {% for a, b in rules + general_rules %}<li><div class="main"><strong>{{ a }}</strong><div class="sub" style="white-space:normal">{{ b }}</div></div></li>{% endfor %}
+      </ul>
+    </section>
+    {% if related %}
+    <section class="ws-card" aria-labelledby="rel-h">
+      <div class="ws-card-head"><h2 id="rel-h">Related codes</h2></div>
+      <ul class="ws-list">{% for r in related %}<li><div class="main"><a href="{{ url_for('library.condition', dc=r.diagnostic_code) }}">{{ r.condition }}</a><div class="sub">DC {{ r.diagnostic_code }}</div></div></li>{% endfor %}</ul>
+    </section>
+    {% endif %}
+    <section class="ws-card"><div class="ws-card-body">
+      <a class="btn" style="width:100%" href="{{ url_for('assistant.index', q='Help me with a ' ~ c.condition ~ ' (DC ' ~ c.diagnostic_code ~ ') claim: ') }}">Ask AI about this condition</a>
+    </div></section>
+  </div>
+</div>
+
+<script>
+(function(){
+  var gr=document.getElementById('guideRunning');
+  if(gr){(function poll(){fetch(gr.dataset.url,{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+    if(d.status==='QUEUED'||d.status==='RUNNING') setTimeout(poll,3000); else location.reload(); }).catch(function(){setTimeout(poll,6000);});})();}
+
+  var f=document.getElementById('wuForm'); if(!f) return;
+  var out=document.getElementById('wuOut'), wrap=document.getElementById('wuOutWrap'), msg=document.getElementById('wuMsg');
+  f.addEventListener('submit',function(e){ e.preventDefault(); var fd=new FormData(f); wrap.hidden=false; out.value=''; msg.textContent='Writing…';
+    var btn=f.querySelector('button[type=submit]'); btn.disabled=true;
+    fetch(f.dataset.url,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){
+      if(!r.ok||!r.body){ msg.textContent='The request failed ('+r.status+').'; btn.disabled=false; return; }
+      var rd=r.body.getReader(), dec=new TextDecoder();
+      (function pump(){ rd.read().then(function(x){ if(x.done){ msg.textContent='Done. Edit it below before using it.'; btn.disabled=false; return; } out.value+=dec.decode(x.value,{stream:true}); out.scrollTop=out.scrollHeight; pump(); }); })();
+    }).catch(function(){ msg.textContent='The request failed. Try again.'; btn.disabled=false; });
+  });
+  document.getElementById('wuCopy').onclick=function(){ navigator.clipboard&&navigator.clipboard.writeText(out.value); this.textContent='Copied'; };
+  document.getElementById('wuSave').onclick=function(){ var sm=document.getElementById('wuSaveMsg'), cl=f.querySelector('[name=client_id]').value;
+    if(!cl){ sm.textContent='Choose a client above first.'; return; }
+    var fd=new FormData(); fd.append('csrf_token',f.querySelector('[name=csrf_token]').value); fd.append('client_id',cl); fd.append('body',out.value); fd.append('kind',(f.querySelector('[name=kind]:checked')||{}).value||'');
+    fetch(f.dataset.save,{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){
+      sm.innerHTML = d.ok ? 'Saved. <a href="'+d.url+'">Open letters</a>' : (d.error||'Could not save.'); }); };
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}38 CFR {{ sec }} | {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<nav class="crumbs" aria-label="Breadcrumb"><a href="{{ url_for('library.index') }}">Condition library</a><span aria-hidden="true">/</span><span>&sect; {{ sec }}</span></nav>
+<div class="ws-head">
+  <div><h1>38 CFR &sect; {{ sec }}</h1><p>{{ system }} &middot; Official text of the VA rating schedule. <a href="https://www.ecfr.gov/current/title-38/chapter-I/part-4/section-{{ sec }}" target="_blank" rel="noopener">Check the live version on eCFR.gov</a></p></div>
+  <div class="actions"><button class="btn" type="button" onclick="window.print()">Print</button></div>
+</div>
+<div class="lib-layout">
+  <nav class="lib-toc" aria-label="Codes in this section">
+    <strong>{{ codes|length }} codes in this section</strong>
+    {% for c in codes %}<a href="{{ url_for('library.condition', dc=c.diagnostic_code) }}">{{ c.diagnostic_code }} <span style="font-weight:500">{{ c.condition|truncate(34) }}</span></a>{% endfor %}
+  </nav>
+  <article class="ws-card reg-text">{{ body|safe }}</article>
+</div>
+{% endblock %}

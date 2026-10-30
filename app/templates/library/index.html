@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Condition library | {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<div class="ws-head">
+  <div>
+    <h1>Condition library</h1>
+    <p>{{ total }} conditions from the VA rating schedule (38 CFR Part 4){% if effective_date %}, current as of {{ effective_date }}{% endif %}. Each page has the official criteria, the rules that apply, a plain-English guide, and a write-up builder.</p>
+  </div>
+  <div class="actions"><a class="btn" href="{{ url_for('cfr.ratings_chart') }}">Rating calculator</a></div>
+</div>
+<div class="lib-search">
+  <svg aria-hidden="true"><use href="#i-search"/></svg>
+  <label class="sr-only" for="libQ">Filter conditions</label>
+  <input id="libQ" type="search" placeholder="Filter by name or diagnostic code" autocomplete="off">
+</div>
+<div class="lib-layout">
+  <nav class="lib-toc" aria-label="Body systems">
+    <strong>Body systems</strong>
+    {% for name, items in systems %}<a href="#sys-{{ loop.index }}">{{ name }} <span>{{ items|length }}</span></a>{% endfor %}
+    <strong style="margin-top:14px">Official text by section</strong>
+    <div class="lib-secs">{% for s in sections %}<a href="{{ url_for('library.section', sec=s) }}">&sect; {{ s }}</a>{% endfor %}</div>
+  </nav>
+  <div>
+    {% for name, items in systems %}
+    <section class="ws-card lib-sys" id="sys-{{ loop.index }}" data-sys>
+      <div class="ws-card-head"><h2>{{ name }}</h2><span class="muted small">{{ items|length }} conditions</span></div>
+      <ul class="lib-list">
+        {% for c in items|sort(attribute='condition') %}{% set mx = c.criteria|map(attribute='percent')|max if c.criteria else none %}
+        <li data-q="{{ (c.condition ~ ' ' ~ c.diagnostic_code)|lower }}"><a href="{{ url_for('library.condition', dc=c.diagnostic_code) }}">
+          <span class="dc">{{ c.diagnostic_code }}</span><span class="nm">{{ c.condition }}</span>
+          {% if c.diagnostic_code in ready %}<span class="badge-dot badge-ok" title="Guide written">Guide</span>{% endif %}
+          {% if mx is not none %}<span class="mx">up to {{ mx }}%</span>{% endif %}</a></li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endfor %}
+    <p class="ws-empty" id="libNone" hidden><strong>No matches</strong>Try fewer words or a diagnostic code.</p>
+  </div>
+</div>
+<script>
+(function(){var q=document.getElementById('libQ'),none=document.getElementById('libNone');
+q.addEventListener('input',function(){var t=q.value.trim().toLowerCase(),any=false;
+document.querySelectorAll('[data-sys]').forEach(function(s){var n=0;s.querySelectorAll('li[data-q]').forEach(function(li){var on=!t||li.dataset.q.indexOf(t)>=0;li.hidden=!on;if(on)n++;});s.hidden=!n;if(n)any=true;});none.hidden=any;});})();
+</script>
+{% endblock %}
