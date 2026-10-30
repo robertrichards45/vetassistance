@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from flask_login import login_required, current_user
 from app.routes._authz import require_roles
 from app.models.user import Role
@@ -191,6 +191,33 @@ def traffic():
         top_paths=top_paths,
         daily=[(str(d)[:10], int(c or 0)) for d, c in daily],
     )
+
+def _ping_search(urls: list[str]) -> None:
+    """Tell Bing and other IndexNow engines about changed public pages, in the background."""
+    from flask import request as _rq
+    from app.services.indexnow import submit
+    from app.services.queue import enqueue
+    host = _rq.host.split(":")[0]
+    if host in ("localhost", "127.0.0.1") or current_app.config.get("TESTING"):
+        return
+    enqueue(submit, urls, host, queue="default")
+
+
+@director_bp.post("/search/ping")
+@login_required
+@require_roles(Role.DIRECTOR)
+def search_ping():
+    """Submit every public page in the sitemap to IndexNow (Bing, Yandex, Seznam, Naver)."""
+    import re as _re
+    from app.services.indexnow import submit
+    with current_app.test_client() as tc:
+        xml = tc.get("/sitemap.xml", base_url="https://" + request.host.split(":")[0]).get_data(as_text=True)
+    urls = _re.findall(r"<loc>([^<]+)</loc>", xml)
+    ok, msg = submit(urls, request.host.split(":")[0])
+    flash((f"Sent {len(urls)} pages to Bing and other search engines. " if ok else "Couldn't notify search engines: ") + msg,
+          "success" if ok else "error")
+    return redirect(url_for("director.traffic"))
+
 
 @director_bp.post("/users/create")
 @login_required
@@ -420,6 +447,8 @@ def articles_save():
         return redirect(url_for("director.articles_new"))
     safe_slug = save_article(slug or title, title, summary, body)
     flash("Article saved.", "success")
+    _ping_search([url_for("public.article_detail", slug=safe_slug, _external=True, _scheme="https"),
+                  url_for("public.article_list", _external=True, _scheme="https")])
     return redirect(url_for("director.articles_edit", slug=safe_slug))
 
 

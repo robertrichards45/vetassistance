@@ -414,6 +414,8 @@ def create_app():
     app.jinja_env.globals["bot_token"] = _bot_token
     from datetime import datetime as _dt
     app.jinja_env.globals["now_utc"] = _dt.utcnow
+    app.jinja_env.globals["SEARCH_VERIFY"] = {"google": os.environ.get("GOOGLE_SITE_VERIFICATION", "").strip(),
+                                              "bing": os.environ.get("BING_SITE_VERIFICATION", "").strip()}
     from app.services.case_stages import STAGES, stage_key, stage_index, stage_label
     app.jinja_env.globals.update(CASE_STAGES=STAGES, stage_key=stage_key, stage_index=stage_index, stage_label=stage_label)
 

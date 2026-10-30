@@ -10,6 +10,8 @@
   {% set is_public = endpoint.startswith('public.') or endpoint in ['diy.landing','diy.register','diy.login'] %}
   <title>{% block title %}{{ page_title }}{% endblock %}</title>
   <meta name="description" content="{{ page_desc }}">
+  {% if SEARCH_VERIFY.google %}<meta name="google-site-verification" content="{{ SEARCH_VERIFY.google }}">{% endif %}
+  {% if SEARCH_VERIFY.bing %}<meta name="msvalidate.01" content="{{ SEARCH_VERIFY.bing }}">{% endif %}
   {% if is_public %}
     <meta name="robots" content="index,follow">
   {% else %}
@@ -366,6 +368,7 @@
                 <a class="nav-dropitem" href="{{ url_for('public.crsc') }}">CRSC &amp; Combat Pay</a>
                 <a class="nav-dropitem" href="{{ url_for('public.benefits_hub') }}">Benefits Hub</a>
                 <a class="nav-dropitem" href="{{ url_for('diy.landing') }}">Do It Yourself toolkit</a>
+                <a class="nav-dropitem" href="https://resumebuilder.shop/military" rel="noopener">Resume builder for veterans</a>
               </div>
             </div>
             <div class="nav-dropdown">
@@ -521,6 +524,7 @@
             <li><a href="{{ url_for('public.intelligent_benefits') }}#services-locator">Service Locator</a></li>
             <li><a href="{{ url_for('public.crsc') }}">CRSC &amp; Combat Pay</a></li>
             <li><a href="{{ url_for('diy.landing') }}">Do It Yourself</a></li>
+            <li><a href="https://resumebuilder.shop/military" rel="noopener">Resume builder for veterans</a></li>
           </ul>
         </nav>
         <nav aria-label="Learn">

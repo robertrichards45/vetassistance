@@ -3,6 +3,7 @@
 {% block content %}
 <div class="ws-head">
   <div><h1>Website traffic</h1><p>Real visitors over the last 30 days. Your team and known bots are left out.</p></div>
+  <div class="actions"><form method="post" action="{{ url_for('director.search_ping') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn" type="submit" title="Sends every public page in the sitemap to Bing and other IndexNow search engines">Notify search engines</button></form></div>
 </div>
 {% set days = daily|list %}{% set peak = (days|map(attribute=1)|max) if days else 0 %}
 <div class="ws-metrics">

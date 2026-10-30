@@ -5,7 +5,7 @@ import hashlib
 import os
 from werkzeug.utils import secure_filename
 
-from flask import Blueprint, render_template, request, current_app, jsonify, flash, redirect, url_for, send_from_directory, Response
+from flask import Blueprint, render_template, request, current_app, jsonify, flash, redirect, url_for, send_from_directory, Response, abort
 from flask_login import current_user
 import json
 
@@ -234,6 +234,22 @@ def public_comment_post():
     flash("Thanks for your comment! It will appear after approval.", "success")
     return redirect(url_for("public.home") + "#comments")
 
+@public_bp.get("/<key>.txt")
+def indexnow_key(key: str):
+    from app.services.indexnow import key as _key
+    if key != _key():
+        abort(404)
+    return Response(_key(), mimetype="text/plain")
+
+
+@public_bp.get("/BingSiteAuth.xml")
+def bing_site_auth():
+    code = os.environ.get("BING_SITE_VERIFICATION", "").strip()
+    if not code:
+        abort(404)
+    return Response(f'<?xml version="1.0"?>\n<users><user>{code}</user></users>', mimetype="application/xml")
+
+
 @public_bp.get("/robots.txt")
 def robots_txt():
     base_url = request.url_root.rstrip("/")
@@ -242,6 +258,13 @@ def robots_txt():
         "Disallow: /portal/",
         "Disallow: /director/",
         "Disallow: /employee/",
+        "Disallow: /clients/",
+        "Disallow: /claims/",
+        "Disallow: /ai/",
+        "Disallow: /assistant",
+        "Disallow: /library/",
+        "Disallow: /documents/",
+        "Disallow: /auth/reset",
         f"Sitemap: {base_url}/sitemap.xml",
     ])
     return Response(content, mimetype="text/plain")
@@ -263,6 +286,8 @@ def sitemap_xml():
         url_for("public.intelligent_benefits"),
         url_for("public.state_benefits"),
         url_for("public.faq"),
+        url_for("onboard.become_client"),
+        url_for("resources.benefits_finder"),
         url_for("public.privacy"),
         url_for("public.security"),
         url_for("public.contact"),
