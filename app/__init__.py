@@ -370,7 +370,7 @@ def create_app():
             home_disclaimer_box=os.environ.get("HOME_DISCLAIMER_BOX"),
             become_client_title=os.environ.get("BECOME_CLIENT_TITLE"),
         )
-        brand_name = os.environ.get("BRAND_NAME") or app.config.get("SITE_NAME", "")
+        brand_name = os.environ.get("BRAND_NAME") or app.config.get("SITE_NAME", "") or "Veteran Benefits Assistance"
         unread_messages = 0
         if getattr(_current_user, "is_authenticated", False):
             try:
@@ -404,6 +404,7 @@ def create_app():
         return {
             "SITE": site,
             "COMPANY_NAME": brand_name,
+            "BRAND_NAME": brand_name,
             "CONTACT_EMAIL": os.environ.get("BRAND_EMAIL") or app.config.get("SUPPORT_EMAIL", ""),
             "CONTACT_PHONE": os.environ.get("SUPPORT_PHONE") or app.config.get("SUPPORT_PHONE", ""),
             "COMPANY_WEBSITE": os.environ.get("BRAND_DOMAIN") or "",

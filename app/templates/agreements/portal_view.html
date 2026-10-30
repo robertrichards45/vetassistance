@@ -1,54 +1,48 @@
 {% extends "layout.html" %}
-{% block title %}Agreement - {{ client.display_name() }}{% endblock %}
+{% block title %}{{ item.title }} • {{ BRAND_NAME }}{% endblock %}
 {% block content %}
-<div class="row">
+<div class="ws-head">
+  <div><p class="crumbs"><a href="{{ url_for('agreements.portal_list') }}">Agreements</a> / {{ item.title }}</p><h1>{{ item.title }}</h1></div>
+  <div class="actions">{% if item.status == 'SIGNED' %}<span class="badge-dot badge-ok">Signed</span>{% else %}<span class="badge-dot badge-warn">Needs your signature</span>{% endif %}</div>
+</div>
+<div class="ws-grid">
   <div>
-    <h2>Service Agreement</h2>
-    <div class="muted small">{{ client.display_name() }}</div>
+    <section class="ws-card">
+      <div class="ws-card-body">
+        <div class="agreement-letterhead">
+          <img src="{{ url_for('static', filename='brand/logo.png') }}" alt="" height="44">
+          <div><strong>{{ brand.brand }}</strong><div class="muted small">{{ brand.email }}{% if brand.phone %} · {{ brand.phone }}{% endif %}</div></div>
+        </div>
+        <div class="prose agreement-text">{{ item.body }}</div>
+      </div>
+    </section>
   </div>
-  <div class="row-actions">
-    <a class="btn secondary" href="{{ url_for('agreements.portal_list') }}">Back</a>
-  </div>
-</div>
-
-<div class="card">
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;border-bottom:1px solid rgba(15,23,42,.10);padding-bottom:10px;">
-    <img src="{{ url_for('static', filename='brand/logo.png') }}" alt="Logo" style="height:50px;width:auto;">
-    <div>
-      <div style="font-weight:900;color:#0B1F3A;">{{ brand.brand }}</div>
-      <div class="muted small">{{ brand.email }} {% if brand.phone %} | {{ brand.phone }}{% endif %}</div>
-    </div>
-  </div>
-  <pre style="white-space:pre-wrap; font-family:inherit;">{{ item.body }}</pre>
-</div>
-
-{% if item.status != 'SIGNED' %}
-<div class="card">
-  <h3>Sign Agreement</h3>
-  <form method="post" action="{{ url_for('agreements.portal_sign', agreement_id=item.id) }}" class="grid">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <div style="grid-column:1/-1;">
-      <label>Full name</label>
-      <input name="signed_name" required>
-    </div>
-    <div style="grid-column:1/-1;">
-      <label>Email (optional)</label>
-      <input name="signed_email" type="email">
-    </div>
-    <div style="grid-column:1/-1;">
-      <label><input type="checkbox" name="ack" value="yes" required> I agree to the terms above.</label>
-    </div>
-    <div style="grid-column:1/-1;">
-      <button class="btn btn-primary" type="submit">Sign Agreement</button>
-    </div>
-  </form>
-  <div class="muted small" style="margin-top:8px;">
-    You can also print this page, sign by hand, and upload it in Documents.
+  <div>
+    {% if item.status != 'SIGNED' %}
+    <section class="ws-card">
+      <div class="ws-card-head"><h2>Sign</h2></div>
+      <div class="ws-card-body">
+        <form method="post" action="{{ url_for('agreements.portal_sign', agreement_id=item.id) }}" class="stack-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label class="form-label" for="sgName">Type your full name</label>
+          <input id="sgName" class="form-control signature-input" name="signed_name" required autocomplete="name" value="{{ client.display_name() }}">
+          <label class="form-label" for="sgEmail">Email <span class="muted small">(for your copy)</span></label>
+          <input id="sgEmail" class="form-control" name="signed_email" type="email" autocomplete="email" value="{{ client.email or '' }}">
+          <label class="check"><input type="checkbox" name="ack" value="yes" required> I've read this agreement and agree to it. Typing my name counts as my signature.</label>
+          <button class="btn btn-primary" type="submit">Sign agreement</button>
+        </form>
+        <p class="muted small" style="margin:12px 0 0;">Prefer paper? Print this page, sign it, and upload it in Documents.</p>
+      </div>
+    </section>
+    {% else %}
+    <section class="ws-card">
+      <div class="ws-card-head"><h2>Signed</h2></div>
+      <div class="ws-card-body">
+        <dl class="kv"><dt>Signed by</dt><dd>{{ item.signed_name }}</dd><dt>Date</dt><dd>{{ item.signed_at|short_date('%B %d, %Y') if item.signed_at else '' }}</dd></dl>
+        <button class="btn" type="button" onclick="window.print()" style="margin-top:12px;">Print a copy</button>
+      </div>
+    </section>
+    {% endif %}
   </div>
 </div>
-{% else %}
-<div class="card">
-  <div class="muted small">Signed by {{ item.signed_name }} on {{ item.signed_at.strftime('%Y-%m-%d') if item.signed_at else '' }}</div>
-</div>
-{% endif %}
 {% endblock %}

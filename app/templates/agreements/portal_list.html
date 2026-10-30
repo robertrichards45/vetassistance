@@ -1,46 +1,25 @@
 {% extends "layout.html" %}
-{% block title %}Agreements - {{ client.display_name() }}{% endblock %}
+{% block title %}Agreements • {{ BRAND_NAME }}{% endblock %}
 {% block content %}
-<div class="row">
-  <div>
-    <h2>Your Agreements</h2>
-    <div class="muted small">{{ client.display_name() }}</div>
-  </div>
-  <div class="row-actions">
-    <a class="btn secondary" href="{{ url_for('portal.dashboard') }}">Back</a>
-  </div>
-</div>
-
-<div class="card">
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
-    <img src="{{ url_for('static', filename='brand/logo.png') }}" alt="Logo" style="height:48px;width:auto;">
-    <div>
-      <div style="font-weight:900;color:#0B1F3A;">{{ brand.brand }}</div>
-      <div class="muted small">{{ brand.email }} {% if brand.phone %} | {{ brand.phone }}{% endif %}</div>
-    </div>
-  </div>
-  <div class="table">
-    <div class="thead" style="grid-template-columns: 1fr 140px 140px;">
-      <div>Agreement</div>
-      <div>Status</div>
-      <div>Action</div>
-    </div>
+<div class="ws-head"><div><h1>Agreements</h1><p>Read and sign agreements from your team. You can come back to them any time.</p></div></div>
+<section class="ws-card">
+  {% if items %}
+  <ul class="ws-list">
     {% for a in items %}
-    <div class="trow" style="grid-template-columns: 1fr 140px 140px;">
-      <div>
-        <strong>{{ a.title }}</strong>
-        <div class="muted small">Created {{ a.created_at.strftime('%Y-%m-%d') }}</div>
+    <li>
+      <div class="main">
+        <div class="ttl"><a href="{{ url_for('agreements.portal_view', agreement_id=a.id) }}">{{ a.title }}</a></div>
+        <div class="sub">{% if a.status == 'SIGNED' and a.signed_at %}You signed it {{ a.signed_at|short_date('%B %d, %Y') }}{% else %}Sent {{ a.created_at|short_date('%B %d, %Y') }}{% endif %}</div>
       </div>
-      <div class="pill {{ 'pill-good' if a.status == 'SIGNED' else 'pill-claim' }}">{{ a.status }}</div>
-      <div>
-        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('agreements.portal_view', agreement_id=a.id) }}">
-          {{ 'View' if a.status == 'SIGNED' else 'Review' }}
-        </a>
+      <div class="meta inline-row">
+        {% if a.status == 'SIGNED' %}<span class="badge-dot badge-ok">Signed</span><a class="btn btn-sm" href="{{ url_for('agreements.portal_view', agreement_id=a.id) }}">View</a>
+        {% else %}<span class="badge-dot badge-warn">Needs your signature</span><a class="btn btn-sm btn-primary" href="{{ url_for('agreements.portal_view', agreement_id=a.id) }}">Review and sign</a>{% endif %}
       </div>
-    </div>
-    {% else %}
-      <div class="muted" style="padding:12px;">No agreements available yet.</div>
+    </li>
     {% endfor %}
-  </div>
-</div>
+  </ul>
+  {% else %}
+  <div class="ws-empty"><strong>Nothing to sign</strong>When your team sends an agreement, it will appear here and you'll get a notification.</div>
+  {% endif %}
+</section>
 {% endblock %}

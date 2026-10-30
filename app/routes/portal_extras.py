@@ -117,6 +117,7 @@ def intake():
             if isinstance(stored, dict):
                 data.update(stored)
         except Exception: data = {}
+    data["ssn_on_file"] = bool(getattr(c, "ssn_encrypted", "") or c.ssn_full)
     return render_template("portal/intake.html", client=c, data=data, is_guest=is_guest)
 
 @portalx_bp.post("/intake")

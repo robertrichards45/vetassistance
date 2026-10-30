@@ -12,7 +12,11 @@ cfr_bp = Blueprint("cfr", __name__, url_prefix="/cfr")
 
 @cfr_bp.get("/")
 def cfr_home():
-    return render_template("public/cfr.html", meta_title="CFR References", meta_description="Find CFR Part 4 references and rating criteria.")
+    # The old keyword page returned bare condition names; send people to the full rating schedule tool instead.
+    from flask import redirect, url_for
+    if current_user.is_authenticated:
+        return redirect(url_for("cfr.ratings_chart"), code=301)
+    return redirect(url_for("public.guides"), code=301)
 
 @cfr_bp.get("/search")
 def cfr_search():

@@ -1,70 +1,43 @@
 {% extends "base.html" %}
+{% block title %}{{ SITE.become_client_title or "Become a client" }} | {{ COMPANY_NAME }}{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-3">
+<section class="pub-hero">
+  <p class="kicker">Get started</p>
+  <h1>{{ SITE.become_client_title or "Let's get your claim organized." }}</h1>
+  <p>Tell us a little about what you need. We'll set up a secure portal where you can upload records, track progress and message your team.</p>
+  <div class="pub-trust"><span>Takes about 2 minutes</span><span>Encrypted portal</span><span>Real people review every request</span></div>
+</section>
+<div class="pub-grid">
+  <section class="ws-card">
+    <div class="ws-card-head"><h2>Your request</h2></div>
+    <div class="ws-card-body">
+      <form method="post" class="form-grid">
+        <div class="hp" aria-hidden="true"><label>Website <input name="website" tabindex="-1" autocomplete="off"></label></div>
+        <input type="hidden" name="form_ts" value="{{ bot_token() }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div><label class="form-label" for="bcFirst">First name</label><input id="bcFirst" class="form-control" name="first_name" required autocomplete="given-name"></div>
+        <div><label class="form-label" for="bcLast">Last name</label><input id="bcLast" class="form-control" name="last_name" required autocomplete="family-name"></div>
+        <div><label class="form-label" for="bcEmail">Email</label><input id="bcEmail" class="form-control" name="email" type="email" required autocomplete="email"></div>
+        <div><label class="form-label" for="bcPhone">Phone <span class="muted small">(optional)</span></label><input id="bcPhone" class="form-control" name="phone" type="tel" autocomplete="tel"></div>
+        <div class="full"><label class="form-label" for="bcBranch">Branch of service</label>
+          <select id="bcBranch" class="form-control" name="branch"><option value="">Choose one</option>{% for b in ["Army","Marine Corps","Navy","Air Force","Space Force","Coast Guard","National Guard","Reserves","Surviving spouse or family member"] %}<option>{{ b }}</option>{% endfor %}</select></div>
+        <div class="full"><label class="form-label" for="bcHelp">What do you need help with?</label><textarea id="bcHelp" class="form-control" name="help_text" rows="6" placeholder="For example: filing for my back and knees for the first time, or my PTSD claim was denied. Mention any records you already have. Please don't include your Social Security number."></textarea></div>
+        <div class="full inline-row"><button class="btn btn-primary" type="submit">Send my request</button><a class="btn" href="/contact">Have a question first?</a></div>
+      </form>
+    </div>
+  </section>
   <div>
-    <h1 class="h3 mb-1">{{ SITE.become_client_title or "Become a Client" }}</h1>
-    <div class="text-muted">A simple, secure intake to get you organized fast.</div>
-  </div>
-</div>
-
-<div class="row g-4">
-  <div class="col-lg-7">
-    <div class="card vca-card">
-      <div class="card-body p-4">
-        <form method="post">
-          <div class="hp" aria-hidden="true"><label>Website <input name="website" tabindex="-1" autocomplete="off"></label></div>
-          <input type="hidden" name="form_ts" value="{{ bot_token() }}">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <div class="row g-3">
-            <div class="col-md-6">
-              <label class="form-label">First name</label>
-              <input class="form-control" name="first_name" required>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Last name</label>
-              <input class="form-control" name="last_name" required>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Email</label>
-              <input class="form-control" name="email" type="email" required>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Phone (optional)</label>
-              <input class="form-control" name="phone">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label">Branch</label>
-              <input class="form-control" name="branch" placeholder="USMC / Army / Navy / Air Force / Coast Guard / Space Force">
-            </div>
-            <div class="col-12">
-              <label class="form-label">How can we help?</label>
-              <textarea class="form-control" name="help_text" rows="6" placeholder="Briefly describe what you’re trying to accomplish and what records you already have."></textarea>
-            </div>
-            <div class="col-12 d-flex gap-2 flex-wrap">
-              <button class="btn btn-primary" type="submit">Submit request</button>
-              <a class="btn btn-outline-primary" href="/contact">Questions first?</a>
-            </div>
-          </div>
-        </form>
+    <section class="ws-card">
+      <div class="ws-card-head"><h2>What happens next</h2></div>
+      <div class="ws-card-body">
+        <ol class="pub-steps">
+          <li><div><strong>We read your request</strong><span class="muted small">A team member reviews it and confirms what you're aiming for.</span></div></li>
+          <li><div><strong>You get a secure portal</strong><span class="muted small">Upload your DD-214, medical records and VA letters in one place.</span></div></li>
+          <li><div><strong>We map the gaps</strong><span class="muted small">You'll see what evidence is missing and the next steps, written plainly.</span></div></li>
+        </ol>
       </div>
-    </div>
-
-    <div class="mt-3 text-muted small">
-      By submitting, you’re requesting administrative/educational support. We do not provide legal advice, do not represent you before the VA, and do not guarantee outcomes.
-    </div>
-  </div>
-
-  <div class="col-lg-5">
-    <div class="card vca-card">
-      <div class="card-body p-4">
-        <h2 class="h6 mb-2">What happens next</h2>
-        <ul class="mb-0">
-          <li>We review your request and confirm your goal.</li>
-          <li>We send a secure upload link (or you can use “Veteran Upload”).</li>
-          <li>We outline gaps, next steps, and a clean packet structure.</li>
-        </ul>
-      </div>
-    </div>
+    </section>
+    <p class="muted small">By submitting, you're asking for administrative and educational help. We are not a law firm and are not accredited by VA, so we don't give legal advice, represent you before VA, or guarantee outcomes.</p>
   </div>
 </div>
 {% endblock %}

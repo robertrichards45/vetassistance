@@ -309,6 +309,7 @@ def download(doc_id: int):
         return "Not found", 404
     if not os.path.exists(d.storage_path):
         return "Missing file", 404
+    audit_log(current_user.org_id, current_user.id, "DOCUMENT_DOWNLOADED", "Document", d.id)
     return send_file(d.storage_path, as_attachment=True, download_name=d.filename)
 
 
@@ -323,6 +324,7 @@ def view_document(doc_id: int):
     if not os.path.exists(d.storage_path):
         return "Missing file", 404
     mime = d.mime_type or (mimetypes.guess_type(d.storage_path)[0] or "application/octet-stream")
+    audit_log(current_user.org_id, current_user.id, "DOCUMENT_VIEWED", "Document", d.id)
     return send_file(d.storage_path, as_attachment=False, download_name=d.filename, mimetype=mime)
 
 

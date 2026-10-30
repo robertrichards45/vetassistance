@@ -1,43 +1,23 @@
 {% extends "layout.html" %}
-{% block title %}Intake - {{ BRAND_NAME }}{% endblock %}
+{% block title %}Your information • {{ BRAND_NAME }}{% endblock %}
 {% block content %}
-<div class="row">
-  <div>
-    <h2>Intake</h2>
-    <div class="muted small">{{ client.display_name() }}</div>
-  </div>
-  <div class="row-actions">
-    <a class="btn secondary" href="{{ url_for('portal.dashboard') }}">Back</a>
-  </div>
-</div>
-
-{% if is_guest %}
-<div class="card" style="margin-top:12px;">
-  <div class="muted small">You're doing great. If you'd like us to securely save documents or communicate updates, you can add an email anytime.</div>
-  <div style="margin-top:8px;">
-    <a class="btn btn-outline-primary btn-sm" href="{{ url_for('portal.dashboard') }}">Add Email When Ready</a>
-  </div>
-</div>
-{% endif %}
-
-<div class="card">
-  <form method="post" action="{{ url_for('portalx.intake_save') }}" class="grid">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <div style="grid-column:1/-1;"><label>Full legal name</label><input name="full_legal_name" value="{{ data.full_legal_name or '' }}"></div>
-    <div><label>DOB</label><input name="dob" placeholder="YYYY-MM-DD" value="{{ data.dob or '' }}"></div>
-    <div><label>Branch</label><input name="branch" value="{{ data.branch or '' }}"></div>
-    <div><label>Service dates</label><input name="service_dates" placeholder="YYYY-YYYY" value="{{ data.service_dates or '' }}"></div>
-    <div><label>Phone</label><input name="phone" value="{{ data.phone or '' }}"></div>
-    <div style="grid-column:1/-1;"><label>Mailing address</label><input name="mailing_address1" placeholder="Street address" value="{{ data.mailing_address1 or '' }}"></div>
-    <div style="grid-column:1/-1;"><input name="mailing_address2" placeholder="Apt / Unit (optional)" value="{{ data.mailing_address2 or '' }}"></div>
-    <div><label>City</label><input name="mailing_city" value="{{ data.mailing_city or '' }}"></div>
-    <div><label>State</label><input name="mailing_state" value="{{ data.mailing_state or '' }}"></div>
-    <div><label>ZIP</label><input name="mailing_zip" value="{{ data.mailing_zip or '' }}"></div>
-    <div style="grid-column:1/-1;"><label>SSN (optional)</label><input name="ssn_full" type="password" autocomplete="off" placeholder="Stored encrypted"></div>
-    <div style="grid-column:1/-1;"><label>Issues / conditions / goals</label><textarea name="issues" rows="4">{{ data.issues or '' }}</textarea></div>
-    <div style="grid-column:1/-1;"><label>Deadlines</label><textarea name="deadlines" rows="2">{{ data.deadlines or '' }}</textarea></div>
-    <div style="grid-column:1/-1;"><label>Notes</label><textarea name="notes" rows="4">{{ data.notes or '' }}</textarea></div>
-    <div style="grid-column:1/-1;"><button class="btn" type="submit">Save</button></div>
-  </form>
-</div>
+<div class="ws-head"><div><h1>Your information</h1><p>Your team uses this to fill out VA forms for you. Save as you go; you can come back any time.</p></div></div>
+{% if is_guest %}<div class="callout">Add an email address on your <a href="{{ url_for('portal.dashboard') }}">dashboard</a> so your team can send you updates and keep your documents safe.</div>{% endif %}
+<form method="post" action="{{ url_for('portalx.intake_save') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <section class="ws-card"><div class="ws-card-head"><h2>About you</h2></div><div class="ws-card-body form-grid">
+    <div class="full"><label class="form-label" for="in_full_legal_name">Full legal name</label><input id="in_full_legal_name" class="form-control" name="full_legal_name" type="text" autocomplete="name" value="{{ data.full_legal_name or '' }}"></div><div><label class="form-label" for="in_dob">Date of birth</label><input id="in_dob" class="form-control" name="dob" type="text" placeholder="MM/DD/YYYY" autocomplete="bday" value="{{ data.dob or '' }}"></div><div><label class="form-label" for="in_phone">Phone</label><input id="in_phone" class="form-control" name="phone" type="tel" autocomplete="tel" value="{{ data.phone or '' }}"></div>
+    <div class="full"><label class="form-label" for="in_ssn">Social Security number <span class="muted small">(optional)</span></label><input id="in_ssn" class="form-control" name="ssn_full" type="password" autocomplete="off" inputmode="numeric" placeholder="{{ 'Saved. Leave blank to keep it' if data.ssn_on_file else '9 digits' }}"><p class="muted small" style="margin:6px 0 0;">🔒 Encrypted when saved. Only your team can see it, and only to fill out VA forms.</p></div>
+  </div></section>
+  <section class="ws-card"><div class="ws-card-head"><h2>Your service</h2></div><div class="ws-card-body form-grid">
+    <div><label class="form-label" for="in_branch">Branch</label><input id="in_branch" class="form-control" name="branch" type="text" placeholder="Army, Navy, Marine Corps…" value="{{ data.branch or '' }}"></div><div><label class="form-label" for="in_service_dates">Service dates</label><input id="in_service_dates" class="form-control" name="service_dates" type="text" placeholder="2004 – 2012" value="{{ data.service_dates or '' }}"></div>
+  </div></section>
+  <section class="ws-card"><div class="ws-card-head"><h2>Mailing address</h2></div><div class="ws-card-body form-grid">
+    <div class="full"><label class="form-label" for="in_mailing_address1">Street address</label><input id="in_mailing_address1" class="form-control" name="mailing_address1" type="text" autocomplete="address-line1" value="{{ data.mailing_address1 or '' }}"></div><div class="full"><label class="form-label" for="in_mailing_address2">Apartment or unit</label><input id="in_mailing_address2" class="form-control" name="mailing_address2" type="text" autocomplete="address-line2" value="{{ data.mailing_address2 or '' }}"></div><div><label class="form-label" for="in_mailing_city">City</label><input id="in_mailing_city" class="form-control" name="mailing_city" type="text" autocomplete="address-level2" value="{{ data.mailing_city or '' }}"></div><div><label class="form-label" for="in_mailing_state">State</label><input id="in_mailing_state" class="form-control" name="mailing_state" type="text" autocomplete="address-level1" value="{{ data.mailing_state or '' }}"></div><div><label class="form-label" for="in_mailing_zip">ZIP code</label><input id="in_mailing_zip" class="form-control" name="mailing_zip" type="text" autocomplete="postal-code" inputmode="numeric" value="{{ data.mailing_zip or '' }}"></div>
+  </div></section>
+  <section class="ws-card"><div class="ws-card-head"><h2>What you need help with</h2></div><div class="ws-card-body form-grid">
+    <div class="full"><label class="form-label" for="in_issues">Conditions, problems or goals</label><textarea id="in_issues" class="form-control" name="issues" rows="5" placeholder="For example: back pain since a 2009 vehicle accident, ringing in my ears, want to appeal my PTSD rating">{{ data.issues or '' }}</textarea></div><div class="full"><label class="form-label" for="in_deadlines">Any deadlines?</label><textarea id="in_deadlines" class="form-control" name="deadlines" rows="2" placeholder="For example: VA letter says I have until March 3 to respond">{{ data.deadlines or '' }}</textarea></div><div class="full"><label class="form-label" for="in_notes">Anything else your team should know</label><textarea id="in_notes" class="form-control" name="notes" rows="4">{{ data.notes or '' }}</textarea></div>
+  </div></section>
+  <div class="inline-row" style="margin:6px 0 30px;"><button class="btn btn-primary" type="submit">Save my information</button><a class="btn" href="{{ url_for('portal.dashboard') }}">Back to dashboard</a></div>
+</form>
 {% endblock %}

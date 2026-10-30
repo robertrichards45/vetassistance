@@ -1,34 +1,26 @@
 {% extends "layout.html" %}
-{% block title %}Security • {{ BRAND_NAME }}{% endblock %}
+{% block title %}Security and privacy | {{ BRAND_NAME }}{% endblock %}
 {% block content %}
-<div class="card">
-  <h2>Security & Privacy</h2>
-  <p class="muted">
-    {{ BRAND_NAME }} is built around least-privilege access, secure authentication,
-    and a portal-first workflow to reduce email-based exposure.
-  </p>
-
-  <div class="grid2">
-    <div class="card">
-      <h3>Access Controls</h3>
-      <ul class="bullets">
-        <li>Role-based permissions (Director / Employee / Client)</li>
-        <li>Forced password resets when needed</li>
-        <li>Account disablement for offboarding</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h3>Operational Accountability</h3>
-      <ul class="bullets">
-        <li>Audit trail for sensitive actions</li>
-        <li>Client portal keeps documents in one place</li>
-        <li>Uploads tied to the case record</li>
-      </ul>
-    </div>
-  </div>
-
-  <p class="muted small">
-    Note: Production deployments should use HTTPS, hardened server configuration, and a secure backup strategy.
-  </p>
+<section class="pub-hero">
+  <p class="kicker">Security</p>
+  <h1>Your records are personal. We treat them that way.</h1>
+  <p>Here's how we protect your information, in plain language.</p>
+</section>
+<div class="pub-features" style="margin-bottom:22px;">
+  <div class="pub-feature"><h3>🔒 Sensitive numbers are encrypted</h3><ul><li>Social Security numbers are encrypted before they're saved.</li><li>Only your assigned team can see them, and only to fill out VA forms.</li></ul></div>
+  <div class="pub-feature"><h3>🛡️ Secure connections</h3><ul><li>Every page loads over HTTPS.</li><li>Forms are protected against forged requests, and sign-in is rate-limited.</li></ul></div>
+  <div class="pub-feature"><h3>👤 Only the right people</h3><ul><li>Clients see only their own file. Staff see only what their role allows.</li><li>Passwords are stored as one-way hashes, never as plain text.</li></ul></div>
+  <div class="pub-feature"><h3>📋 A record of every sensitive action</h3><ul><li>Opening, downloading and generating documents is logged.</li><li>Departing staff are switched off right away.</li></ul></div>
 </div>
+<section class="ws-card" style="margin-bottom:40px;">
+  <div class="ws-card-head"><h2>What you can do</h2></div>
+  <div class="ws-card-body">
+    <ul class="steps-list">
+      <li>Upload documents through your portal instead of emailing them.</li>
+      <li>Never send your Social Security number by email or text, to us or anyone.</li>
+      <li>Use a password you don't use anywhere else.</li>
+      <li>Questions or concerns? <a href="/contact">Contact us</a>. Read our <a href="/privacy">privacy policy</a> for what we collect and why.</li>
+    </ul>
+  </div>
+</section>
 {% endblock %}

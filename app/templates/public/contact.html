@@ -1,46 +1,41 @@
 {% extends "base.html" %}
+{% block title %}Contact | {{ COMPANY_NAME }}{% endblock %}
 {% block content %}
-<div class="row g-4 align-items-stretch">
-  <div class="col-lg-6">
-    <div class="card vca-card h-100">
-      <div class="card-body p-4">
-        <h1 class="h3 mb-1">Contact</h1>
-        <div class="text-muted mb-3">We-ll keep it simple and respond with the next best step.</div>
-        <div class="mb-2"><strong>Email:</strong> {{ CONTACT_EMAIL }}</div>
-        <div class="mb-2"><strong>Phone:</strong> {{ CONTACT_PHONE }}</div>
-        {% if COMPANY_WEBSITE %}
-          <div class="mb-2"><strong>Website:</strong> {{ COMPANY_WEBSITE }}</div>
-        {% endif %}
-        <hr>
-        <div class="text-muted">
-          For uploads, use <a href="/client/portal">Veteran Upload</a>. If you-re ready to start, use <a href="/become-client">Become a Client</a>.
-        </div>
-      </div>
+<section class="pub-hero">
+  <p class="kicker">Contact</p>
+  <h1>Talk to a real person.</h1>
+  <p>Questions about a claim, your portal, or where to start? Send a message and a team member will get back to you.</p>
+</section>
+<div class="pub-grid">
+  <section class="ws-card">
+    <div class="ws-card-head"><h2>Send a message</h2></div>
+    <div class="ws-card-body">
+      <form method="post" class="form-grid">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div><label class="form-label" for="cName">Your name</label><input id="cName" class="form-control" name="name" required autocomplete="name"></div>
+        <div><label class="form-label" for="cEmail">Email</label><input id="cEmail" class="form-control" name="email" type="email" required autocomplete="email"></div>
+        <div class="full"><label class="form-label" for="cMsg">How can we help?</label><textarea id="cMsg" class="form-control" name="message" rows="7" required placeholder="Tell us a little about your situation. Please don't include your Social Security number."></textarea></div>
+        <div class="full"><button class="btn btn-primary" type="submit">Send message</button></div>
+      </form>
     </div>
-  </div>
-
-  <div class="col-lg-6">
-    <div class="card vca-card h-100">
-      <div class="card-body p-4">
-        <h2 class="h6 mb-3">Quick message</h2>
-        <form method="post">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <div class="mb-3">
-            <label class="form-label">Your name</label>
-            <input class="form-control" name="name" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Your email</label>
-            <input class="form-control" name="email" type="email" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Message</label>
-            <textarea class="form-control" name="message" rows="6" required></textarea>
-          </div>
-          <button class="btn btn-primary" type="submit">Send</button>
-        </form>
+  </section>
+  <div>
+    <section class="ws-card">
+      <div class="ws-card-head"><h2>Other ways to reach us</h2></div>
+      <div class="ws-card-body">
+        {% if CONTACT_EMAIL %}<div class="pub-contact-line"><span class="ic" aria-hidden="true">✉</span><div><div class="muted small">Email</div><a href="mailto:{{ CONTACT_EMAIL }}">{{ CONTACT_EMAIL }}</a></div></div>{% endif %}
+        {% if CONTACT_PHONE %}<div class="pub-contact-line"><span class="ic" aria-hidden="true">☎</span><div><div class="muted small">Phone</div><a href="tel:{{ CONTACT_PHONE|replace('-', '') }}">{{ CONTACT_PHONE }}</a></div></div>{% endif %}
+        <div class="pub-contact-line"><span class="ic" aria-hidden="true">🔒</span><div><div class="muted small">Already a client?</div><a href="/portal">Message your team in the portal</a></div></div>
       </div>
-    </div>
+    </section>
+    <section class="ws-card">
+      <div class="ws-card-body">
+        <strong>Ready to start?</strong>
+        <p class="muted small" style="margin:6px 0 12px;">Tell us what you need and we'll set up your secure portal.</p>
+        <a class="btn btn-primary" href="/become-client">Become a client</a>
+      </div>
+    </section>
+    <div class="callout"><strong>In crisis?</strong> Call 988 and press 1, or text 838255, to reach the Veterans Crisis Line any time.</div>
   </div>
 </div>
 {% endblock %}
