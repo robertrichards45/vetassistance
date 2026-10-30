@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Backup{% endblock %}
+{% block content %}
+<div class="ws-head"><div><h1>Backup</h1><p>Download a complete copy of the site's data to keep somewhere other than Railway.</p></div></div>
+<div class="ws-grid">
+  <div>
+    <section class="ws-card">
+      <div class="ws-card-head"><h2>Download a full backup</h2></div>
+      <div class="ws-card-body">
+        <p style="margin-top:0;">One .zip file with every database table (clients, notes, letters, messages, claims, users) and every uploaded document. Large sites can take a minute or two.</p>
+        <form method="post" action="{{ url_for('director.backup_download') }}" class="stack-form" style="max-width:420px;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label class="form-label" for="bkPass">Your password</label>
+          <input id="bkPass" class="form-control" type="password" name="password" autocomplete="current-password" required>
+          <button class="btn btn-primary" type="submit">Download backup</button>
+        </form>
+      </div>
+    </section>
+  </div>
+  <div>
+    <div class="callout"><strong>Keep it private.</strong> The file holds veterans' records and documents. Save it to an encrypted drive or a password-protected folder. Never email it. Social Security numbers stay encrypted inside it.</div>
+    <section class="ws-card"><div class="ws-card-body"><strong>How often?</strong><p class="muted small" style="margin:6px 0 0;">Once a month, and before any big change to the site. Delete old copies you no longer need.</p></div></section>
+  </div>
+</div>
+{% endblock %}

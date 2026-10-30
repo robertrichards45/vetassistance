@@ -78,3 +78,18 @@ def test_preview_and_template_render(setup):
     assert html.status_code == 200 and "dd214.pdf" in html.get_data(as_text=True)
     r = tc.post(f"/templates/client/{i['client']}/render", data={"template_id": str(i["template"]), "csrf_token": token}, headers=HTTPS)
     assert r.status_code == 200 and "Status update" in r.get_data(as_text=True)
+
+
+def test_backup_requires_password_and_contains_data(setup):
+    import io, zipfile
+    tc, i, token = setup
+    page = tc.get("/director/backup", headers=HTTPS)
+    assert page.status_code == 200 and "Download backup" in page.get_data(as_text=True)
+    bad = tc.post("/director/backup/download", data={"password": "wrong", "csrf_token": token}, headers=HTTPS)
+    assert bad.status_code == 302
+    good = tc.post("/director/backup/download", data={"password": "Correct-Horse-9", "csrf_token": token}, headers=HTTPS)
+    assert good.status_code == 200 and good.mimetype == "application/zip"
+    z = zipfile.ZipFile(io.BytesIO(good.data))
+    names = z.namelist()
+    assert "README.txt" in names and "database/clients.jsonl" in names
+    assert b"Pat" in z.read("database/clients.jsonl")

@@ -727,3 +727,33 @@ def onboarding_items_delete(item_id: int):
     db.commit()
     flash("Onboarding item deleted.", "success")
     return redirect(url_for("director.onboarding_items"))
+
+
+@director_bp.get("/backup")
+@login_required
+@require_roles(Role.DIRECTOR)
+def backup_page():
+    return render_template("director/backup.html")
+
+
+@director_bp.post("/backup/download")
+@login_required
+@require_roles(Role.DIRECTOR)
+def backup_download():
+    """Full backup for the owner to keep off Railway. Re-enter password; every download is audit-logged."""
+    from flask import send_file
+    from app.services.backup_export import build
+    db = SessionLocal()
+    me = db.get(User, current_user.id)
+    if not me or not me.check_password(request.form.get("password") or ""):
+        flash("That password isn't right. The backup was not created.", "error")
+        return redirect(url_for("director.backup_page"))
+    dirs = [current_app.config.get("UPLOAD_FOLDER"), current_app.config.get("STORAGE_ROOT")]
+    path, summary = build(dirs)
+    audit_log(current_user.org_id, current_user.id, "BACKUP_DOWNLOADED", "Organization", current_user.org_id,
+              detail=f"tables={summary['tables']} rows={summary['rows']} files={summary['files']}")
+    resp = send_file(path, as_attachment=True, mimetype="application/zip",
+                     download_name=f"vetassistance-backup-{datetime.utcnow():%Y-%m-%d}.zip")
+    resp.call_on_close(lambda: os.path.exists(path) and os.remove(path))
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
