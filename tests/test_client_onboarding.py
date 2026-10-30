@@ -107,6 +107,16 @@ def test_staff_portal_invite_login_reset_upload_and_notification(app, monkeypatc
     assert portal.get(f"/portal/documents/{own_doc_id}/download", headers=H).status_code == 200
     html = director.get(f"/clients/{cid}", headers=H).get_data(as_text=True)
     assert "/resend-portal-invite" in html
+    t = csrf(director, f"/clients/{cid}")
+    r = director.post(f"/clients/{cid}/resend-portal-invite", data={"csrf_token": t}, headers=H)
+    assert r.status_code in (302, 303)
+    db = SessionLocal()
+    try:
+        u = db.query(User).filter_by(email="portal-onboard@demo.test").first()
+        assert u.check_password("Onboard-Strong-Pass-2026"), "Resend must not change existing password"
+    finally:
+        db.close()
+    assert any("set a new portal password" in txt for to, _, txt in sent if to == "portal-onboard@demo.test")
 
 
 def test_director_one_time_client_invite_can_be_accepted(app, monkeypatch):
