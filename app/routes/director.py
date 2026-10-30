@@ -101,7 +101,8 @@ def users():
     for u in logins:
         c = clients_by_user.get(u.id)
         engaged = bool(c and c.id in active_clients)
-        spam = (not u.last_login_at or u.last_login_at == u.created_at) and not engaged and (
+        one_visit = not u.last_login_at or not u.created_at or abs((u.last_login_at - u.created_at).total_seconds()) < 86400
+        spam = one_visit and not engaged and (
             gibberish_name(u.full_name or "") or gibberish_name((u.email or "").split("@")[0]))
         info[u.id] = {"client": c, "engaged": engaged, "spam": spam}
     open_by_rep = {}
