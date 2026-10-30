@@ -1,21 +1,19 @@
 {% extends "layout.html" %}
-{% block title %}For Professionals • {{ BRAND_NAME }}{% endblock %}
+{% block title %}For claims professionals | {{ BRAND_NAME }}{% endblock %}
 {% block content %}
-<div class="card">
-  <h2>For Claims Professionals</h2>
-  <p class="muted">
-    {{ BRAND_NAME }} operates on a proprietary case management ecosystem focused on evidence discipline and operational control.
-    We selectively explore access for professionals who meet our standards.
-  </p>
-  <div class="card" style="margin-top:12px;">
-    <h3>What “professional access” means</h3>
-    <ul class="bullets">
-      <li>Client portal + secure messaging</li>
-      <li>Staff workflows + assigned reps</li>
-      <li>Templates, letters, audit trail</li>
-      <li>Claims intelligence layer hooks (evidence analysis + next steps)</li>
-    </ul>
-    <p class="muted small">Contact: {{ BRAND_EMAIL }}</p>
-  </div>
+<section class="pub-hero">
+  <p class="kicker">For professionals</p>
+  <h1>Case management built for VA claims work.</h1>
+  <p>Accredited agents, attorneys and service officers: the same workspace our team uses is available to organizations that want it.</p>
+</section>
+<div class="pub-features" style="margin-bottom:22px;">
+  <div class="pub-feature"><h3>Client portal and messaging</h3><ul><li>Secure uploads, status updates and two-way messages</li><li>Agreements signed online</li></ul></div>
+  <div class="pub-feature"><h3>Evidence and forms</h3><ul><li>Document reading, evidence checklists and rating schedule lookups</li><li>21-526EZ and 21-4138 drafts for your review</li></ul></div>
+  <div class="pub-feature"><h3>Team workflow</h3><ul><li>Assigned representatives, tasks and case notes</li><li>Letters and templates filled in from the client file</li></ul></div>
+  <div class="pub-feature"><h3>Accountability</h3><ul><li>Role-based access and an audit trail</li><li>Encrypted Social Security numbers</li></ul></div>
 </div>
+<section class="ws-card" style="margin-bottom:40px;"><div class="ws-card-body inline-row" style="justify-content:space-between;">
+  <div><strong>Interested?</strong><div class="muted small">Tell us about your organization and how many people would use it.</div></div>
+  <a class="btn btn-primary" href="/contact">Contact us</a>
+</div></section>
 {% endblock %}

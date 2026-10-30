@@ -1,11 +1,74 @@
 {% extends "layout.html" %}
-{% block title %}Privacy • {{ BRAND_NAME }}{% endblock %}
+{% block title %}Privacy policy | {{ BRAND_NAME }}{% endblock %}
 {% block content %}
-<div class="card">
-  <h2>Privacy</h2>
-  <p class="muted">
-    This platform is designed to keep client documents and communications inside a secure portal experience.
-    Access is limited by role and logged for operational accountability.
-  </p>
+<section class="pub-hero">
+  <p class="kicker">Privacy policy</p>
+  <h1>What we collect, why, and who sees it.</h1>
+  <p>Effective October 30, 2026. Plain language, no fine print.</p>
+</section>
+<div class="pub-grid">
+  <article class="ws-card"><div class="ws-card-body prose privacy-body">
+    <h2>What we collect</h2>
+    <ul>
+      <li><strong>Contact details</strong> you give us: name, email, phone and mailing address.</li>
+      <li><strong>Service and claim details</strong>: branch, service dates, date of birth, conditions, VA decisions and deadlines.</li>
+      <li><strong>Social Security number</strong>, only if you choose to give it, so your team can fill out VA forms. It is encrypted before it's saved.</li>
+      <li><strong>Documents</strong> you upload, such as your DD-214, medical records and VA letters.</li>
+      <li><strong>Messages</strong> between you and your team.</li>
+      <li><strong>Basic website statistics</strong>: which pages are visited and roughly where visitors come from. We store a scrambled (hashed) version of your IP address, not the address itself.</li>
+    </ul>
+
+    <h2>Why we use it</h2>
+    <p>Only to help you prepare and organize your VA claim: reviewing evidence, filling out forms, writing statements and keeping you updated. We also use website statistics to improve the site.</p>
+    <p><strong>We do not sell your information</strong> and we do not use it for advertising.</p>
+
+    <h2>Who can see it</h2>
+    <ul>
+      <li>You, through your portal.</li>
+      <li>Team members working on your file. Access is limited by role and logged.</li>
+      <li>Service providers we rely on to run the site, only as needed for that service:
+        <ul>
+          <li>Railway (secure hosting and storage)</li>
+          <li>OpenAI (AI tools that read documents and draft text for your team to review; your files are sent for processing only when your team uses these tools)</li>
+          <li>Resend (sending emails such as sign-in links and notifications)</li>
+          <li>Stripe (payments, if you buy a paid self-service plan; we never see your full card number)</li>
+        </ul>
+      </li>
+      <li>VA or others <em>only</em> when you ask us to send something on your behalf, or when the law requires it.</li>
+    </ul>
+
+    <h2>How long we keep it</h2>
+    <p>We keep your file while you're working with us and for a reasonable time afterward in case you need it again. You can ask us to delete your information at any time, and we will unless the law requires us to keep it.</p>
+
+    <h2>Cookies</h2>
+    <p>We use cookies only to keep you signed in and to protect forms from forgery. No advertising or tracking cookies.</p>
+
+    <h2>Your choices</h2>
+    <ul>
+      <li>See and update your information in your portal.</li>
+      <li>Ask for a copy of your file, or ask us to delete it.</li>
+      <li>Skip optional fields, including your Social Security number. You can write it on forms yourself.</li>
+    </ul>
+
+    <h2>Children</h2>
+    <p>This site is for veterans, service members and their adult family members. It is not meant for anyone under 18.</p>
+
+    <h2>Changes</h2>
+    <p>If we change this policy, we'll update the date at the top. If a change affects how we use information we already have, we'll tell clients in the portal.</p>
+  </div></article>
+  <div>
+    <section class="ws-card"><div class="ws-card-body">
+      <strong>Questions or requests</strong>
+      <p class="muted small" style="margin:6px 0 12px;">To get a copy of your file, correct something or delete your information:</p>
+      {% if CONTACT_EMAIL %}<p style="margin:0 0 6px;"><a href="mailto:{{ CONTACT_EMAIL }}">{{ CONTACT_EMAIL }}</a></p>{% endif %}
+      <a class="btn" href="/contact">Contact us</a>
+    </div></section>
+    <section class="ws-card"><div class="ws-card-body">
+      <strong>How we protect it</strong>
+      <p class="muted small" style="margin:6px 0 12px;">Encryption, role-based access and activity logs.</p>
+      <a class="btn" href="/security">Read about security</a>
+    </div></section>
+    <p class="muted small">{{ BRAND_NAME }} is a private organization. We are not part of, or endorsed by, the U.S. Department of Veterans Affairs.</p>
+  </div>
 </div>
 {% endblock %}

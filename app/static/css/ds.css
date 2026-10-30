@@ -993,3 +993,4 @@ form[hidden]{display:none !important;}
 .pub-feature h3{margin:0 0 8px;font-size:17px}
 .pub-feature ul{margin:0;padding-left:18px;line-height:1.6;color:var(--slate,#475569)}
 @media(max-width:860px){.pub-grid,.pub-features{grid-template-columns:1fr}.pub-hero{padding:30px 22px;border-radius:14px}}
+.privacy-body h2{font-size:20px;margin:26px 0 10px}.privacy-body h2:first-child{margin-top:0}.privacy-body ul{padding-left:20px;line-height:1.65}.privacy-body ul ul{margin-top:6px}
