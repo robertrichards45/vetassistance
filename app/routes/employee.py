@@ -455,9 +455,7 @@ def hub_claim_review_post():
 @login_required
 @require_roles(Role.DIRECTOR, Role.EMPLOYEE)
 def hub_ratings():
-    base_dir = current_app.root_path + "/.."
-    data = load_va_ratings_chart(base_dir)
-    return render_template("employee/ratings_tools.html", **data)
+    return redirect(url_for("cfr.ratings_chart"))
 
 
 @employee_bp.post("/hub/ratings/justification")

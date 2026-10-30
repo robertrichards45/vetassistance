@@ -112,7 +112,17 @@ def load_va_ratings_chart(base_dir: str) -> Dict[str, Any]:
 def find_condition_by_dc(base_dir: str, diagnostic_code: str) -> Optional[Dict[str, Any]]:
     """Looks up a single condition's raw entry (condition, diagnostic_code,
     cfr_section, criteria, source_url) from cfr_data/va_ratings_chart.json by
-    diagnostic code."""
+    diagnostic code. Prefers rating_explorer.json (rebuilt from the official text)."""
+    for name in ("rating_explorer.json", "va_ratings_chart.json"):
+        data_path = os.path.join(base_dir, "cfr_data", name)
+        if not os.path.exists(data_path):
+            continue
+        with open(data_path, "r", encoding="utf-8") as f:
+            payload = json.load(f)
+        for c in payload.get("conditions", []):
+            if str(c.get("diagnostic_code") or "") == str(diagnostic_code or ""):
+                return c
+    return None
     data_path = os.path.join(base_dir, "cfr_data", "va_ratings_chart.json")
     if not os.path.exists(data_path):
         return None

@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+{% block title %}Rating schedule | {{ COMPANY_NAME }}{% endblock %}
+{% block content %}
+<div class="rx-head">
+  <div>
+    <h1>Rating schedule</h1>
+    <p>{{ meta.count or 0 }} diagnostic codes from 38 CFR Part 4{% if meta.effective_date %}, current as of {{ meta.effective_date }}{% endif %}. <a href="{{ meta.source_part_url or 'https://www.ecfr.gov/current/title-38/chapter-I/part-4' }}" target="_blank" rel="noopener">Official text on eCFR</a></p>
+  </div>
+  <div class="rx-search">
+    <svg aria-hidden="true"><use href="#i-search"/></svg>
+    <label class="sr-only" for="rxQ">Search the rating schedule</label>
+    <input id="rxQ" type="search" autocomplete="off" placeholder="Search a condition, diagnostic code, or symptom (e.g. knee, 5260, CPAP)">
+    <kbd>/</kbd>
+  </div>
+</div>
+
+<div class="rx" id="rx">
+  <aside class="rx-list" aria-label="Conditions">
+    <div class="rx-filters">
+      <label class="sr-only" for="rxSys">Body system</label>
+      <select id="rxSys" class="form-control"><option value="">All body systems</option></select>
+      <label class="sr-only" for="rxMax">Highest rating</label>
+      <select id="rxMax" class="form-control"><option value="">Any max rating</option><option value="100">Can reach 100%</option><option value="70">70% or more</option><option value="50">50% or more</option><option value="30">30% or more</option></select>
+    </div>
+    <div class="rx-count" id="rxCount" aria-live="polite">Loading the rating schedule…</div>
+    <ul class="rx-results" id="rxResults" role="listbox" tabindex="0"></ul>
+  </aside>
+
+  <section class="rx-detail ws-card" id="rxDetail" aria-live="polite">
+    <div class="rx-empty">
+      <strong>Pick a condition</strong>
+      <p>Search above or choose from the list. Each level has an <em>Add</em> button that puts it on your worksheet.</p>
+      <div class="chip-row" style="justify-content:center" id="rxPopular"></div>
+    </div>
+  </section>
+
+  <aside class="rx-sheet ws-card" aria-labelledby="wsH">
+    <div class="ws-card-head"><h2 id="wsH">Worksheet</h2><button class="btn btn-sm" type="button" id="wsClear">Clear</button></div>
+    <div class="rx-total">
+      <div><span>Combined rating</span><strong id="wsFinal">0%</strong></div>
+      <div class="muted small" id="wsExact">Add conditions to calculate.</div>
+    </div>
+    <ul class="ws-list rx-rows" id="wsRows"></ul>
+    <form class="rx-manual" id="wsManual">
+      <label class="sr-only" for="wsManualPct">Add a rating by percent</label>
+      <select id="wsManualPct" class="form-control">{% for p in [10,20,30,40,50,60,70,80,90,100] %}<option value="{{ p }}">{{ p }}%</option>{% endfor %}</select>
+      <button class="btn btn-sm" type="submit">Add a rating</button>
+    </form>
+    <details class="acc" id="wsHow"><summary>How this is calculated</summary><div><ol class="rx-steps" id="wsSteps"></ol>
+      <p class="muted small">Uses the combined ratings method in 38 CFR 4.25 and the bilateral factor in 4.26. This is an estimate; the VA's decision controls.</p></div></details>
+    {% if is_staff %}
+    <div class="sec rx-client">
+      <label class="form-label" for="wsClient">Client</label>
+      <select id="wsClient" class="form-control"><option value="">Choose a client</option>{% for c in clients %}<option value="{{ c.id }}"{% if selected_client == c.id|string %} selected{% endif %}>{{ c.display_name() }}</option>{% endfor %}</select>
+      <div class="rx-client-actions"><button class="btn btn-sm" type="button" id="wsLoad">Load saved</button><button class="btn btn-sm btn-primary" type="button" id="wsSave">Save to client</button></div>
+      <div class="muted small" id="wsSaveMsg" aria-live="polite"></div>
+    </div>
+    {% endif %}
+    <div class="sec">
+      <button class="btn btn-sm" type="button" id="wsJustify" style="width:100%">Draft a rating justification{% if not ai_ok %} (AI not set up){% endif %}</button>
+      <div id="wsJustBox" hidden>
+        <label class="form-label" for="wsNotes" style="margin-top:10px">Facts to include (optional)</label>
+        <textarea id="wsNotes" class="form-control" rows="2" placeholder="e.g. flexion to 40 degrees on 9/2026 exam, uses a brace"></textarea>
+        <button class="btn btn-sm btn-primary" type="button" id="wsJustGo" style="margin-top:8px">Write it</button>
+        <div class="muted small" id="wsJustMsg" aria-live="polite"></div>
+        <textarea id="wsJustOut" class="form-control" rows="8" hidden style="margin-top:8px"></textarea>
+        <button class="btn btn-sm" type="button" id="wsJustCopy" hidden style="margin-top:6px">Copy</button>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<script>
+(function(){
+  var DATA_URL = "{{ url_for('cfr.explorer_data') }}?v={{ meta.version or 0 }}";
+  var JUSTIFY_URL = "{{ url_for('cfr.justification') }}";
+  var IS_STAFF = {{ 'true' if is_staff else 'false' }};
+  var ASK_URL = "{{ safe_url_for('assistant.index') }}";
+  var SAVE_URL = "{{ url_for('cfr.save_worksheet', client_id=0) }}".replace(/0$/, '');
+  var CSRF = (document.querySelector('meta[name="csrf-token"]')||{}).content || '';
+  var POPULAR = ['6260','9411','8100','5237','6847','5260','5257','8520','7101','7206','5269','6100'];
+  var BILATERAL_SYSTEMS = {'Musculoskeletal':1,'Neurological':1,'Muscle injuries':1};
+
+  var conditions = [], byDc = {}, formulas = {}, current = null;
+  var $ = function(id){ return document.getElementById(id); };
+  var q=$('rxQ'), sys=$('rxSys'), mx=$('rxMax'), list=$('rxResults'), count=$('rxCount'), detail=$('rxDetail');
+
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function maxPct(c){ var m=-1; (c.criteria||[]).forEach(function(r){ if(r.percent>m) m=r.percent; }); return m; }
+  function norm(s){ return (s||'').toLowerCase().replace(/[^a-z0-9 ]+/g,' '); }
+
+  fetch(DATA_URL,{credentials:'same-origin'}).then(function(r){ return r.json(); }).then(function(d){
+    conditions = (d.conditions||[]).map(function(c){ c._max=maxPct(c); c._hay=norm(c.condition+' '+c.diagnostic_code+' '+(c.instruction||'')+' '+(c.criteria||[]).map(function(r){return r.text;}).join(' ')); c._name=norm(c.condition); return c; });
+    conditions.forEach(function(c){ byDc[c.diagnostic_code]=c; });
+    (d.formulas||[]).forEach(function(f){ formulas[f.name]=f; });
+    var systems = {}; conditions.forEach(function(c){ systems[c.system]=(systems[c.system]||0)+1; });
+    Object.keys(systems).sort().forEach(function(s){ var o=document.createElement('option'); o.value=s; o.textContent=s+' ('+systems[s]+')'; sys.appendChild(o); });
+    $('rxPopular').innerHTML = POPULAR.filter(function(dc){return byDc[dc];}).map(function(dc){ return '<button type="button" class="chip" data-dc="'+dc+'">'+esc(byDc[dc].condition.split(/[,(]/)[0])+'</button>'; }).join('');
+    render();
+    var m = location.hash.match(/dc-(\d{4})/); if(m && byDc[m[1]]) show(m[1]);
+    renderSheet();
+  }).catch(function(){ count.textContent='The rating schedule could not be loaded. Refresh to try again.'; });
+
+  var ALIASES = {
+    'ptsd':'posttraumatic stress disorder','gerd':'gastroesophageal reflux','ivds':'intervertebral disc syndrome','tbi':'traumatic brain injury',
+    'copd':'chronic obstructive pulmonary','mdd':'major depressive disorder','depression':'depressive','ibs':'irritable','ed':'erectile',
+    'gad':'generalized anxiety','anxiety':'anxiety','bipolar':'bipolar','high blood pressure':'hypertensive','blood pressure':'hypertensive',
+    'hbp':'hypertensive','hypertension':'hypertensive','sleep apnea':'sleep apnea','osa':'sleep apnea','cpap':'sleep apnea',
+    'back':'lumbosacral thoracolumbar spine','lower back':'lumbosacral thoracolumbar spine','neck':'cervical','radiculopathy':'paralysis of the sciatic',
+    'sciatica':'sciatic','flat feet':'flatfoot','flat foot':'flatfoot','hearing':'hearing loss','ringing':'tinnitus','headaches':'migraine',
+    'headache':'migraine','acid reflux':'gastroesophageal reflux','heartburn':'gastroesophageal reflux','diabetes':'diabetes mellitus',
+    'shoulder':'shoulder arm','tmj':'temporomandibular','plantar':'plantar fasciitis','carpal tunnel':'median nerve','ankle':'ankle',
+    'knee':'knee leg','hip':'hip thigh','scars':'scars','eczema':'dermatitis eczema','asthma':'asthma','sinus':'sinusitis','kidney':'kidney renal'
+  };
+  function expand(raw){
+    var r=raw.trim().toLowerCase();
+    if(ALIASES[r]) return norm(ALIASES[r]);
+    return norm(r).split(' ').map(function(t){ return ALIASES[t] ? ALIASES[t] : t; }).join(' ');
+  }
+  function has(hay, t){ return hay.indexOf(t)>=0 || (t.length>4 && /s$/.test(t) && hay.indexOf(t.slice(0,-1))>=0); }
+  function score(c, terms, raw){
+    if(!terms.length) return 1;
+    if(c.diagnostic_code===raw) return 1000;
+    var s=0;
+    var alias = !!ALIASES[raw] || terms.some(function(t){ return ALIASES[t]; });
+    var expanded = expand(raw).split(' ').filter(Boolean);
+    var hits=0;
+    for(var i=0;i<expanded.length;i++){ var t=expanded[i];
+      if(c._name.indexOf(t)===0) { s+=60; hits++; } else if(c._name.indexOf(' '+t)>=0) { s+=40; hits++; } else if(has(c._name,t)) { s+=25; hits++; }
+      else if(has(c._hay,t)) { s+=6; hits++; } else if(!alias) return 0; }
+    return hits ? s : 0;
+  }
+  var active = -1, shown = [];
+  function render(){
+    var raw=q.value.trim().toLowerCase(), terms=norm(raw).split(' ').filter(Boolean), s=sys.value, m=parseInt(mx.value||'0',10);
+    shown = conditions.map(function(c){ return [score(c,terms,raw),c]; })
+      .filter(function(x){ return x[0]>0 && (!s||x[1].system===s) && (!m||x[1]._max>=m); })
+      .sort(function(a,b){ return b[0]-a[0] || a[1].diagnostic_code.localeCompare(b[1].diagnostic_code); })
+      .map(function(x){ return x[1]; });
+    count.textContent = shown.length + (shown.length===1?' condition':' conditions');
+    list.innerHTML = shown.slice(0,250).map(function(c,i){
+      return '<li role="option" data-dc="'+c.diagnostic_code+'" class="'+(current&&current.diagnostic_code===c.diagnostic_code?'on':'')+'"><span class="dc">'+c.diagnostic_code+'</span><span class="nm">'+esc(c.condition)+'<small>'+esc(c.system)+'</small></span>'+(c._max>=0?'<span class="mx">'+c._max+'%</span>':'')+'</li>';
+    }).join('') + (shown.length>250?'<li class="more">Showing 250 of '+shown.length+'. Narrow the search to see the rest.</li>':'');
+    active=-1;
+  }
+  [q,sys,mx].forEach(function(el){ el.addEventListener(el===q?'input':'change', render); });
+  list.addEventListener('click', function(e){ var li=e.target.closest('li[data-dc]'); if(li) show(li.dataset.dc); });
+  detail.addEventListener('click', function(e){ var b=e.target.closest('[data-dc]'); if(b && b.classList.contains('chip')) show(b.dataset.dc); });
+  q.addEventListener('keydown', function(e){
+    var items=list.querySelectorAll('li[data-dc]'); if(!items.length) return;
+    if(e.key==='ArrowDown'){ e.preventDefault(); active=Math.min(active+1,items.length-1); }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); active=Math.max(active-1,0); }
+    else if(e.key==='Enter'){ e.preventDefault(); show(items[Math.max(active,0)].dataset.dc); return; }
+    else return;
+    items.forEach(function(li,i){ li.classList.toggle('kb',i===active); }); items[active].scrollIntoView({block:'nearest'});
+  });
+  document.addEventListener('keydown', function(e){ if(e.key==='/' && !/input|textarea|select/i.test((document.activeElement||{}).tagName||'')){ e.preventDefault(); q.focus(); q.select(); } });
+
+  function ladder(rows, name){
+    return '<ol class="rx-ladder">'+rows.map(function(r){
+      return '<li><span class="pct">'+r.percent+'%</span><span class="txt">'+esc(r.text)+'</span><button class="btn btn-sm rx-add" type="button" data-pct="'+r.percent+'" data-label="'+esc(name)+'" aria-label="Add '+r.percent+' percent to worksheet">Add</button></li>';
+    }).join('')+'</ol>';
+  }
+  function show(dc){
+    var c=byDc[dc]; if(!c) return; current=c;
+    history.replaceState(null,'','#dc-'+dc);
+    list.querySelectorAll('li[data-dc]').forEach(function(li){ li.classList.toggle('on', li.dataset.dc===dc); });
+    var h='<div class="rx-title"><div><span class="badge-dot badge-muted">DC '+c.diagnostic_code+'</span> <span class="muted small">'+esc(c.system)+' &middot; 38 CFR '+esc(c.cfr_section)+'</span><h2>'+esc(c.condition)+'</h2></div>'+
+      '<div class="rx-actions"><a class="btn btn-sm" href="'+esc(c.source_url)+'" target="_blank" rel="noopener">Official text</a><button class="btn btn-sm" type="button" id="rxCopy">Copy criteria</button>'+
+      (IS_STAFF && ASK_URL!=='#' ? '<a class="btn btn-sm" href="'+ASK_URL+'?q='+encodeURIComponent('What evidence supports a higher rating for '+c.condition+' (DC '+c.diagnostic_code+')? What should a C&P exam document?')+'">Ask AI</a>' : '')+
+      '<button class="btn btn-sm btn-mobile-back" type="button" id="rxBack">Back to list</button></div></div>';
+    if(c.instruction) h+='<div class="callout" style="margin:0 0 14px"><strong>How it\'s rated</strong>'+esc(c.instruction)+(c.see_also&&byDc[c.see_also]?' <button type="button" class="chip" data-dc="'+c.see_also+'">Open DC '+c.see_also+'</button>':'')+'</div>';
+    if((c.criteria||[]).length) h+='<h3 class="rx-sub">Rating levels</h3>'+ladder(c.criteria, c.condition+' (DC '+c.diagnostic_code+')');
+    (c.formula_names||[]).forEach(function(fn){ var f=formulas[fn]; if(!f) return;
+      h+='<h3 class="rx-sub">'+esc(f.name)+'</h3>'+ladder(f.criteria||[], c.condition+' (DC '+c.diagnostic_code+')');
+      if((f.notes||[]).length) h+='<details class="acc rx-notes"><summary>Formula notes ('+f.notes.length+')</summary><div><ul>'+f.notes.map(function(n){return '<li>'+esc(n)+'</li>';}).join('')+'</ul></div></details>';
+    });
+    if(!(c.criteria||[]).length && !(c.formula_names||[]).length && !c.instruction) h+='<div class="callout warn"><strong>See the official text</strong>This code is rated by reference to another condition or a table. Open the official text for the exact instructions.</div>';
+    if((c.notes||[]).length) h+='<details class="acc rx-notes" open><summary>Notes ('+c.notes.length+')</summary><div><ul>'+c.notes.map(function(n){return '<li>'+esc(n)+'</li>';}).join('')+'</ul></div></details>';
+    detail.innerHTML=h; detail.classList.add('has'); document.getElementById('rx').classList.add('detail-open');
+    detail.scrollTop=0; if(window.innerWidth<900) detail.scrollIntoView({behavior:'smooth',block:'start'});
+    $('rxCopy').onclick=function(){
+      var lines=[c.condition+' (DC '+c.diagnostic_code+', 38 CFR '+c.cfr_section+')'].concat((c.criteria||[]).map(function(r){ return r.percent+'%: '+r.text; }));
+      navigator.clipboard && navigator.clipboard.writeText(lines.join('\n')).then(function(){ $('rxCopy').textContent='Copied'; setTimeout(function(){ $('rxCopy').textContent='Copy criteria'; },1500); });
+    };
+    $('rxBack').onclick=function(){ document.getElementById('rx').classList.remove('detail-open'); q.focus(); };
+  }
+  detail.addEventListener('click', function(e){ var b=e.target.closest('.rx-add'); if(!b) return;
+    addRow({dc:current?current.diagnostic_code:'', name:b.dataset.label, percent:parseInt(b.dataset.pct,10), bilateral:false, system:current?current.system:''});
+    b.textContent='Added'; setTimeout(function(){ b.textContent='Add'; },1200);
+  });
+
+  /* ---------- Worksheet (38 CFR 4.25 / 4.26) ---------- */
+  var KEY='vba.ratingWorksheet.v1', rows=[];
+  try{ rows=JSON.parse(localStorage.getItem(KEY)||'[]')||[]; }catch(e){ rows=[]; }
+  function persist(){ try{ localStorage.setItem(KEY, JSON.stringify(rows)); }catch(e){} }
+  function addRow(r){ rows.push(r); persist(); renderSheet(); }
+  function combineList(vals, steps, label){
+    var sorted=vals.slice().sort(function(a,b){return b-a;}), total=0;
+    sorted.forEach(function(v,i){ if(i===0){ total=v; steps.push((label?label+': ':'')+'start with '+v+'%'); return; }
+      var exact = total + (100-total)*v/100, next=Math.round(exact);
+      steps.push(total+'% combined with '+v+'% = '+next+'%  (the remaining '+(100-total)+'% × '+v+'% adds '+(exact-total).toFixed(1)+')'); total=next; });
+    return total;
+  }
+  function calc(){
+    var steps=[], bil=rows.filter(function(r){return r.bilateral && r.percent>0;}).map(function(r){return r.percent;}),
+        other=rows.filter(function(r){return !r.bilateral && r.percent>0;}).map(function(r){return r.percent;});
+    var vals=other.slice();
+    if(bil.length>=2){
+      var b=combineList(bil, steps, 'Bilateral group'), withFactor=Math.round(b*1.1);
+      steps.push('Bilateral factor: '+b+'% + 10% of '+b+' = '+withFactor+'% (38 CFR 4.26)');
+      vals.push(withFactor);
+    } else vals=vals.concat(bil);
+    if(!vals.length) return {final:0, exact:0, steps:[]};
+    var exact=combineList(vals, steps, vals.length>1?'All conditions':'');
+    var final=Math.min(100, Math.floor((exact+5)/10)*10);
+    steps.push('Round '+exact+'% to the nearest 10: '+final+'%');
+    return {final:final, exact:exact, steps:steps};
+  }
+  function renderSheet(){
+    var ul=$('wsRows');
+    ul.innerHTML = rows.length ? rows.map(function(r,i){
+      var opts=[0,10,20,30,40,50,60,70,80,90,100].map(function(p){ return '<option value="'+p+'"'+(p===r.percent?' selected':'')+'>'+p+'%</option>'; }).join('');
+      return '<li><div class="main"><strong>'+esc(r.name||'Rating')+'</strong>'+
+        '<label class="rx-bil"><input type="checkbox" data-i="'+i+'" class="ws-bil"'+(r.bilateral?' checked':'')+'> Both sides (arms or legs)</label></div>'+
+        '<select class="form-control ws-pct" data-i="'+i+'" aria-label="Percent">'+opts+'</select>'+
+        '<button class="rx-x ws-del" type="button" data-i="'+i+'" aria-label="Remove">&times;</button></li>';
+    }).join('') : '<li class="ws-none"><div class="main muted">No conditions yet. Use <strong>Add</strong> on any rating level.</div></li>';
+    var r=calc();
+    $('wsFinal').textContent=r.final+'%';
+    $('wsExact').textContent = rows.length ? ('Combined value '+r.exact+'%, rounded to '+r.final+'%') : 'Add conditions to calculate.';
+    $('wsSteps').innerHTML = r.steps.map(function(s){ return '<li>'+esc(s)+'</li>'; }).join('') || '<li>Nothing to calculate yet.</li>';
+  }
+  $('wsRows').addEventListener('change', function(e){ var i=+e.target.dataset.i;
+    if(e.target.classList.contains('ws-pct')) rows[i].percent=parseInt(e.target.value,10);
+    if(e.target.classList.contains('ws-bil')) rows[i].bilateral=e.target.checked;
+    persist(); renderSheet(); });
+  $('wsRows').addEventListener('click', function(e){ var b=e.target.closest('.ws-del'); if(!b) return; rows.splice(+b.dataset.i,1); persist(); renderSheet(); });
+  $('wsClear').onclick=function(){ if(!rows.length||confirm('Clear the worksheet?')){ rows=[]; persist(); renderSheet(); } };
+  $('wsManual').addEventListener('submit', function(e){ e.preventDefault(); addRow({dc:'',name:'Other rating',percent:parseInt($('wsManualPct').value,10),bilateral:false}); });
+
+  if(IS_STAFF){
+    var cs=$('wsClient'), msg=$('wsSaveMsg');
+    $('wsSave').onclick=function(){ if(!cs.value){ msg.textContent='Choose a client first.'; return; }
+      fetch(SAVE_URL+cs.value,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRFToken':CSRF},body:JSON.stringify({rows:rows,combined:calc().final})})
+        .then(function(r){ return r.json(); }).then(function(d){ msg.textContent = d.ok ? 'Saved to '+cs.options[cs.selectedIndex].text+'.' : 'Could not save.'; })
+        .catch(function(){ msg.textContent='Could not save. Check your connection.'; }); };
+    $('wsLoad').onclick=function(){ if(!cs.value){ msg.textContent='Choose a client first.'; return; }
+      fetch(SAVE_URL+cs.value,{credentials:'same-origin'}).then(function(r){ return r.json(); }).then(function(d){
+        if(!(d.rows||[]).length){ msg.textContent='No saved worksheet for this client yet.'; return; }
+        rows=d.rows.map(function(r){ return {dc:r.dc,name:r.name,percent:r.percent,bilateral:!!r.bilateral}; }); persist(); renderSheet(); msg.textContent='Loaded '+rows.length+' conditions.'; }); };
+    if(cs.value) $('wsLoad').click();
+  }
+
+  $('wsJustify').onclick=function(){ $('wsJustBox').hidden=!$('wsJustBox').hidden; };
+  $('wsJustGo').onclick=function(){
+    var sel=rows.filter(function(r){return r.dc;}).map(function(r){ return {diagnostic_code:r.dc, percentage:r.percent}; });
+    var m=$('wsJustMsg'), out=$('wsJustOut');
+    if(!sel.length){ m.textContent='Add at least one condition from the schedule first.'; return; }
+    m.textContent='Writing the justification from the official text…';
+    fetch(JUSTIFY_URL,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRFToken':CSRF},body:JSON.stringify({selections:sel,notes:$('wsNotes').value})})
+      .then(function(r){ return r.json(); }).then(function(d){ if(d.error){ m.textContent=d.error; return; } m.textContent=''; out.hidden=false; $('wsJustCopy').hidden=false; out.value=d.justification||''; })
+      .catch(function(){ m.textContent='The request failed. Try again.'; });
+  };
+  $('wsJustCopy').onclick=function(){ navigator.clipboard && navigator.clipboard.writeText($('wsJustOut').value); this.textContent='Copied'; };
+})();
+</script>
+{% endblock %}

@@ -119,6 +119,7 @@ def index():
     clients = sorted(q.all(), key=lambda c: (c.last_name or "", c.first_name or ""))
     return render_template("assistant/index.html", history=_history(me), clients=clients,
                            selected_client=request.args.get("client_id", ""),
+                           prefill=(request.args.get("q") or "")[:1000],
                            configured=bool(current_app.config.get("OPENAI_API_KEY")))
 
 
