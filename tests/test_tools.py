@@ -19,7 +19,7 @@ def test_normalize_adds_deadline_and_cleans():
         {"condition": "", "outcome": "denied"}, {"condition": "Knee", "outcome": "weird"}],
         "next_steps": [{"option": "Supplemental Claim", "fits_when": "Add a nexus opinion."}]}
     out = dl.normalize(raw)
-    assert out["review_deadline"] == "2027-04-10"
+    assert out["review_deadline"] == "April 10, 2027"
     assert [i["outcome"] for i in out["decisions"]] == ["granted", "other"]
 
 
@@ -45,7 +45,7 @@ def test_explainer_page_and_result(client):
     assert c.get("/tools/decision-letter", headers=HTTPS).status_code == 200
     r = c.post("/tools/decision-letter", data={"letter_text": LETTER}, headers=HTTPS)
     html = r.get_data(as_text=True)
-    assert r.status_code == 200 and "Tinnitus" in html and "2027-04-10" in html
+    assert r.status_code == 200 and "Tinnitus" in html and "April 10, 2027" in html
     assert "123-45-6789" not in seen["user"]
 
 
@@ -90,3 +90,10 @@ def test_cp_prep_sheets(client):
     for k in ["back", "knee", "ptsd", "sleep-apnea", "tinnitus", "general"]:
         html = c.get(f"/tools/cp-exam-prep?condition={k}", headers=HTTPS).get_data(as_text=True)
         assert "Be ready to describe" in html
+
+
+def test_denials_always_list_the_three_review_paths():
+    out = dl.normalize({"decision_date": "2026-04-10", "items": [{"condition": "Knee", "outcome": "denied"}],
+                        "next_steps": [{"option": "Other", "fits_when": "This text does not describe review options."}]})
+    names = [s["option"] for s in out["next_steps"]]
+    assert names == ["Supplemental Claim", "Higher-Level Review", "Board Appeal"]

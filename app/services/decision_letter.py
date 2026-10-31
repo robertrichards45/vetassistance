@@ -72,6 +72,18 @@ def normalize(raw: dict) -> dict:
                       "reason": s(it.get("reason"), 500)})
     steps = [{"option": s(x.get("option"), 40), "fits_when": s(x.get("fits_when"), 300)}
              for x in (raw.get("next_steps") or [])[:5] if isinstance(x, dict) and s(x.get("option"))]
+    standard = {
+        "Supplemental Claim": "Fits when you can add new evidence VA didn't have, such as a medical opinion linking the condition to service.",
+        "Higher-Level Review": "Fits when you think VA made an error with the evidence it already had. No new evidence is allowed.",
+        "Board Appeal": "Fits when you want a Veterans Law Judge to decide. It takes longer; you can choose to add evidence or ask for a hearing.",
+    }
+    if any(i["outcome"] in ("denied", "reduced") for i in items):
+        have = {st["option"] for st in steps}
+        steps = [st for st in steps if st["option"] != "Other" or st["fits_when"]]
+        for name, why in standard.items():
+            if name not in have:
+                steps.append({"option": name, "fits_when": why})
+        steps = [st for st in steps if not (st["option"] == "Other" and "does not describe" in st["fits_when"].lower())]
     decided = parse_date(s(raw.get("decision_date"), 30))
     return {
         "summary": s(raw.get("summary"), 800),
@@ -80,9 +92,9 @@ def normalize(raw: dict) -> dict:
         "evidence_gaps": [s(x, 300) for x in (raw.get("evidence_gaps") or [])[:8] if s(x)],
         "next_steps": steps,
         "questions": [s(x, 300) for x in (raw.get("questions_to_check") or [])[:6] if s(x)],
-        "decision_date": decided.isoformat() if decided else "",
+        "decision_date": decided.strftime("%B %d, %Y") if decided else "",
         # Supplemental Claim, Higher-Level Review and Board Appeal must generally be filed within one year of the decision date.
-        "review_deadline": (decided + timedelta(days=365)).isoformat() if decided else "",
+        "review_deadline": (decided + timedelta(days=365)).strftime("%B %d, %Y") if decided else "",
     }
 
 
