@@ -221,6 +221,18 @@ def traffic():
     finally:
         hdb.close()
 
+    # These are operational sign-up/case counts, not attributed website conversions.
+    cdb = SessionLocal()
+    try:
+        new_diy_accounts = (cdb.query(func.count(DIYAccount.id))
+                            .filter(DIYAccount.org_id == current_user.org_id, DIYAccount.created_at >= since)
+                            .scalar() or 0)
+        new_client_records = (cdb.query(func.count(Client.id))
+                              .filter(Client.org_id == current_user.org_id, Client.created_at >= since)
+                              .scalar() or 0)
+    finally:
+        cdb.close()
+
     def source(host):
         h = (host or "").lower()
         if not h:
@@ -242,6 +254,7 @@ def traffic():
         top_paths=top_paths,
         daily=[(str(d)[:10], int(c or 0)) for d, c in daily],
         h_views=h_views, h_people=h_people, h_today=h_today, h_mobile=h_mobile, h_since=h_since,
+        new_diy_accounts=new_diy_accounts, new_client_records=new_client_records,
         h_daily=[(str(d)[:10], int(c or 0)) for d, c in h_daily], h_pages=h_pages,
         h_refs=sorted(refs.items(), key=lambda kv: -kv[1]),
     )
