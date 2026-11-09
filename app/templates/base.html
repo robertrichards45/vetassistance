@@ -7,7 +7,16 @@
   {% set page_title = meta_title or COMPANY_NAME %}
   {% set page_desc = meta_description or "Veteran claims guidance, evidence checklists, rating criteria, and secure tools to help veterans prepare strong VA claims." %}
   {% set endpoint = request.endpoint or '' %}
-  {% set is_public = endpoint.startswith('public.') or endpoint.startswith('tools.') or endpoint in ['diy.landing','diy.register','diy.login'] %}
+  {# Only explicitly approved, genuinely public pages may be indexed. #}
+  {% set is_public = endpoint.startswith('public.') or endpoint in [
+    'onboard.become_client',
+    'resources.benefits_finder',
+    'tools.decision_letter',
+    'tools.intent_to_file',
+    'tools.cp_exam_prep',
+    'diy.landing'
+  ] %}
+  {% set seo_base_url = config.get('SEO_BASE_URL', 'https://vetassistance.org').rstrip('/') %}
   <title>{% block title %}{{ page_title }}{% endblock %}</title>
   <meta name="description" content="{{ page_desc }}">
   {% if SEARCH_VERIFY.google %}<meta name="google-site-verification" content="{{ SEARCH_VERIFY.google }}">{% endif %}
@@ -17,17 +26,17 @@
   {% else %}
     <meta name="robots" content="noindex,nofollow">
   {% endif %}
-  <link rel="canonical" href="{{ request.url_root.rstrip('/') }}{{ request.path }}">
+  <link rel="canonical" href="{{ seo_base_url }}{{ request.path }}">
   <meta property="og:type" content="website">
   <meta property="og:title" content="{{ page_title }}">
   <meta property="og:description" content="{{ page_desc }}">
-  <meta property="og:url" content="{{ request.url_root.rstrip('/') }}{{ request.path }}">
+  <meta property="og:url" content="{{ seo_base_url }}{{ request.path }}">
   <meta property="og:site_name" content="{{ COMPANY_NAME }}">
-  <meta property="og:image" content="{{ request.url_root.rstrip('/') }}{{ url_for('static', filename='brand/og-image.png') }}">
+  <meta property="og:image" content="{{ seo_base_url }}{{ url_for('static', filename='brand/og-image.png') }}">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:image" content="{{ request.url_root.rstrip('/') }}{{ url_for('static', filename='brand/og-image.png') }}">
+  <meta name="twitter:image" content="{{ seo_base_url }}{{ url_for('static', filename='brand/og-image.png') }}">
   <meta name="theme-color" content="#14325A">
   <meta name="twitter:title" content="{{ page_title }}">
   <meta name="twitter:description" content="{{ page_desc }}">
