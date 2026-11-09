@@ -69,6 +69,8 @@ class BaseConfig:
 
     # Branding
     SITE_NAME = os.environ.get("SITE_NAME", "Veteran Benefits Assistance")
+    # Canonical website origin, independent of the visitor's Host header.
+    SEO_BASE_URL = os.environ.get("SEO_BASE_URL", "https://vetassistance.org").rstrip("/")
     SUPPORT_EMAIL = os.environ.get("SUPPORT_EMAIL", "veteranclaimsassistance@gmail.com")
     SUPPORT_PHONE = os.environ.get("SUPPORT_PHONE", "229-848-1633")
     DEFAULT_TENANT = os.environ.get("DEFAULT_TENANT", "Veteran Benefits Assistance")

@@ -7,6 +7,12 @@ on:
       - "app/**"
       - "tests/**"
       - ".github/workflows/qa-onboarding.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "tests/**"
+      - ".github/workflows/qa-onboarding.yml"
   workflow_dispatch:
 
 jobs:
@@ -31,4 +37,4 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt -r requirements-dev.txt
       - name: Exercise onboarding with fake email and disposable SQLite
-        run: python -m pytest -q tests/test_client_onboarding.py tests/test_email.py
+        run: python -m pytest -q tests/test_client_onboarding.py tests/test_email.py tests/test_seo.py

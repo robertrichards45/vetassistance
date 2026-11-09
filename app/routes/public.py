@@ -252,7 +252,7 @@ def bing_site_auth():
 
 @public_bp.get("/robots.txt")
 def robots_txt():
-    base_url = request.url_root.rstrip("/")
+    base_url = current_app.config.get("SEO_BASE_URL", "https://vetassistance.org").rstrip("/")
     content = "\n".join([
         "User-agent: *",
         "Disallow: /portal/",
@@ -271,8 +271,7 @@ def robots_txt():
 
 @public_bp.get("/sitemap.xml")
 def sitemap_xml():
-    base_url = request.url_root.rstrip("/")
-    today = datetime.date.today().isoformat()
+    base_url = current_app.config.get("SEO_BASE_URL", "https://vetassistance.org").rstrip("/")
     routes = [
         url_for("public.home"),
         url_for("public.benefits_hub"),
@@ -295,10 +294,7 @@ def sitemap_xml():
         url_for("public.security"),
         url_for("public.contact"),
         url_for("public.professional"),
-        url_for("cfr.ratings_chart"),
         url_for("diy.landing"),
-        url_for("diy.register"),
-        url_for("diy.login"),
     ]
     urls = []
     for r in routes:
@@ -306,7 +302,6 @@ def sitemap_xml():
         urls.append(
             "<url>"
             f"<loc>{loc}</loc>"
-            f"<lastmod>{today}</lastmod>"
             "<changefreq>weekly</changefreq>"
             "<priority>0.7</priority>"
             "</url>"
